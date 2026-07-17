@@ -1,0 +1,53 @@
+'use client';
+
+import * as React from 'react';
+import { motion, HTMLMotionProps } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'children'> {
+  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  isLoading?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  children?: React.ReactNode;
+}
+
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'primary', size = 'md', isLoading, leftIcon, rightIcon, children, ...props }, ref) => {
+    
+    const baseStyles = 'inline-flex items-center justify-center font-sans font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
+    
+    const variants = {
+      primary: 'bg-primary text-white hover:bg-secondary hover:shadow-primary-glow',
+      secondary: 'bg-secondary text-white hover:bg-primary/95',
+      accent: 'bg-accent text-neutral-dark hover:bg-accent/80 hover:shadow-accent',
+      outline: 'bg-transparent border-2 border-slate-700 text-white hover:bg-slate-800 hover:border-slate-500',
+      ghost: 'bg-transparent text-slate-300 hover:bg-slate-900 hover:text-white',
+    };
+
+    const sizes = {
+      sm: 'px-4 py-2 text-xs',
+      md: 'px-6 py-3 text-sm',
+      lg: 'px-8 py-4 text-base',
+    };
+
+    return (
+      <motion.button
+        ref={ref}
+        whileTap={{ scale: 0.98 }}
+        className={cn(baseStyles, variants[variant], sizes[size], className)}
+        disabled={isLoading || props.disabled}
+        {...props}
+      >
+        {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" />}
+        {!isLoading && leftIcon && <span className="mr-2 inline-flex shrink-0">{leftIcon}</span>}
+        {children}
+        {!isLoading && rightIcon && <span className="ml-2 inline-flex shrink-0">{rightIcon}</span>}
+      </motion.button>
+    );
+  }
+);
+
+Button.displayName = 'Button';
