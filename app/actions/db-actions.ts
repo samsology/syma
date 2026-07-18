@@ -106,25 +106,22 @@ export async function submitEnrollmentAction(
 
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const enrollmentId = crypto.randomUUID();
+
+    const { error } = await supabase
       .from('enrollments')
       .insert({
+        id: enrollmentId,
         full_name: validated.fullName,
         email: validated.email,
         phone: validated.phone,
         program: validated.program,
         experience: validated.experience,
         motivation: validated.motivation,
-      })
-      .select('id')
-      .single();
+      });
 
     if (error) {
       throw new Error(error.message);
-    }
-
-    if (!data) {
-      throw new Error('Failed to retrieve inserted enrollment ID');
     }
 
     await sendBestEffortEmail(() =>
@@ -135,7 +132,7 @@ export async function submitEnrollmentAction(
       })
     );
 
-    return { success: true, data: { id: data.id } };
+    return { success: true, data: { id: enrollmentId } };
   } catch (err) {
     const error = err as Error;
     console.error('submitEnrollmentAction error:', error);
@@ -160,25 +157,22 @@ export async function submitConsultationAction(
 
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const consultationId = crypto.randomUUID();
+
+    const { error } = await supabase
       .from('consultations')
       .insert({
+        id: consultationId,
         full_name: validated.fullName,
         email: validated.email,
         company_name: validated.companyName,
         consultation_type: validated.consultationType,
         message: validated.message,
         preferred_date: validated.preferredDate,
-      })
-      .select('id')
-      .single();
+      });
 
     if (error) {
       throw new Error(error.message);
-    }
-
-    if (!data) {
-      throw new Error('Failed to retrieve inserted consultation ID');
     }
 
     await sendBestEffortEmail(() =>
@@ -189,7 +183,7 @@ export async function submitConsultationAction(
       })
     );
 
-    return { success: true, data: { id: data.id } };
+    return { success: true, data: { id: consultationId } };
   } catch (err) {
     const error = err as Error;
     console.error('submitConsultationAction error:', error);
@@ -214,23 +208,20 @@ export async function submitContactAction(
 
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const contactMessageId = crypto.randomUUID();
+
+    const { error } = await supabase
       .from('contact_messages')
       .insert({
+        id: contactMessageId,
         name: validated.name,
         email: validated.email,
         subject: validated.subject,
         message: validated.message,
-      })
-      .select('id')
-      .single();
+      });
 
     if (error) {
       throw new Error(error.message);
-    }
-
-    if (!data) {
-      throw new Error('Failed to retrieve inserted contact message ID');
     }
 
     await sendBestEffortEmail(() =>
@@ -241,7 +232,7 @@ export async function submitContactAction(
       })
     );
 
-    return { success: true, data: { id: data.id } };
+    return { success: true, data: { id: contactMessageId } };
   } catch (err) {
     const error = err as Error;
     console.error('submitContactAction error:', error);
