@@ -7,7 +7,7 @@ import {
   sendConsultationConfirmation,
   sendContactConfirmation,
   sendEnrollmentConfirmation,
-} from '@/lib/email/resend';
+} from '@/lib/email/email';
 
 // Validation Schemas
 const enrollmentSchema = z.object({

@@ -6,18 +6,18 @@ type SendEmailInput = {
   replyTo?: string;
 };
 
-const RESEND_API_URL = 'https://api.resend.com/emails';
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 function getEmailConfig() {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from =
-    process.env.RESEND_FROM_EMAIL || 'Syma Tech Solutions <onboarding@resend.dev>';
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || 'symatechsolutions@gmail.com';
+  const senderName = process.env.BREVO_SENDER_NAME || 'Syma Tech Solutions';
 
   if (!apiKey) {
     return null;
   }
 
-  return { apiKey, from };
+  return { apiKey, senderEmail, senderName };
 }
 
 export async function sendTransactionalEmail({
@@ -30,33 +30,55 @@ export async function sendTransactionalEmail({
   const config = getEmailConfig();
 
   if (!config) {
-    console.warn('Skipping email because RESEND_API_KEY is not configured.');
+    console.warn('Skipping email because BREVO_API_KEY is not configured.');
     return { skipped: true };
   }
 
-  const response = await fetch(RESEND_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      'Content-Type': 'application/json',
+  const payload: {
+    sender: { name: string; email: string };
+    to: { email: string }[];
+    subject: string;
+    htmlContent: string;
+    textContent: string;
+    replyTo?: { email: string };
+  } = {
+    sender: {
+      name: config.senderName,
+      email: config.senderEmail,
     },
-    body: JSON.stringify({
-      from: config.from,
-      to,
-      subject,
-      html,
-      text,
-      reply_to: replyTo,
-    }),
-  });
+    to: [
+      {
+        email: to,
+      },
+    ],
+    subject,
+    htmlContent: html,
+    textContent: text,
+  };
 
-  const payload = await response.json();
-
-  if (!response.ok) {
-    throw new Error(payload.message || 'Unable to send email.');
+  if (replyTo) {
+    payload.replyTo = {
+      email: replyTo,
+    };
   }
 
-  return payload;
+  const response = await fetch(BREVO_API_URL, {
+    method: 'POST',
+    headers: {
+      'api-key': config.apiKey,
+      'Content-Type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Unable to send email via Brevo.');
+  }
+
+  return data;
 }
 
 function escapeHtml(value: string) {
@@ -80,13 +102,13 @@ export async function sendEnrollmentConfirmation(input: {
     to: input.email,
     subject: 'Your Syma Tech application has been received',
     html: `
-      <p>Hello ${name},</p>
+      <p>Hi ${name},</p>
       <p>Thank you for applying to Syma Tech Solutions.</p>
-      <p>We have received your application for <strong>${program}</strong>. If your selected program requires payment, you will be directed to complete payment securely through Paystack.</p>
+      <p>We have received your application for <strong>${program}</strong>.</p>
       <p>Our team will review your submission and follow up with the next steps.</p>
       <p>Syma Tech Solutions</p>
     `,
-    text: `Hello ${input.fullName},\n\nThank you for applying to Syma Tech Solutions. We have received your application for ${input.program}. If your selected program requires payment, you will be directed to complete payment securely through Paystack.\n\nOur team will review your submission and follow up with the next steps.\n\nSyma Tech Solutions`,
+    text: `Hi ${input.fullName},\n\nThank you for applying to Syma Tech Solutions. We have received your application for ${input.program}.\n\nOur team will review your submission and follow up with the next steps.\n\nSyma Tech Solutions`,
   });
 }
 
@@ -102,12 +124,12 @@ export async function sendConsultationConfirmation(input: {
     to: input.email,
     subject: 'Your Syma Tech consultation request has been received',
     html: `
-      <p>Hello ${name},</p>
+      <p>Hi ${name},</p>
       <p>Thank you for requesting a consultation with Syma Tech Solutions.</p>
       <p>We have received your request for <strong>${consultationType}</strong>. Our team will review your details and contact you with the next step.</p>
       <p>Syma Tech Solutions</p>
     `,
-    text: `Hello ${input.fullName},\n\nThank you for requesting a consultation with Syma Tech Solutions. We have received your request for ${input.consultationType}. Our team will review your details and contact you with the next step.\n\nSyma Tech Solutions`,
+    text: `Hi ${input.fullName},\n\nThank you for requesting a consultation with Syma Tech Solutions. We have received your request for ${input.consultationType}. Our team will review your details and contact you with the next step.\n\nSyma Tech Solutions`,
   });
 }
 
@@ -123,13 +145,12 @@ export async function sendContactConfirmation(input: {
     to: input.email,
     subject: 'Syma Tech Solutions received your message',
     html: `
-      <p>Hello ${name},</p>
+      <p>Hi ${name},</p>
       <p>Thank you for contacting Syma Tech Solutions.</p>
       <p>We have received your message about <strong>${subject}</strong>. Our team will reply as soon as possible.</p>
       <p>Syma Tech Solutions</p>
     `,
-    text: `Hello ${input.name},\n\nThank you for contacting Syma Tech Solutions. We have received your message about ${input.subject}. Our team will reply as soon as possible.\n\nSyma Tech Solutions`,
+    text: `Hi ${input.name},\n\nThank you for contacting Syma Tech Solutions. We have received your message about ${input.subject}. Our team will reply as soon as possible.\n\nSyma Tech Solutions`,
     replyTo: process.env.SYMA_REPLY_TO_EMAIL,
   });
 }
-
