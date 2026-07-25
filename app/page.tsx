@@ -78,7 +78,7 @@ const graduateStories = [
     role: 'Data Analyst, Retail Operations',
     graduationYear: '2025',
     cohort: 'Data Analytics Cohort 8',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
+    image: '/images/Testimonials/Testimonial_001.png',
     quote:
       'The capstone project helped me explain business numbers with confidence. I left with a dashboard and a story I could defend in interviews.',
   },
@@ -87,7 +87,7 @@ const graduateStories = [
     role: 'BI Associate',
     graduationYear: '2024',
     cohort: 'Business Intelligence Cohort 5',
-    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+    image: '/images/Testimonials/Testimonial_002.png',
     quote:
       'Mentor reviews made the biggest difference. My Power BI report went from basic charts to an executive-ready project.',
   },
@@ -96,7 +96,7 @@ const graduateStories = [
     role: 'Python Data Intern',
     graduationYear: '2025',
     cohort: 'Python for Data Science Cohort 3',
-    image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80',
+    image: '/images/Testimonials/Testimonial_003.png',
     quote:
       'I learned how to clean messy datasets, use notebooks properly, and present findings like real workplace analysis.',
   },
@@ -359,4 +359,3 @@ export default function Home() {
     </div>
   );
 }
-

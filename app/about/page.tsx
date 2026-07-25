@@ -38,7 +38,7 @@ const milestones = [
     description: 'Africa needs stronger systems for turning health, research, and business information into decisions that improve lives and institutions.',
   },
   {
-    year: 'Founder',
+    year: 'Co-founder',
     title: 'Biomedical Roots',
     description: 'Samuel Johnson brings a B.Sc. in Human Anatomy from Ahmadu Bello University, Zaria, and a deep interest in healthcare analytics, bioinformatics, neuroscience, AI, and public health.',
   },
@@ -50,7 +50,7 @@ const milestones = [
   {
     year: 'Vision',
     title: 'A Long-Term Scientific Ambition',
-    description: 'The founder’s long-term vision is to apply artificial intelligence, computational biology, and data science to solve Africa’s healthcare challenges and contribute to global science.',
+    description: "The co-founders' long-term vision is to apply artificial intelligence, computational biology, and data science to solve Africa's healthcare challenges and contribute to global science.",
   },
 ];
 
@@ -76,19 +76,19 @@ export default function About() {
       <section className="py-20 lg:py-28">
         <Container>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
-            <div className="lg:col-span-5 relative h-96 w-full rounded-3xl overflow-hidden border border-slate-200 shadow-lg bg-slate-50">
+            <div className="lg:col-span-5 relative mx-auto h-80 w-80 max-w-full overflow-hidden rounded-full border-4 border-white shadow-xl ring-1 ring-slate-200 bg-slate-50">
               <Image
                 src="/images/profile_section.png"
-                alt="Samuel Johnson, founder of Syma Tech Solutions"
+                alt="Samuel Johnson, Co-founder of Syma Tech Solutions"
                 fill
                 priority
                 className="object-cover"
-                sizes="(max-width: 768px) 100vw, 40vw"
+                sizes="(max-width: 768px) 80vw, 320px"
               />
             </div>
             <div className="lg:col-span-7 space-y-6">
-              <span className="text-xs font-bold text-primary uppercase tracking-widest block">Founder Story</span>
-              <h2 className="text-3xl font-bold font-heading text-neutral-dark">Founded by Samuel Johnson</h2>
+              <span className="text-xs font-bold text-primary uppercase tracking-widest block">Co-founder Story</span>
+              <h2 className="text-3xl font-bold font-heading text-neutral-dark">Samuel Johnson</h2>
               <p className="text-slate-600 leading-relaxed">
                 Samuel Johnson is a Healthcare Data Analyst, Bioinformatics Enthusiast, and Technology Entrepreneur with a background in Human Anatomy from Ahmadu Bello University, Zaria.
               </p>
@@ -96,16 +96,69 @@ export default function About() {
                 His work combines biomedical sciences, healthcare analytics, business intelligence, and technology to improve healthcare delivery, research outcomes, and evidence-based decision-making across Africa.
               </p>
               <p className="text-slate-600 leading-relaxed">
-                Syma Tech Solutions was founded to bridge healthcare, research, and technology through analytics consulting, business intelligence solutions, research support, and professional education.
+                Syma Tech Solutions was co-founded to bridge healthcare, research, and technology through analytics consulting, business intelligence solutions, research support, and professional education.
               </p>
               <div className="pt-4 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary text-white font-bold flex items-center justify-center shadow-md">
-                  SJ
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-primary/20 bg-primary text-white font-bold flex items-center justify-center shadow-md">
+                  <Image src="/images/profile_section.png" alt="Samuel Johnson, Co-founder, Healthcare Data Analyst and Technology Entrepreneur" fill className="object-cover" sizes="56px" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-bold text-slate-900">Samuel Johnson</h4>
-                  <span className="text-xs text-slate-400">Founder, Healthcare Data Analyst & Technology Entrepreneur</span>
+                  <span className="block text-xs text-slate-400">Co-founder, Healthcare Data Analyst & Technology Entrepreneur</span>
                 </div>
+                <a
+                  href="https://www.linkedin.com/in/samuel-johnson-766b2a337/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Samuel Johnson on LinkedIn"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-secondary transition-colors hover:border-secondary hover:bg-secondary hover:text-white"
+                >
+                  <span className="text-sm font-bold leading-none">in</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      <section className="py-20 lg:py-28 bg-slate-50 border-y border-slate-100">
+        <Container>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+            <div className="lg:col-span-5 relative mx-auto h-80 w-80 max-w-full overflow-hidden rounded-full border-4 border-white shadow-xl ring-1 ring-slate-200 bg-slate-50">
+              <Image
+                src="/images/profile_section_1.png"
+                alt="Oluyori Gabriel, Co-founder of Syma Tech Solutions"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 80vw, 320px"
+              />
+            </div>
+            <div className="lg:col-span-7 space-y-6">
+              <span className="text-xs font-bold text-primary uppercase tracking-widest block">Co-founder Story</span>
+              <h2 className="text-3xl font-bold font-heading text-neutral-dark">Oluyori Gabriel</h2>
+              <p className="text-slate-600 leading-relaxed">
+                Oluyori Gabriel is a software development expert with a background in electrical engineering, bringing engineering discipline and practical software capability to Syma Tech Solutions.
+              </p>
+              <p className="text-slate-600 leading-relaxed">
+                His work strengthens Syma Tech Solutions&apos; technology delivery across software development, practical implementation, and digital systems for healthcare, research, and business needs.
+              </p>
+              <div className="pt-4 flex items-center gap-4">
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-primary/20 bg-primary text-white font-bold flex items-center justify-center shadow-md">
+                  <Image src="/images/profile_section_1.png" alt="Oluyori Gabriel, Co-founder and Software Development Expert" fill className="object-cover" sizes="56px" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-bold text-slate-900">Oluyori Gabriel</h4>
+                  <span className="block text-xs text-slate-400">Co-founder, Software Development Expert</span>
+                </div>
+                <a
+                  href="https://www.linkedin.com/in/ol-a-619277269"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Oluyori Gabriel on LinkedIn"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-secondary transition-colors hover:border-secondary hover:bg-secondary hover:text-white"
+                >
+                  <span className="text-sm font-bold leading-none">in</span>
+                </a>
               </div>
             </div>
           </div>
