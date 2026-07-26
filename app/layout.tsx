@@ -19,9 +19,9 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   icons: {
-    icon: '/logo/logo_2.png',
-    shortcut: '/logo/logo_2.png',
-    apple: '/logo/logo_2.png',
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
   },
   openGraph: {
     type: 'website',
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
       'Healthcare analytics, research intelligence, business intelligence, technology solutions, and professional data education for organizations and professionals.',
     images: [
       {
-        url: '/images/SYMA TECH.jpg',
+        url: '/images/SYMA TECH.webp',
         width: 1200,
         height: 630,
         alt: 'Syma Tech Solutions - Health and Research Intelligence',
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     title: 'Syma Tech Solutions | Health & Research Intelligence',
     description:
       'Healthcare analytics, research intelligence, business intelligence, dashboard development, and professional data education in Nigeria.',
-    images: ['/images/SYMA TECH.jpg'],
+    images: ['/images/SYMA TECH.webp'],
     creator: '@Symatech',
   },
   robots: {
@@ -71,7 +71,7 @@ export default function RootLayout({
     '@type': 'Organization',
     name: 'Syma Tech Solutions',
     url: siteUrl,
-    logo: `${siteUrl}/logo/logo_2.png`,
+    logo: `${siteUrl}/logo/logo_2.webp`,
     description:
       'Syma Tech Solutions is a Health & Research Intelligence company advancing healthcare, research, business intelligence, and professional education across Africa.',
     sameAs: ['https://twitter.com/Symatech', 'https://www.linkedin.com/company/syma-tech/'],

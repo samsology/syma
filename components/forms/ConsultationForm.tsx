@@ -10,16 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { submitConsultationAction } from '@/app/actions/db-actions';
 
-// 1. Zod Validation Schema
-const consultationSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  companyName: z.string().min(2, 'Organization Name must be at least 2 characters'),
-  consultationType: z.string().min(1, 'Please select a consultation type'),
-  message: z.string().min(15, 'Message must be at least 15 characters'),
-  preferredDate: z.string().min(1, 'Please select a preferred date'),
-  honeypot: z.string().optional(),
-});
+import { consultationSchema } from '@/lib/validation';
 
 type ConsultationInput = z.infer<typeof consultationSchema>;
 

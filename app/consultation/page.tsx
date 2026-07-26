@@ -1,13 +1,7 @@
-'use client';
-
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import ConsultationForm from '@/components/forms/ConsultationForm';
-
-function ConsultationContent() {
-  return <ConsultationForm />;
-}
 
 export default function Consultation() {
   return (
@@ -36,10 +30,9 @@ export default function Consultation() {
             </div>
           }
         >
-          <ConsultationContent />
+          <ConsultationForm />
         </Suspense>
       </Container>
     </div>
   );
 }
-

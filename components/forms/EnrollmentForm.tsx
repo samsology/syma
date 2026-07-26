@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,16 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { submitEnrollmentAction } from '@/app/actions/db-actions';
 
-// 1. Zod Validation Schema
-const enrollmentSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  phone: z.string().min(10, 'Please enter a valid phone number (at least 10 digits)'),
-  program: z.string().min(1, 'Please select a program'),
-  experience: z.string().min(1, 'Please select your experience level'),
-  motivation: z.string().min(15, 'Motivation statement must be at least 15 characters'),
-  honeypot: z.string().optional(),
-});
+import { enrollmentSchema } from '@/lib/validation';
 
 type EnrollmentInput = z.infer<typeof enrollmentSchema>;
 
@@ -40,6 +31,8 @@ const experienceLevels = [
 
 export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram?: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const programParam = searchParams?.get('program') || defaultProgram;
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -54,7 +47,7 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
       fullName: '',
       email: '',
       phone: '',
-      program: defaultProgram,
+      program: programParam,
       experience: '',
       motivation: '',
       honeypot: '',

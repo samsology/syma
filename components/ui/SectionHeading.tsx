@@ -10,6 +10,7 @@ export interface SectionHeadingProps extends Omit<HTMLMotionProps<'div'>, 'title
   description?: string;
   align?: 'left' | 'center';
   animate?: boolean;
+  theme?: 'light' | 'dark';
 }
 
 export const SectionHeading = React.forwardRef<HTMLDivElement, SectionHeadingProps>(
@@ -21,6 +22,7 @@ export const SectionHeading = React.forwardRef<HTMLDivElement, SectionHeadingPro
       description,
       align = 'center',
       animate = true,
+      theme = 'light',
       initial,
       whileInView,
       viewport,
@@ -36,6 +38,8 @@ export const SectionHeading = React.forwardRef<HTMLDivElement, SectionHeadingPro
       className
     );
 
+    const isDark = theme === 'dark';
+
     const content = (
       <>
         {badge && (
@@ -43,19 +47,27 @@ export const SectionHeading = React.forwardRef<HTMLDivElement, SectionHeadingPro
             className={cn(
               'inline-flex items-center gap-2 px-3.5 py-1 rounded-full border text-xs font-bold uppercase tracking-wider',
               align === 'center' ? 'mx-auto' : '',
-              'border-primary/20 bg-primary/5 text-accent shadow-sm shadow-primary/5'
+              isDark
+                ? 'border-primary/20 bg-primary/5 text-accent shadow-sm shadow-primary/5'
+                : 'border-primary/20 bg-primary/5 text-primary shadow-sm shadow-primary/5'
             )}
           >
             {badge}
           </div>
         )}
 
-        <h2 className="text-3xl sm:text-4xl font-extrabold font-heading text-white leading-tight tracking-tight">
+        <h2 className={cn(
+          "text-3xl sm:text-4xl font-extrabold font-heading leading-tight tracking-tight",
+          isDark ? "text-white" : "text-slate-900"
+        )}>
           {title}
         </h2>
 
         {description && (
-          <p className="text-base sm:text-lg text-slate-400 font-sans leading-relaxed max-w-2xl mx-auto">
+          <p className={cn(
+            "text-base sm:text-lg font-sans leading-relaxed max-w-2xl mx-auto",
+            isDark ? "text-slate-400" : "text-slate-655 text-slate-600"
+          )}>
             {description}
           </p>
         )}

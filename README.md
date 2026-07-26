@@ -10,7 +10,6 @@ Applicants can:
 
 - Browse programs
 - Submit an application
-- Pay for paid programs through Paystack
 - Book a consultation
 - Contact Syma Tech Solutions
 - Receive confirmation emails
@@ -23,18 +22,18 @@ Copy `.env.example` to `.env.local` for local development:
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-`RESEND_API_KEY` is optional during local development. If it is missing, confirmation emails are skipped and the form submissions still work.
+`BREVO_API_KEY` is optional during local development. If it is missing, confirmation emails are skipped and the form submissions still work.
 
 For production, configure these values in your hosting provider and GitHub repository settings:
 
 | Name | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | Variable | Yes | Public site URL used for metadata, sitemap, robots, and payment callbacks. |
+| `NEXT_PUBLIC_SITE_URL` | Variable | Yes | Public site URL used for metadata, sitemap, and robots. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Secret | Yes | Supabase project URL. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Secret | Yes | Supabase anon key used by browser and server clients. |
-| `PAYSTACK_SECRET_KEY` | Secret | Yes | Live Paystack secret key for payment initialization and verification. |
-| `RESEND_API_KEY` | Secret | No | Enables transactional email sending. |
-| `RESEND_FROM_EMAIL` | Variable | No | Defaults to the Resend onboarding sender if unset. Use a verified production sender. |
+| `BREVO_API_KEY` | Secret | No | Enables transactional email sending via Brevo. |
+| `BREVO_SENDER_EMAIL` | Variable | No | Verified Brevo sender email. |
+| `BREVO_SENDER_NAME` | Variable | No | Name for the transactional email sender. |
 | `SYMA_REPLY_TO_EMAIL` | Variable | No | Reply-to address for contact confirmations. |
 | `NEXT_PUBLIC_GA_ID` | Variable | No | Google Analytics measurement ID. |
 | `NEXT_PUBLIC_CLARITY_ID` | Variable | No | Microsoft Clarity project ID. |

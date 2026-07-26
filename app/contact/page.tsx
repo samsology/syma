@@ -1,86 +1,8 @@
-'use client';
-
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle2, ChevronRight, Loader2, Mail, Phone, MapPin, Plus, Minus } from 'lucide-react';
-import { submitContactAction } from '@/app/actions/db-actions';
-
-const contactSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  subject: z.string().min(3, 'Subject must be at least 3 characters'),
-  message: z.string().min(10, 'Message must be at least 10 characters'),
-  honeypot: z.string().optional(),
-});
-
-type ContactInput = z.infer<typeof contactSchema>;
-
-const faqs = [
-  {
-    q: 'Who does Syma Tech Solutions work with?',
-    a: 'We work with healthcare organizations, NGOs, government programs, universities, research institutions, businesses, students, and early-career professionals.',
-  },
-  {
-    q: 'Do you still offer professional training?',
-    a: 'Yes. Our education arm trains professionals in healthcare analytics, Python, business intelligence, Power BI, SQL, and applied reporting through practical projects.',
-  },
-  {
-    q: 'What consulting services can we request?',
-    a: 'You can request healthcare analytics, research analysis, dashboard development, KPI reporting, data strategy, BI implementation, or team capacity building.',
-  },
-  {
-    q: 'Can you support research and healthcare datasets?',
-    a: 'Yes. We approach sensitive health and research data with confidentiality, careful data handling, clear documentation, and fit-for-purpose analytical methods.',
-  },
-];
+import { Mail, Phone, MapPin } from 'lucide-react';
+import ContactForm from '@/components/forms/ContactForm';
+import ContactFaq from '@/components/sections/ContactFaq';
 
 export default function Contact() {
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ContactInput>({
-    resolver: zodResolver(contactSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      subject: '',
-      message: '',
-      honeypot: '',
-    },
-  });
-
-  const onSubmit = async (data: ContactInput) => {
-    setLoading(true);
-    setErrorMsg(null);
-    try {
-      console.log('Contact message submitted:', data);
-      const res = await submitContactAction(data);
-      if (!res.success) {
-        throw new Error(res.error);
-      }
-      setIsSubmitted(true);
-      reset();
-    } catch (err) {
-      const error = err as Error;
-      setErrorMsg(error?.message || 'An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleFaq = (index: number) => {
-    setOpenFaq(openFaq === index ? null : index);
-  };
-
   return (
     <div className="relative bg-slate-950 text-white min-h-screen py-16 lg:py-24">
       {/* Glow highlight */}
@@ -138,7 +60,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <strong className="block text-white font-semibold mb-0.5">Email</strong>
-                  <a href="mailto:symatechsolution@gmail.com" className="hover:text-white transition-colors">symatechsolution@gmail.com</a>
+                  <a href="mailto:symatechsolutions@gmail.com" className="hover:text-white transition-colors">symatechsolutions@gmail.com</a>
                 </div>
               </div>
             </div>
@@ -151,144 +73,12 @@ export default function Contact() {
           </div>
 
           {/* Form */}
-          <div className="lg:col-span-7 bg-slate-900/40 border border-slate-800 rounded-3xl p-8 backdrop-blur-md shadow-2xl">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Honeypot spam trap */}
-              <div className="hidden" aria-hidden="true">
-                <input
-                  type="text"
-                  tabIndex={-1}
-                  autoComplete="off"
-                  {...register('honeypot')}
-                />
-              </div>
-              {errorMsg && (
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-400">
-                  {errorMsg}
-                </div>
-              )}
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Your Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  placeholder="Samuel Johnson"
-                  {...register('name')}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-secondary transition-colors"
-                />
-                {errors.name && <p className="text-xs text-red-400 font-semibold">{errors.name.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="you@domain.com"
-                  {...register('email')}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-secondary transition-colors"
-                />
-                {errors.email && <p className="text-xs text-red-400 font-semibold">{errors.email.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="subject" className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Subject Line
-                </label>
-                <input
-                  id="subject"
-                  type="text"
-                  placeholder="Healthcare analytics / Research support / BI training"
-                  {...register('subject')}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-secondary transition-colors"
-                />
-                {errors.subject && <p className="text-xs text-red-400 font-semibold">{errors.subject.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="message" className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Message
-                </label>
-                <textarea
-                  id="message"
-                  rows={5}
-                  placeholder="Tell us what you are trying to solve, build, study, or improve..."
-                  {...register('message')}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-secondary transition-colors resize-none"
-                />
-                {errors.message && <p className="text-xs text-red-400 font-semibold">{errors.message.message}</p>}
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100 transition-all"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> Sending message...
-                  </>
-                ) : (
-                  <>
-                    Send Message <ChevronRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
+          <ContactForm />
         </div>
 
         {/* FAQ Section */}
-        <div className="border-t border-slate-900 pt-16 space-y-12 max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center">Frequently Asked Questions</h2>
-          <div className="space-y-4">
-            {faqs.map((faq, i) => (
-              <div key={i} className="border border-slate-800/80 bg-slate-900/10 rounded-2xl overflow-hidden transition-all">
-                <button
-                  onClick={() => toggleFaq(i)}
-                  className="w-full px-6 py-5 flex items-center justify-between text-left font-bold text-white hover:bg-slate-900/30 transition-colors"
-                >
-                  <span>{faq.q}</span>
-                  {openFaq === i ? <Minus className="w-4 h-4 text-secondary" /> : <Plus className="w-4 h-4 text-secondary" />}
-                </button>
-                {openFaq === i && (
-                  <div className="px-6 pb-6 text-sm text-slate-400 leading-relaxed border-t border-slate-900/40 pt-4">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <ContactFaq />
       </div>
-
-      {isSubmitted && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 text-green-500 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 animate-bounce" />
-            </div>
-            <h3 className="text-xl font-bold text-green-500">Message Sent</h3>
-            <p className="text-green-400 font-semibold leading-relaxed text-sm">
-              Thank you, check your email for further action
-            </p>
-            <div className="pt-2">
-              <button
-                onClick={() => setIsSubmitted(false)}
-                className="w-full inline-flex items-center justify-center rounded-xl bg-green-600 hover:bg-green-700 px-6 py-3 font-bold text-white transition-all text-sm shadow-md shadow-green-600/10"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-
-

@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Eye, Handshake, Layers, Lightbulb, ShieldCheck, Target } from 'lucide-react';
@@ -78,7 +76,7 @@ export default function About() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
             <div className="lg:col-span-5 relative mx-auto h-80 w-80 max-w-full overflow-hidden rounded-full border-4 border-white shadow-xl ring-1 ring-slate-200 bg-slate-50">
               <Image
-                src="/images/profile_section.png"
+                src="/images/profile_section.webp"
                 alt="Samuel Johnson, Co-founder of Syma Tech Solutions"
                 fill
                 priority
@@ -100,7 +98,7 @@ export default function About() {
               </p>
               <div className="pt-4 flex items-center gap-4">
                 <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-primary/20 bg-primary text-white font-bold flex items-center justify-center shadow-md">
-                  <Image src="/images/profile_section.png" alt="Samuel Johnson, Co-founder, Healthcare Data Analyst and Technology Entrepreneur" fill className="object-cover" sizes="56px" />
+                  <Image src="/images/profile_section.webp" alt="Samuel Johnson, Co-founder, Healthcare Data Analyst and Technology Entrepreneur" fill className="object-cover" sizes="56px" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-bold text-slate-900">Samuel Johnson</h4>
@@ -126,7 +124,7 @@ export default function About() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
             <div className="lg:col-span-5 relative mx-auto h-80 w-80 max-w-full overflow-hidden rounded-full border-4 border-white shadow-xl ring-1 ring-slate-200 bg-slate-50">
               <Image
-                src="/images/profile_section_1.png"
+                src="/images/profile_section_1.webp"
                 alt="Oluyori Gabriel, Co-founder of Syma Tech Solutions"
                 fill
                 className="object-cover"
@@ -144,7 +142,7 @@ export default function About() {
               </p>
               <div className="pt-4 flex items-center gap-4">
                 <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-primary/20 bg-primary text-white font-bold flex items-center justify-center shadow-md">
-                  <Image src="/images/profile_section_1.png" alt="Oluyori Gabriel, Co-founder and Software Development Expert" fill className="object-cover" sizes="56px" />
+                  <Image src="/images/profile_section_1.webp" alt="Oluyori Gabriel, Co-founder and Software Development Expert" fill className="object-cover" sizes="56px" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-bold text-slate-900">Oluyori Gabriel</h4>

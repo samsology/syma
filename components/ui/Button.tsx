@@ -12,19 +12,26 @@ export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'children'>
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   children?: React.ReactNode;
+  theme?: 'light' | 'dark';
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', isLoading, leftIcon, rightIcon, children, ...props }, ref) => {
+  ({ className, variant = 'primary', size = 'md', isLoading, leftIcon, rightIcon, children, theme = 'light', ...props }, ref) => {
     
     const baseStyles = 'inline-flex items-center justify-center font-sans font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
     
+    const isDark = theme === 'dark';
+
     const variants = {
       primary: 'bg-primary text-white hover:bg-secondary hover:shadow-primary-glow',
       secondary: 'bg-secondary text-white hover:bg-primary/95',
       accent: 'bg-accent text-neutral-dark hover:bg-accent/80 hover:shadow-accent',
-      outline: 'bg-transparent border-2 border-slate-700 text-white hover:bg-slate-800 hover:border-slate-500',
-      ghost: 'bg-transparent text-slate-300 hover:bg-slate-900 hover:text-white',
+      outline: isDark
+        ? 'bg-transparent border-2 border-slate-700 text-white hover:bg-slate-800 hover:border-slate-500'
+        : 'bg-transparent border-2 border-slate-300 text-slate-800 hover:bg-slate-50 hover:border-slate-400',
+      ghost: isDark
+        ? 'bg-transparent text-slate-300 hover:bg-slate-900 hover:text-white'
+        : 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900',
     };
 
     const sizes = {

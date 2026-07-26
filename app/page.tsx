@@ -1,5 +1,3 @@
-'use client';
-
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -74,29 +72,29 @@ const whySyma = [
 
 const graduateStories = [
   {
-    name: 'Aisha Ibrahim',
+    name: 'Emmaunella A.',
     role: 'Data Analyst, Retail Operations',
     graduationYear: '2025',
     cohort: 'Data Analytics Cohort 8',
-    image: '/images/Testimonials/Testimonial_001.png',
+    image: '/images/Testimonials/Testimonial_001.webp',
     quote:
       'The capstone project helped me explain business numbers with confidence. I left with a dashboard and a story I could defend in interviews.',
   },
   {
-    name: 'Daniel Okafor',
+    name: 'Ezekiel O.',
     role: 'BI Associate',
     graduationYear: '2024',
     cohort: 'Business Intelligence Cohort 5',
-    image: '/images/Testimonials/Testimonial_002.png',
+    image: '/images/Testimonials/Testimonial_002.webp',
     quote:
       'Mentor reviews made the biggest difference. My Power BI report went from basic charts to an executive-ready project.',
   },
   {
-    name: 'Maryam Bello',
+    name: 'Ann I.',
     role: 'Python Data Intern',
     graduationYear: '2025',
     cohort: 'Python for Data Science Cohort 3',
-    image: '/images/Testimonials/Testimonial_003.png',
+    image: '/images/Testimonials/Testimonial_003.webp',
     quote:
       'I learned how to clean messy datasets, use notebooks properly, and present findings like real workplace analysis.',
   },

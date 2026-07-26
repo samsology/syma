@@ -1,17 +1,7 @@
-'use client';
-
 import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import EnrollmentForm from '@/components/forms/EnrollmentForm';
-
-function EnrollmentContent() {
-  const searchParams = useSearchParams();
-  const programParam = searchParams?.get('program') || '';
-
-  return <EnrollmentForm defaultProgram={programParam} />;
-}
 
 export default function Enroll() {
   return (
@@ -40,10 +30,9 @@ export default function Enroll() {
             </div>
           }
         >
-          <EnrollmentContent />
+          <EnrollmentForm />
         </Suspense>
       </Container>
     </div>
   );
 }
-

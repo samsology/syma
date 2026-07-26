@@ -25,7 +25,7 @@ export default function Navbar() {
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
           <Image
-            src="/logo/logo_2.png"
+            src="/logo/logo_2.webp"
             alt="Syma Tech Solutions logo"
             width={44}
             height={44}

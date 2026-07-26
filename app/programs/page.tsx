@@ -1,15 +1,11 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
+import FaqSection from '@/components/sections/FaqSection';
 import { motion } from 'framer-motion';
 import {
   ArrowDown,
   ArrowRight,
   ChevronRight,
   Clock,
-  Minus,
-  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardTitle } from '@/components/ui/Card';
@@ -138,24 +134,7 @@ const includedBenefits = [
   'Health, Research, and Business Datasets',
 ];
 
-const faqs = [
-  {
-    q: 'Do I need a coding or math background to enroll?',
-    a: 'No background is required. Healthcare Data Analytics starts with practical reporting, spreadsheet analysis, query logic, and dashboard thinking before progressing into decision-ready health and business intelligence outputs.',
-  },
-  {
-    q: 'How does mentor support work?',
-    a: 'Students receive project feedback, practical guidance, and review support during the cohort so they can keep moving from lessons into portfolio-ready work.',
-  },
-  {
-    q: 'Are there payment plans or installment options?',
-    a: 'Yes. Available installment options can be discussed during enrollment or an admissions consultation.',
-  },
-  {
-    q: 'What is the capstone project?',
-    a: 'The capstone is a practical project using business-style datasets. You will clean, analyze, visualize, and present insights in a way that mirrors real analytics work.',
-  },
-];
+
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 18 },
@@ -296,6 +275,7 @@ function IncludedBenefits() {
     <section className="border-y border-slate-100 bg-slate-50 py-20 lg:py-24">
       <Container>
         <SectionHeading
+          theme="light"
           badge="Included in Every Track"
           title="Every Syma Tech Program Includes"
           description="A consistent support system across all cohorts, built around practical outputs, professional confidence, and decision-ready work."
@@ -323,11 +303,6 @@ function IncludedBenefits() {
 }
 
 export default function Programs() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  const toggleFaq = (index: number) => {
-    setOpenFaq(openFaq === index ? null : index);
-  };
 
   return (
     <div className="min-h-screen bg-white py-16 font-sans text-slate-900 lg:py-24">
@@ -377,43 +352,7 @@ export default function Programs() {
       <LearningJourney />
       <IncludedBenefits />
 
-      <section className="bg-white py-20 lg:py-28">
-        <Container>
-          <SectionHeading
-            badge="Common Inquiries"
-            title="Frequently Asked Questions"
-            description="Clear details on cohort schedules, learning support, and project expectations."
-          />
-
-          <div className="mx-auto max-w-4xl space-y-4">
-            {faqs.map((faq, i) => (
-              <div
-                key={faq.q}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all duration-200 hover:border-slate-300"
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleFaq(i)}
-                  className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-bold text-slate-900 transition-colors hover:bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/25"
-                  aria-expanded={openFaq === i}
-                >
-                  <span className="font-heading">{faq.q}</span>
-                  {openFaq === i ? (
-                    <Minus className="h-4 w-4 shrink-0 text-primary" />
-                  ) : (
-                    <Plus className="h-4 w-4 shrink-0 text-primary" />
-                  )}
-                </button>
-                {openFaq === i && (
-                  <div className="border-t border-slate-100 px-6 pb-6 pt-4 text-sm leading-relaxed text-slate-500">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
+      <FaqSection />
 
       <section className="bg-white pb-24 lg:pb-32">
         <Container>

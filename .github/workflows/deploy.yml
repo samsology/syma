@@ -34,7 +34,7 @@ jobs:
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://symatechsolutions.com' }}
           NEXT_PUBLIC_GA_ID: ${{ vars.NEXT_PUBLIC_GA_ID }}
           NEXT_PUBLIC_CLARITY_ID: ${{ vars.NEXT_PUBLIC_CLARITY_ID }}
-          PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ vars.BREVO_SENDER_EMAIL }}
+          BREVO_SENDER_NAME: ${{ vars.BREVO_SENDER_NAME }}
           SYMA_REPLY_TO_EMAIL: ${{ vars.SYMA_REPLY_TO_EMAIL }}
