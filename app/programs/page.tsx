@@ -36,7 +36,7 @@ const programs: Program[] = [
     badge: 'Most Requested',
     price: 'NGN 70,000',
     secondaryPrice: 'Approx. $51',
-    duration: '12 Weeks',
+    duration: '11 Weeks',
     level: 'Beginner Friendly',
     description:
       'Master healthcare reporting, data visualization, dashboard development, SQL, Power BI, and evidence-based decision-making using realistic healthcare datasets.',
@@ -60,7 +60,7 @@ const programs: Program[] = [
     badge: 'Research Workflow',
     price: 'NGN 120,000',
     secondaryPrice: 'Approx. $87',
-    duration: '10 Weeks',
+    duration: '9 Weeks',
     level: 'Intermediate',
     description:
       'Develop modern analytical workflows using Python, Pandas, APIs, automation, and exploratory data analysis for healthcare and research applications.',
@@ -83,7 +83,7 @@ const programs: Program[] = [
     badge: 'Executive BI',
     price: 'NGN 150,000',
     secondaryPrice: 'Approx. $109',
-    duration: '8 Weeks',
+    duration: '7 Weeks',
     level: 'Advanced',
     description:
       'Design executive dashboards, build KPI frameworks, model performance indicators, and communicate insights that drive organizational performance.',
