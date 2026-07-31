@@ -66,7 +66,7 @@ export const SectionHeading = React.forwardRef<HTMLDivElement, SectionHeadingPro
         {description && (
           <p className={cn(
             "text-base sm:text-lg font-sans leading-relaxed max-w-2xl mx-auto",
-            isDark ? "text-slate-400" : "text-slate-655 text-slate-600"
+            isDark ? "text-slate-400" : "text-slate-600"
           )}>
             {description}
           </p>

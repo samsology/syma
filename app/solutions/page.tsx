@@ -1,6 +1,21 @@
+'use client';
+
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Brain, Building2, GraduationCap, HeartPulse, LineChart } from 'lucide-react';
-import { Card, CardTitle } from '@/components/ui/Card';
+import { motion } from 'framer-motion';
+import {
+  ArrowRight,
+  Activity,
+  LineChart,
+  Brain,
+  GraduationCap,
+  Settings,
+  Compass,
+  AlertCircle,
+  HelpCircle,
+  CheckCircle,
+  ChevronRight
+} from 'lucide-react';
+import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Container } from '@/components/ui/Container';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Button } from '@/components/ui/Button';
@@ -8,119 +23,163 @@ import { Button } from '@/components/ui/Button';
 const solutions = [
   {
     title: 'Healthcare Analytics',
-    icon: HeartPulse,
-    problem: 'Clinical, operational, and public health data often sit in disconnected systems, making it difficult to see risk, performance, and outcomes clearly.',
-    approach: 'We structure healthcare datasets, design reporting models, and translate complex indicators into insight for management, program, and clinical decision-making.',
-    outcomes: 'Cleaner reporting, stronger performance monitoring, improved service visibility, and better evidence for health planning.',
-    industries: 'Hospitals, clinics, HMOs, public health programs, NGOs, and government agencies.',
+    icon: Activity,
+    problem: 'Clinical and public health data sit in disconnected databases, hiding metrics on outcomes and performance.',
+    approach: 'We clean datasets, map clinical variables, and translate complex health indicators into streamlined reports.',
+    outcomes: 'Cleaner reporting audits, improved tracking of system-wide indicators, and evidence-supported planning.',
   },
   {
     title: 'Business Intelligence',
-    icon: BarChart3,
-    problem: 'Executives and teams need timely answers, but manual spreadsheets and fragmented reports slow decisions.',
-    approach: 'We build KPI frameworks, Power BI dashboards, executive scorecards, and reporting systems that make performance easier to monitor.',
-    outcomes: 'Faster reporting cycles, clearer accountability, and decision support for growth, finance, operations, and leadership teams.',
-    industries: 'Healthcare, education, retail, professional services, SMEs, and enterprise teams.',
+    icon: LineChart,
+    problem: 'Decision-makers waste hours manually compiling spreadsheets, delaying strategic action and growth decisions.',
+    approach: 'We build structured data connections, KPI schemas, and live Power BI templates tailored for executives.',
+    outcomes: 'Instant dashboard visibility, automated operations workflows, and rapid answers to financial metrics.',
   },
   {
     title: 'Research Intelligence',
     icon: Brain,
-    problem: 'Research teams need rigorous analysis, clean survey outputs, and publication-ready reporting without losing the meaning behind the evidence.',
-    approach: 'We support study design, data cleaning, statistical analysis, visualization, interpretation, and research reporting.',
-    outcomes: 'Stronger research outputs, credible findings, clear tables and figures, and reports ready for academic, donor, or policy audiences.',
-    industries: 'Universities, research institutes, NGOs, public health teams, and academic authors.',
+    problem: 'Academic and clinical research studies require advanced biostatistics and data cleaning before journal submission.',
+    approach: 'We consult on study designs, script data pipeline cleaners, and prepare publication-ready charts.',
+    outcomes: 'Methodological rigor, verified data tables, and statistical summaries ready for policy or academic review.',
   },
   {
     title: 'Data Strategy',
-    icon: LineChart,
-    problem: 'Many organizations collect data but lack a practical roadmap for governance, reporting, quality, and analytics maturity.',
-    approach: 'We assess current systems, map decision needs, define metrics, and design phased analytics roadmaps that teams can execute.',
-    outcomes: 'A clearer operating model for data, better metric discipline, and a practical path from raw information to institutional intelligence.',
-    industries: 'Healthcare organizations, NGOs, government programs, universities, and growing businesses.',
+    icon: Compass,
+    problem: 'Institutions lack a clear development path for governance, metrics alignment, and analytics maturity.',
+    approach: 'We audit active tech systems, map metrics requirements, and construct actionable 3-phase roadmaps.',
+    outcomes: 'Clean metadata alignment, defined governance rules, and a scalable pathway to advanced modeling.',
   },
   {
     title: 'Dashboard Development',
-    icon: Building2,
-    problem: 'Important indicators are difficult to track when reporting depends on static files, delayed updates, or unclear visuals.',
-    approach: 'We design interactive dashboards with clean data models, audience-specific views, and concise narratives for leadership and program teams.',
-    outcomes: 'Live performance visibility, fewer reporting bottlenecks, and dashboards people can use in real management conversations.',
-    industries: 'Healthcare, research, donor-funded programs, operations, sales, and executive teams.',
+    icon: Settings,
+    problem: 'Static reporting files obscure important changes, leaving managers blind to mid-month performance drops.',
+    approach: 'We design custom dashboard views in Power BI or Streamlit with user-friendly hierarchies.',
+    outcomes: 'Automated data refreshes, intuitive reporting flows, and centralized management metrics.',
   },
   {
-    title: 'Training & Capacity Building',
+    title: 'Capacity Building',
     icon: GraduationCap,
-    problem: 'Professionals and teams need analytics capability that connects tools to real health, research, and business decisions.',
-    approach: 'We deliver practical training in analytics, SQL, Power BI, Python, research workflows, and executive communication using realistic datasets.',
-    outcomes: 'Confident analysts, stronger internal reporting teams, and professionals prepared for meaningful analytics work.',
-    industries: 'Students, early-career professionals, corporate teams, NGOs, universities, and healthcare institutions.',
+    problem: 'Internal operational teams lack the technical skills to build custom database queries and dashboard reports.',
+    approach: 'We host interactive corporate masterclasses on SQL, Python libraries, and dashboard UX principles.',
+    outcomes: 'Stronger technical self-sufficiency, certified analysts, and modern database management habits.',
   },
 ];
 
+const staggerContainer = {
+  hidden: { opacity: 1 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+};
+
 export default function Solutions() {
   return (
-    <div className="min-h-screen bg-white py-16 font-sans text-slate-900 lg:py-24">
-      <section className="border-b border-slate-100 pb-16">
-        <Container>
-          <div className="mx-auto max-w-3xl space-y-4 text-center">
-            <div className="inline-flex rounded-full border border-primary/15 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-              Enterprise Solutions
-            </div>
-            <h1 className="font-heading text-4xl font-extrabold leading-tight tracking-tight text-neutral-dark sm:text-5xl">
-              Intelligence systems for healthcare, research, and business decisions.
-            </h1>
-            <p className="mx-auto max-w-2xl text-lg leading-relaxed text-slate-500">
-              Syma Tech Solutions helps organizations turn complex information into clear evidence, operational visibility, and measurable action.
-            </p>
+    <div className="bg-white text-slate-900 font-sans min-h-screen">
+      {/* 1. Hero Section */}
+      <section className="py-20 border-b border-slate-100 bg-gradient-to-b from-slate-50/50 to-white text-center">
+        <Container className="space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-primary/10 bg-primary/5 text-xs font-bold text-primary shadow-sm">
+            Consulting Services
           </div>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold font-heading text-slate-900 tracking-tight leading-tight max-w-4xl mx-auto">
+            Smarter Systems for Complex Operations
+          </h1>
+          <p className="text-base sm:text-lg leading-relaxed text-slate-500 max-w-2xl mx-auto font-normal">
+            Syma Tech Solutions works with hospitals, research teams, NGOs, and businesses to convert raw information into actionable systems.
+          </p>
         </Container>
       </section>
 
-      <section className="py-20 lg:py-28">
-        <Container>
+      {/* 2. Solutions Services List */}
+      <section className="py-24 lg:py-32 bg-white">
+        <Container className="space-y-16">
           <SectionHeading
-            badge="What We Deliver"
-            title="Health and Research Intelligence Services"
-            description="Consulting, dashboards, analytics strategy, and capacity building for institutions that need better evidence behind important decisions."
+            badge="Scoping & Scenarios"
+            title="Our Core Offerings"
+            description="Explore our functional methodologies designed to build institutional intelligence and operational excellence."
           />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {solutions.map((solution) => {
-              const Icon = solution.icon;
+
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-50px' }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {solutions.map((sol) => {
+              const Icon = sol.icon;
               return (
-                <Card key={solution.title} hoverEffect="lift" className="border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                  <div className="mb-5 flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/5 text-primary">
-                      <Icon className="h-5 w-5" />
+                <Card
+                  key={sol.title}
+                  hoverEffect="lift"
+                  className="flex flex-col justify-between border-slate-100 bg-white p-6 shadow-sm relative"
+                >
+                  <div className="space-y-6">
+                    {/* Card Header */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <CardTitle className="text-lg font-bold text-slate-900 leading-none">{sol.title}</CardTitle>
                     </div>
-                    <CardTitle className="text-xl text-slate-950">{solution.title}</CardTitle>
+
+                    {/* Problem - Approach - Outcome Structure */}
+                    <div className="space-y-4 pt-2 border-t border-slate-50 text-xs sm:text-sm">
+                      <div className="space-y-1">
+                        <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-red-500 text-[9px]">
+                          <AlertCircle className="w-3.5 h-3.5" /> Problem
+                        </span>
+                        <p className="text-slate-500 leading-relaxed pl-5">{sol.problem}</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-primary text-[9px]">
+                          <HelpCircle className="w-3.5 h-3.5" /> Our Approach
+                        </span>
+                        <p className="text-slate-500 leading-relaxed pl-5">{sol.approach}</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-green-600 text-[9px]">
+                          <CheckCircle className="w-3.5 h-3.5" /> Outcome
+                        </span>
+                        <p className="text-slate-500 leading-relaxed pl-5">{sol.outcomes}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid gap-4 text-sm leading-6 text-slate-600">
-                    <p><strong className="text-slate-900">Problem:</strong> {solution.problem}</p>
-                    <p><strong className="text-slate-900">Approach:</strong> {solution.approach}</p>
-                    <p><strong className="text-slate-900">Outcomes:</strong> {solution.outcomes}</p>
-                    <p><strong className="text-slate-900">Industries served:</strong> {solution.industries}</p>
+
+                  {/* Card Footer Action */}
+                  <div className="mt-8 border-t border-slate-50 pt-5">
+                    <Link
+                      href={`/consultation?type=${encodeURIComponent(sol.title)}`}
+                      className="w-full inline-flex h-9 items-center justify-center rounded-lg bg-slate-50 border border-slate-100 text-xs font-bold text-slate-700 hover:bg-primary hover:text-white hover:border-primary transition-all duration-200"
+                    >
+                      Discuss this solution <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                    </Link>
                   </div>
-                  <Link href="/consultation" className="mt-6 inline-flex text-sm font-bold text-primary">
-                    Discuss this solution <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
                 </Card>
               );
             })}
-          </div>
+          </motion.div>
         </Container>
       </section>
 
-      <section className="pb-24 lg:pb-32">
+      {/* 3. CTA Section */}
+      <section className="py-20 bg-white">
         <Container>
-          <div className="relative overflow-hidden rounded-3xl bg-primary px-8 py-16 text-center text-white shadow-xl shadow-primary/15">
-            <h2 className="mx-auto max-w-2xl font-heading text-3xl font-extrabold leading-tight sm:text-4xl">
-              Build the intelligence layer your organization needs.
+          <div className="relative overflow-hidden rounded-3xl bg-primary px-8 py-16 text-center text-white shadow-xl shadow-primary/10">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-heading max-w-2xl mx-auto leading-snug">
+              Build the Intelligence Layer Your Institution Needs
             </h2>
-            <p className="mx-auto mb-8 mt-4 max-w-xl text-sm leading-relaxed text-white/85 sm:text-base">
-              Partner with Syma Tech Solutions to improve reporting, research quality, and decision-making across your institution.
+            <p className="text-sm text-slate-200 max-w-lg mx-auto mt-4 mb-8 leading-relaxed">
+              Connect with Samuel Johnson and Oluyori Gabriel to audit your technical setup, scope databases, and deploy analytics.
             </p>
             <Link href="/consultation">
-              <Button variant="accent" size="lg" className="bg-white font-sans font-bold text-primary hover:bg-white/90">
-                Schedule a Consultation <ArrowRight className="ml-2 h-4 w-4" />
+              <Button variant="accent" size="lg" className="bg-white text-primary hover:bg-slate-50 font-bold shadow-lg shadow-white/5">
+                Schedule scoping call <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
           </div>

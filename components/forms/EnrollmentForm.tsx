@@ -5,11 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Loader2, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { submitEnrollmentAction } from '@/app/actions/db-actions';
-
 import { enrollmentSchema } from '@/lib/validation';
 
 type EnrollmentInput = z.infer<typeof enrollmentSchema>;
@@ -20,8 +19,6 @@ const programs = [
   { id: 'Business-Intelligence', label: 'Business Intelligence (₦150,000)' },
   { id: 'Corporate-Analytics-Training', label: 'Training & Capacity Building (custom pricing)' },
 ];
-
-
 
 const experienceLevels = [
   { id: 'beginner', label: 'Beginner (new to analytics or reporting)' },
@@ -63,7 +60,6 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
       if (!res.success) {
         throw new Error(res.error);
       }
-
       setIsSuccess(true);
     } catch (err) {
       const error = err as Error;
@@ -75,22 +71,17 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
 
   return (
     <>
-      <div className="max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-10 shadow-lg shadow-slate-100/50">
-        <h2 className="text-2xl font-extrabold text-slate-900 font-heading mb-2">Apply for Professional Training</h2>
-        <p className="text-slate-500 text-xs sm:text-sm mb-8 leading-relaxed">
-          Tell us which program fits your goals and how you plan to use analytics in healthcare, research, business, or professional work.
-        </p>
-
+      <div className="bg-white border border-slate-150 rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-100/50">
         {errorMsg && (
           <div
-            className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700"
+            className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-xs font-bold text-red-650"
             role="alert"
           >
             {errorMsg}
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
           {/* Honeypot spam trap */}
           <div className="hidden" aria-hidden="true">
             <input
@@ -100,6 +91,7 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
               {...register('honeypot')}
             />
           </div>
+
           {/* Full Name */}
           <div className="space-y-1.5">
             <label htmlFor="fullName" className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
@@ -108,25 +100,24 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
             <input
               id="fullName"
               type="text"
-              placeholder="Samuel Johnson"
+              placeholder="Esther Freeman"
               aria-invalid={errors.fullName ? 'true' : 'false'}
-              aria-describedby={errors.fullName ? 'fullName-error' : undefined}
               disabled={loading}
               {...register('fullName')}
               className={cn(
-                "w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all",
-                errors.fullName ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-slate-200 focus:border-primary"
+                "w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none transition-all",
+                errors.fullName ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
               )}
             />
             {errors.fullName && (
-              <p id="fullName-error" className="text-xs text-red-500 font-semibold mt-1" role="alert">
+              <p className="text-xs text-red-500 font-semibold mt-1" role="alert">
                 {errors.fullName.message}
               </p>
             )}
           </div>
 
           {/* Email & Phone */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                 Email Address
@@ -136,16 +127,15 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
                 type="email"
                 placeholder="you@domain.com"
                 aria-invalid={errors.email ? 'true' : 'false'}
-                aria-describedby={errors.email ? 'email-error' : undefined}
                 disabled={loading}
                 {...register('email')}
                 className={cn(
-                  "w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all",
-                  errors.email ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-slate-200 focus:border-primary"
+                  "w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none transition-all",
+                  errors.email ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
                 )}
               />
               {errors.email && (
-                <p id="email-error" className="text-xs text-red-500 font-semibold mt-1" role="alert">
+                <p className="text-xs text-red-500 font-semibold mt-1" role="alert">
                   {errors.email.message}
                 </p>
               )}
@@ -158,18 +148,17 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
               <input
                 id="phone"
                 type="tel"
-                placeholder="+1 (555) 123-4567"
+                placeholder="+234..."
                 aria-invalid={errors.phone ? 'true' : 'false'}
-                aria-describedby={errors.phone ? 'phone-error' : undefined}
                 disabled={loading}
                 {...register('phone')}
                 className={cn(
-                  "w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all",
-                  errors.phone ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-slate-200 focus:border-primary"
+                  "w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none transition-all",
+                  errors.phone ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
                 )}
               />
               {errors.phone && (
-                <p id="phone-error" className="text-xs text-red-500 font-semibold mt-1" role="alert">
+                <p className="text-xs text-red-500 font-semibold mt-1" role="alert">
                   {errors.phone.message}
                 </p>
               )}
@@ -184,12 +173,11 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
             <select
               id="program"
               aria-invalid={errors.program ? 'true' : 'false'}
-              aria-describedby={errors.program ? 'program-error' : undefined}
               disabled={loading}
               {...register('program')}
               className={cn(
-                "w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:bg-white transition-all",
-                errors.program ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-slate-200 focus:border-primary"
+                "w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm text-slate-800 focus:bg-white focus:outline-none transition-all",
+                errors.program ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
               )}
             >
               <option value="">-- Choose a course --</option>
@@ -200,7 +188,7 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
               ))}
             </select>
             {errors.program && (
-              <p id="program-error" className="text-xs text-red-500 font-semibold mt-1" role="alert">
+              <p className="text-xs text-red-500 font-semibold mt-1" role="alert">
                 {errors.program.message}
               </p>
             )}
@@ -214,12 +202,11 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
             <select
               id="experience"
               aria-invalid={errors.experience ? 'true' : 'false'}
-              aria-describedby={errors.experience ? 'experience-error' : undefined}
               disabled={loading}
               {...register('experience')}
               className={cn(
-                "w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:bg-white transition-all",
-                errors.experience ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-slate-200 focus:border-primary"
+                "w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm text-slate-800 focus:bg-white focus:outline-none transition-all",
+                errors.experience ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
               )}
             >
               <option value="">-- Choose experience --</option>
@@ -230,7 +217,7 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
               ))}
             </select>
             {errors.experience && (
-              <p id="experience-error" className="text-xs text-red-500 font-semibold mt-1" role="alert">
+              <p className="text-xs text-red-500 font-semibold mt-1" role="alert">
                 {errors.experience.message}
               </p>
             )}
@@ -246,49 +233,57 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
               rows={4}
               placeholder="Tell us about your professional background, why you want to learn data analytics, and how you plan to commit to this track..."
               aria-invalid={errors.motivation ? 'true' : 'false'}
-              aria-describedby={errors.motivation ? 'motivation-error' : undefined}
               disabled={loading}
               {...register('motivation')}
               className={cn(
-                "w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all resize-none",
-                errors.motivation ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500" : "border-slate-200 focus:border-primary"
+                "w-full bg-slate-50/50 border rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none transition-all resize-none",
+                errors.motivation ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-primary"
               )}
             />
             {errors.motivation && (
-              <p id="motivation-error" className="text-xs text-red-500 font-semibold mt-1" role="alert">
+              <p className="text-xs text-red-500 font-semibold mt-1" role="alert">
                 {errors.motivation.message}
               </p>
             )}
           </div>
 
           {/* Submit Button */}
-          <Button
+          <button
             type="submit"
-            isLoading={loading}
-            className="w-full font-bold shadow-md shadow-primary/10 mt-2"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100 transition-all cursor-pointer mt-2"
           >
-            {loading ? 'Submitting Application...' : 'Submit Application'}
-          </Button>
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" /> Submitting...
+              </>
+            ) : (
+              <>
+                Submit Application <ChevronRight className="w-5 h-5" />
+              </>
+            )}
+          </button>
         </form>
       </div>
 
       {isSuccess && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="mx-auto w-16 h-16 rounded-full bg-green-50 border border-green-200 text-green-600 flex items-center justify-center">
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-100 rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-scale-up text-slate-800">
+            <div className="mx-auto w-16 h-16 rounded-full bg-green-50 text-green-600 flex items-center justify-center border border-green-100">
               <CheckCircle2 className="w-8 h-8 animate-bounce" />
             </div>
-            <h3 className="text-xl font-bold text-green-600">Submission Successful</h3>
-            <p className="text-green-700 font-semibold leading-relaxed text-sm">
-              Thank you, check your email for further action
+            <h3 className="text-xl font-bold text-slate-900">Submission Successful</h3>
+            <p className="text-slate-500 leading-relaxed text-sm">
+              Thank you. We have received your program application. Please check your email inbox for an enrollment receipt and details.
             </p>
             <div className="pt-2">
               <button
+                type="button"
                 onClick={() => {
                   setIsSuccess(false);
                   router.push('/');
                 }}
-                className="w-full inline-flex items-center justify-center rounded-xl bg-green-600 hover:bg-green-700 px-6 py-3 font-bold text-white transition-all text-sm shadow-md shadow-green-600/10"
+                className="w-full inline-flex items-center justify-center rounded-xl bg-primary hover:bg-primary/95 px-6 py-3 font-bold text-white transition-all text-sm shadow-md cursor-pointer"
               >
                 OK
               </button>
@@ -299,6 +294,3 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
     </>
   );
 }
-
-
-

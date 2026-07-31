@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/enroll',
     '/portfolio',
     '/programs',
+    '/insights',
   ];
 
   return routes.map((route) => ({

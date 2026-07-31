@@ -30,21 +30,21 @@ export default function ContactFaq() {
   };
 
   return (
-    <div className="border-t border-slate-900 pt-16 space-y-12 max-w-4xl mx-auto">
-      <h2 className="text-3xl font-bold text-center text-white">Frequently Asked Questions</h2>
+    <div className="border-t border-slate-100 pt-16 space-y-12 max-w-4xl mx-auto w-full font-sans">
+      <h2 className="text-3xl font-extrabold text-center text-slate-900 font-heading">Frequently Asked Questions</h2>
       <div className="space-y-4">
         {faqs.map((faq, i) => (
-          <div key={i} className="border border-slate-800/80 bg-slate-900/10 rounded-2xl overflow-hidden transition-all">
+          <div key={i} className="border border-slate-150 bg-white rounded-2xl overflow-hidden shadow-sm transition-all hover:border-slate-300">
             <button
               type="button"
               onClick={() => toggleFaq(i)}
-              className="w-full px-6 py-5 flex items-center justify-between text-left font-bold text-white hover:bg-slate-900/30 transition-colors focus:outline-none cursor-pointer"
+              className="w-full px-6 py-5 flex items-center justify-between text-left font-bold text-slate-900 hover:bg-slate-50/50 transition-colors focus:outline-none cursor-pointer"
             >
-              <span>{faq.q}</span>
-              {openFaq === i ? <Minus className="w-4 h-4 text-secondary" /> : <Plus className="w-4 h-4 text-secondary" />}
+              <span className="font-heading text-sm sm:text-base">{faq.q}</span>
+              {openFaq === i ? <Minus className="w-4 h-4 text-primary shrink-0" /> : <Plus className="w-4 h-4 text-primary shrink-0" />}
             </button>
             {openFaq === i && (
-              <div className="px-6 pb-6 text-sm text-slate-400 leading-relaxed border-t border-slate-900/40 pt-4">
+              <div className="px-6 pb-6 text-xs sm:text-sm text-slate-500 leading-relaxed border-t border-slate-100 pt-4">
                 {faq.a}
               </div>
             )}
