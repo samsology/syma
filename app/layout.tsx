@@ -1,21 +1,9 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  variable: '--font-heading',
-  display: 'swap',
-});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechsolutions.com';
 
@@ -32,9 +20,9 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   icons: {
-    icon: '/logo/logo_2.webp',
-    shortcut: '/logo/logo_2.webp',
-    apple: '/logo/logo_2.webp',
+    icon: '/logo/logo.png',
+    shortcut: '/logo/logo.png',
+    apple: '/logo/logo.png',
   },
   openGraph: {
     type: 'website',
@@ -84,7 +72,7 @@ export default function RootLayout({
     '@type': 'Organization',
     name: 'Syma Tech Solutions',
     url: siteUrl,
-    logo: `${siteUrl}/logo/logo_2.webp`,
+    logo: `${siteUrl}/logo/logo.png`,
     description:
       'Syma Tech Solutions is a Health & Research Intelligence company advancing healthcare, research, business intelligence, and professional education across Africa.',
     sameAs: ['https://twitter.com/Symatech', 'https://www.linkedin.com/company/syma-tech/'],
@@ -95,7 +83,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable} h-full scroll-smooth antialiased`}>
+    <html lang="en" className="h-full scroll-smooth antialiased">
       <body className="flex min-h-full flex-col bg-white font-sans text-slate-900 antialiased selection:bg-secondary/20 selection:text-primary">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
@@ -137,3 +125,4 @@ export default function RootLayout({
     </html>
   );
 }
+

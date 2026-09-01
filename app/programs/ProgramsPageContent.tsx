@@ -34,6 +34,16 @@ type Program = {
   featured?: boolean;
 };
 
+type PublishedCourse = {
+  id: string;
+  title: string;
+  slug: string;
+  shortDescription: string;
+  category: string;
+  level: string;
+  duration: string;
+};
+
 const programs: Program[] = [
   {
     id: 'healthcare-analytics',
@@ -226,7 +236,24 @@ function IncludedBenefits() {
   );
 }
 
-export default function ProgramsPageContent() {
+export default function ProgramsPageContent({ publishedCourses = [] }: { publishedCourses?: PublishedCourse[] }) {
+  const visiblePrograms: Program[] =
+    publishedCourses.length > 0
+      ? publishedCourses.map((course) => ({
+          id: course.id,
+          name: course.title,
+          badge: course.category,
+          price: 'Contact for pricing',
+          duration: course.duration,
+          level: course.level,
+          description: course.shortDescription,
+          outcomes: ['Structured learning path', 'Mentor-supported practice', 'Portfolio-ready outcomes'],
+          projects: `${course.category} capstone`,
+          cta: 'Apply Today',
+          href: `/enroll?program=${course.slug}`,
+        }))
+      : programs;
+
   return (
     <div className="min-h-screen bg-white py-16 font-sans text-slate-900 lg:py-24">
       {/* Hero */}
@@ -259,7 +286,7 @@ export default function ProgramsPageContent() {
             viewport={{ once: true, margin: '-80px' }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
-            {programs.map((program, index) => (
+            {visiblePrograms.map((program, index) => (
               <ProgramCard key={program.id} program={program} index={index} />
             ))}
           </motion.div>

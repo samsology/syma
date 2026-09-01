@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AdminRole {
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  SUSPENDED
+}
+
+enum LessonType {
+  TEXT
+  VIDEO
+  ASSIGNMENT
+}
+
+model Admin {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(ADMIN)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  courses Course[] @relation("CourseInstructor")
+  sessions AdminSession[]
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  adminId   String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([expiresAt])
+}
+
+model AdminLoginAttempt {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
+model Course {
+  id               String       @id @default(cuid())
+  title            String
+  slug             String       @unique
+  shortDescription String
+  description      String
+  category         String
+  level            String
+  duration         String
+  thumbnailUrl     String?
+  instructorId     String?
+  status           CourseStatus @default(DRAFT)
+  publishedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  instructor Admin?       @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+  weeks      CourseWeek[]
+  enrollments Enrollment[]
+
+  @@index([status])
+  @@index([category])
+  @@index([instructorId])
+}
+
+model Student {
+  id           String        @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String        @unique
+  passwordHash String
+  phone        String?
+  status       StudentStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  sessions    StudentSession[]
+  enrollments Enrollment[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model StudentSession {
+  id        String   @id @default(cuid())
+  studentId String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([expiresAt])
+}
+
+model StudentLoginAttempt {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  studentId   String
+  courseId    String
+  status      EnrollmentStatus @default(PENDING)
+  enrolledAt  DateTime         @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@unique([studentId, courseId])
+  @@index([studentId])
+  @@index([courseId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model CourseWeek {
+  id          String   @id @default(cuid())
+  courseId    String
+  weekNumber  Int
+  title       String
+  description String
+  sortOrder   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  modules CourseModule[]
+
+  @@unique([courseId, weekNumber])
+  @@index([courseId])
+}
+
+model CourseModule {
+  id          String   @id @default(cuid())
+  weekId      String
+  title       String
+  description String
+  sortOrder   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  week    CourseWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([weekId])
+}
+
+model Lesson {
+  id         String       @id @default(cuid())
+  moduleId   String
+  title      String
+  slug       String
+  lessonType LessonType   @default(TEXT)
+  content    String
+  videoUrl   String?
+  duration   Int?
+  isPreview  Boolean      @default(false)
+  status     CourseStatus @default(DRAFT)
+  sortOrder  Int
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  module    CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  resources LessonResource[]
+
+  @@unique([moduleId, slug])
+  @@index([moduleId])
+}
+
+model LessonResource {
+  id        String   @id @default(cuid())
+  lessonId  String
+  name      String
+  fileUrl   String
+  fileType  String
+  fileSize  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
+}

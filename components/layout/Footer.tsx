@@ -34,7 +34,7 @@ export default function Footer() {
           <div className="space-y-5">
             <Link href="/" className="inline-flex items-center gap-3 text-lg font-bold text-slate-900">
               <Image
-                src="/logo/logo_2.webp"
+                src="/logo/logo.png"
                 alt="Syma Tech Solutions logo"
                 width={36}
                 height={36}

@@ -58,7 +58,7 @@ export const SectionHeading = React.forwardRef<HTMLDivElement, SectionHeadingPro
 
         <h2 className={cn(
           "text-3xl sm:text-4xl font-extrabold font-heading leading-tight tracking-tight",
-          isDark ? "text-white" : "text-slate-900"
+          isDark ? "text-white" : "text-neutral-dark"
         )}>
           {title}
         </h2>
@@ -66,7 +66,7 @@ export const SectionHeading = React.forwardRef<HTMLDivElement, SectionHeadingPro
         {description && (
           <p className={cn(
             "text-base sm:text-lg font-sans leading-relaxed max-w-2xl mx-auto",
-            isDark ? "text-slate-400" : "text-slate-600"
+            isDark ? "text-slate-400" : "text-neutral-muted"
           )}>
             {description}
           </p>

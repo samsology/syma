@@ -46,7 +46,7 @@ export default function Navbar() {
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
           <Image
-            src="/logo/logo_2.webp"
+            src="/logo/logo.png"
             alt="Syma Tech Solutions logo"
             width={40}
             height={40}
@@ -54,7 +54,7 @@ export default function Navbar() {
             className="h-10 w-10 rounded-lg object-contain"
           />
           <span>
-            <span className="block text-base font-bold leading-none text-slate-900">Syma Tech</span>
+            <span className="block text-base font-bold leading-none text-slate-900">SYMA TECH</span>
             <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wider text-primary">Intelligence</span>
           </span>
         </Link>
@@ -82,7 +82,7 @@ export default function Navbar() {
         <div className="hidden items-center gap-3 lg:flex">
           <Link
             href="/consultation"
-            className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white transition-all duration-200 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02]"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white transition-all duration-200 hover:bg-secondary hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02]"
           >
             Book Consultation
           </Link>
@@ -118,7 +118,7 @@ export default function Navbar() {
             <Link
               href="/consultation"
               onClick={() => setIsOpen(false)}
-              className="mt-3 inline-flex h-12 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white hover:bg-primary/95 transition-colors"
+              className="mt-3 inline-flex h-12 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white hover:bg-secondary transition-colors"
             >
               Book Consultation
             </Link>

@@ -25,7 +25,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     ref
   ) => {
     const baseClass = cn(
-      'rounded-3xl border border-slate-100 bg-white p-6 overflow-hidden shadow-[0_1px_3px_0_rgba(0,0,0,0.02),0_12px_24px_-10px_rgba(0,0,0,0.04)] transition-all duration-300',
+      'rounded-3xl border border-slate-200 bg-white p-6 overflow-hidden shadow-[0_1px_3px_0_rgba(0,0,0,0.02),0_12px_24px_-10px_rgba(0,0,0,0.04)] transition-all duration-300',
       hoverEffect === 'lift' && 'hover-lift',
       hoverEffect === 'glow' && 'hover-glow',
       className
@@ -73,6 +73,6 @@ export const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDi
 CardContent.displayName = 'CardContent';
 
 export const CardFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex items-center pt-4 border-t border-slate-100 mt-6', className)} {...props} />
+  <div className={cn('flex items-center pt-4 border-t border-slate-200 mt-6', className)} {...props} />
 );
 CardFooter.displayName = 'CardFooter';

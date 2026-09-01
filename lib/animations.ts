@@ -81,8 +81,8 @@ export const hoverScale = {
 
 export const hoverGlow = {
   hover: {
-    boxShadow: '0 0 15px rgba(22, 199, 212, 0.4)',
-    borderColor: '#16C7D4',
+    boxShadow: '0 0 15px rgba(56, 189, 248, 0.4)',
+    borderColor: '#38BDF8',
     y: -2,
     transition: { duration: 0.2 }
   },

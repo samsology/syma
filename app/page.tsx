@@ -417,15 +417,15 @@ export default function Home() {
                         <line x1="0" y1="20" x2="300" y2="20" stroke="#f1f5f9" strokeWidth="1" />
                         <line x1="0" y1="50" x2="300" y2="50" stroke="#f1f5f9" strokeWidth="1" />
                         {/* Trend line */}
-                        <line x1="20" y1="70" x2="280" y2="10" stroke="#3E4095" strokeWidth="2" strokeDasharray="3" />
+                        <line x1="20" y1="70" x2="280" y2="10" stroke="#022A9D" strokeWidth="2" strokeDasharray="3" />
                         {/* Scatter points */}
-                        <circle cx="40" cy="62" r="3" fill="#16C7D4" />
-                        <circle cx="80" cy="54" r="3" fill="#16C7D4" />
-                        <circle cx="120" cy="45" r="3" fill="#16C7D4" />
-                        <circle cx="160" cy="35" r="3" fill="#16C7D4" />
-                        <circle cx="200" cy="30" r="3" fill="#16C7D4" />
-                        <circle cx="240" cy="18" r="3" fill="#16C7D4" />
-                        <circle cx="270" cy="12" r="3" fill="#16C7D4" />
+                        <circle cx="40" cy="62" r="3" fill="#38BDF8" />
+                        <circle cx="80" cy="54" r="3" fill="#38BDF8" />
+                        <circle cx="120" cy="45" r="3" fill="#38BDF8" />
+                        <circle cx="160" cy="35" r="3" fill="#38BDF8" />
+                        <circle cx="200" cy="30" r="3" fill="#38BDF8" />
+                        <circle cx="240" cy="18" r="3" fill="#38BDF8" />
+                        <circle cx="270" cy="12" r="3" fill="#38BDF8" />
                       </svg>
                     </div>
                   </div>
