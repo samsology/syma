@@ -14,10 +14,11 @@ type CourseListParams = {
 };
 
 export function getCourseOrderBy(sort: CourseSort | undefined): Prisma.CourseOrderByWithRelationInput {
+  if (sort === 'order') return { sortOrder: 'asc' };
   if (sort === 'oldest') return { updatedAt: 'asc' };
   if (sort === 'title-asc') return { title: 'asc' };
   if (sort === 'title-desc') return { title: 'desc' };
-  return { updatedAt: 'desc' };
+  return { sortOrder: 'asc' };
 }
 
 export function getCourseWhere(params: CourseListParams): Prisma.CourseWhereInput {
@@ -60,6 +61,7 @@ export async function getAdminCourses(params: CourseListParams) {
         _count: {
           select: {
             weeks: true,
+            enrollments: true,
           },
         },
       },

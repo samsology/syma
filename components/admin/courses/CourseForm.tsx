@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import type { Admin, Course } from '@prisma/client';
 import { Save } from 'lucide-react';
 import type { CourseFormState } from '@/app/admin/(protected)/courses/actions';
@@ -18,7 +18,7 @@ const initialState: CourseFormState = {};
 
 function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.[0]) return null;
-  return <p className="mt-2 text-sm font-medium text-error">{errors[0]}</p>;
+  return <p className="text-error mt-2 text-sm font-medium">{errors[0]}</p>;
 }
 
 export function CourseForm({ action, course, admins }: CourseFormProps) {
@@ -29,16 +29,25 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
   const originalSlug = course?.slug;
   const showSlugWarning = course?.status === 'PUBLISHED' && originalSlug && slug !== originalSlug;
 
-  useEffect(() => {
-    if (!slugTouched) setSlug(slugifyCourseTitle(title));
-  }, [slugTouched, title]);
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+    if (!slugTouched) {
+      setSlug(slugifyCourseTitle(newTitle));
+    }
+  };
 
   const descriptionId = useMemo(() => `description-${course?.id ?? 'new'}`, [course?.id]);
 
   return (
-    <form action={formAction} className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+    <form
+      action={formAction}
+      className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+    >
       {state.formError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-error" role="alert">
+        <div
+          className="text-error rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold"
+          role="alert"
+        >
           {state.formError}
         </div>
       )}
@@ -52,7 +61,7 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
             id="title"
             name="title"
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => handleTitleChange(event.target.value)}
             className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
             required
           />
@@ -110,7 +119,9 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
           className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
           required
         />
-        <p className="mt-2 text-xs text-slate-500">Supports plain paragraphs and line breaks for this phase.</p>
+        <p className="mt-2 text-xs text-slate-500">
+          Supports plain paragraphs and line breaks for this phase.
+        </p>
         <FieldError errors={state.fieldErrors?.description} />
       </div>
 
@@ -119,7 +130,13 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
           <label htmlFor="category" className="block text-sm font-semibold text-slate-700">
             Category
           </label>
-          <select id="category" name="category" defaultValue={course?.category ?? ''} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" required>
+          <select
+            id="category"
+            name="category"
+            defaultValue={course?.category ?? ''}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+            required
+          >
             <option value="">Select category</option>
             {courseCategories.map((category) => (
               <option key={category} value={category}>
@@ -134,7 +151,13 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
           <label htmlFor="level" className="block text-sm font-semibold text-slate-700">
             Level
           </label>
-          <select id="level" name="level" defaultValue={course?.level ?? ''} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" required>
+          <select
+            id="level"
+            name="level"
+            defaultValue={course?.level ?? ''}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+            required
+          >
             <option value="">Select level</option>
             {courseLevels.map((level) => (
               <option key={level} value={level}>
@@ -149,7 +172,14 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
           <label htmlFor="duration" className="block text-sm font-semibold text-slate-700">
             Duration
           </label>
-          <input id="duration" name="duration" defaultValue={course?.duration} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm" placeholder="8 Weeks" required />
+          <input
+            id="duration"
+            name="duration"
+            defaultValue={course?.duration}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+            placeholder="8 Weeks"
+            required
+          />
           <FieldError errors={state.fieldErrors?.duration} />
         </div>
 
@@ -157,7 +187,12 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
           <label htmlFor="instructorId" className="block text-sm font-semibold text-slate-700">
             Instructor
           </label>
-          <select id="instructorId" name="instructorId" defaultValue={course?.instructorId ?? ''} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm">
+          <select
+            id="instructorId"
+            name="instructorId"
+            defaultValue={course?.instructorId ?? ''}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+          >
             <option value="">No instructor</option>
             {admins.map((admin) => (
               <option key={admin.id} value={admin.id}>
@@ -167,6 +202,75 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
           </select>
           <FieldError errors={state.fieldErrors?.instructorId} />
         </div>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-3">
+        <div>
+          <label htmlFor="price" className="block text-sm font-semibold text-slate-700">
+            Price (USD)
+          </label>
+          <input
+            id="price"
+            name="price"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={course ? (course.priceMinor / 100).toFixed(2) : '19.90'}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+            placeholder="19.90"
+            required
+          />
+          <FieldError errors={state.fieldErrors?.priceMinor} />
+        </div>
+
+        <div>
+          <label htmlFor="cta" className="block text-sm font-semibold text-slate-700">
+            CTA Button Text
+          </label>
+          <input
+            id="cta"
+            name="cta"
+            defaultValue={course?.cta ?? 'Apply Today'}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+            placeholder="Start Your Data Journey"
+          />
+          <FieldError errors={state.fieldErrors?.cta} />
+        </div>
+
+        <div>
+          <label htmlFor="sortOrder" className="block text-sm font-semibold text-slate-700">
+            Programme Order
+          </label>
+          <input
+            id="sortOrder"
+            name="sortOrder"
+            type="number"
+            min="0"
+            defaultValue={course?.sortOrder ?? 1}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+            placeholder="1"
+          />
+          <FieldError errors={state.fieldErrors?.sortOrder} />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="benefits" className="block text-sm font-semibold text-slate-700">
+          Key Benefits (one per line)
+        </label>
+        <textarea
+          id="benefits"
+          name="benefits"
+          defaultValue={course?.benefits?.join('\n') ?? ''}
+          rows={5}
+          className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+          placeholder="Beginner-friendly curriculum&#10;Understand & interpret data&#10;Practical exercises"
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          Enter each benefit on a new line to render as bullet points on the course cards and detail
+          page.
+        </p>
+        <FieldError errors={state.fieldErrors?.benefits} />
       </div>
 
       <div>
@@ -184,7 +288,10 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
       </div>
 
       <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
-        <Link href={course ? `/admin/courses/${course.id}` : '/admin/courses'} className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        <Link
+          href={course ? `/admin/courses/${course.id}` : '/admin/courses'}
+          className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
           Cancel
         </Link>
         <Button type="submit" isLoading={pending} leftIcon={<Save className="h-4 w-4" />}>

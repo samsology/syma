@@ -36,7 +36,13 @@ async function seedAdmin() {
 }
 
 async function seedCourses(instructorId?: string) {
-  for (const course of courses) {
+  const activeSlugs = courses.map((c) => c.slug);
+  await prisma.course.updateMany({
+    where: { slug: { notIn: activeSlugs } },
+    data: { status: CourseStatus.ARCHIVED },
+  });
+
+  for (const [courseIndex, course] of courses.entries()) {
     await prisma.course.upsert({
       where: { slug: course.slug },
       update: {
@@ -46,10 +52,15 @@ async function seedCourses(instructorId?: string) {
         category: course.category,
         level: course.level,
         duration: course.duration,
+        priceMinor: course.priceMinor,
+        currency: course.currency ?? 'USD',
+        benefits: course.benefits,
+        cta: course.cta,
+        sortOrder: course.sortOrder ?? courseIndex + 1,
         thumbnailUrl: course.thumbnailUrl,
         instructorId,
-        status: CourseStatus.DRAFT,
-        publishedAt: null,
+        status: CourseStatus.PUBLISHED,
+        publishedAt: new Date(),
         weeks: {
           deleteMany: {},
           create: course.weeks.map((week, weekIndex) => ({
@@ -71,7 +82,7 @@ async function seedCourses(instructorId?: string) {
                     videoUrl: lesson.videoUrl ?? null,
                     duration: lesson.duration ?? 30,
                     isPreview: lesson.isPreview ?? false,
-                    status: CourseStatus.DRAFT,
+                    status: CourseStatus.PUBLISHED,
                     sortOrder: lessonIndex + 1,
                   })),
                 },
@@ -88,9 +99,15 @@ async function seedCourses(instructorId?: string) {
         category: course.category,
         level: course.level,
         duration: course.duration,
+        priceMinor: course.priceMinor,
+        currency: course.currency ?? 'USD',
+        benefits: course.benefits,
+        cta: course.cta,
+        sortOrder: course.sortOrder ?? courseIndex + 1,
         thumbnailUrl: course.thumbnailUrl,
         instructorId,
-        status: CourseStatus.DRAFT,
+        status: CourseStatus.PUBLISHED,
+        publishedAt: new Date(),
         weeks: {
           create: course.weeks.map((week, weekIndex) => ({
             weekNumber: week.weekNumber,
@@ -111,7 +128,7 @@ async function seedCourses(instructorId?: string) {
                     videoUrl: lesson.videoUrl ?? null,
                     duration: lesson.duration ?? 30,
                     isPreview: lesson.isPreview ?? false,
-                    status: CourseStatus.DRAFT,
+                    status: CourseStatus.PUBLISHED,
                     sortOrder: lessonIndex + 1,
                   })),
                 },
@@ -124,19 +141,236 @@ async function seedCourses(instructorId?: string) {
   }
 }
 
+async function seedStudentsAndEnrollments() {
+  const passwordHash = await bcrypt.hash('studentpassword123', 12);
+  const studentSeeds = [
+    {
+      firstName: 'Maya',
+      lastName: 'Okafor',
+      email: 'maya.student@example.test',
+      phone: '+234 800 000 0101',
+    },
+    {
+      firstName: 'Tunde',
+      lastName: 'Adebayo',
+      email: 'tunde.student@example.test',
+      phone: '+234 800 000 0102',
+    },
+    {
+      firstName: 'Amina',
+      lastName: 'Bello',
+      email: 'amina.student@example.test',
+      phone: '+234 800 000 0103',
+    },
+  ];
+
+  const students = await Promise.all(
+    studentSeeds.map((student) =>
+      prisma.student.upsert({
+        where: { email: student.email },
+        update: {
+          firstName: student.firstName,
+          lastName: student.lastName,
+          phone: student.phone,
+          passwordHash,
+          status: 'ACTIVE',
+        },
+        create: {
+          ...student,
+          passwordHash,
+          status: 'ACTIVE',
+        },
+      })
+    )
+  );
+
+  const publishedCourses = await prisma.course.findMany({
+    where: { status: CourseStatus.PUBLISHED },
+    orderBy: { createdAt: 'asc' },
+    take: 2,
+  });
+
+  if (publishedCourses.length === 0) return;
+
+  const enrollmentSeeds = [
+    { student: students[0], course: publishedCourses[0], status: 'ACTIVE' as const },
+    { student: students[1], course: publishedCourses[0], status: 'ACTIVE' as const },
+    {
+      student: students[2],
+      course: publishedCourses[1] ?? publishedCourses[0],
+      status: 'COMPLETED' as const,
+    },
+  ];
+
+  await Promise.all(
+    enrollmentSeeds.map((seed) =>
+      prisma.enrollment.upsert({
+        where: {
+          studentId_courseId: {
+            studentId: seed.student.id,
+            courseId: seed.course.id,
+          },
+        },
+        update: {
+          status: seed.status,
+          source: 'MANUAL',
+          startedAt: new Date(),
+          completedAt: seed.status === 'COMPLETED' ? new Date() : null,
+        },
+        create: {
+          studentId: seed.student.id,
+          courseId: seed.course.id,
+          status: seed.status,
+          source: 'MANUAL',
+          startedAt: new Date(),
+          completedAt: seed.status === 'COMPLETED' ? new Date() : null,
+        },
+      })
+    )
+  );
+}
+
+async function seedOrdersAndPayments() {
+  const [students, courseList] = await Promise.all([
+    prisma.student.findMany({ orderBy: { createdAt: 'asc' }, take: 3 }),
+    prisma.course.findMany({ orderBy: { sortOrder: 'asc' }, take: 3 }),
+  ]);
+
+  if (students.length < 3 || courseList.length < 2) return;
+
+  const orderSeeds = [
+    {
+      student: students[0],
+      course: courseList[0],
+      status: 'PAID' as const,
+      paymentStatus: 'SUCCESS' as const,
+      suffix: 'PAID',
+    },
+    {
+      student: students[1],
+      course: courseList[1],
+      status: 'FAILED' as const,
+      paymentStatus: 'FAILED' as const,
+      suffix: 'FAILED',
+    },
+    {
+      student: students[2],
+      course: courseList[1],
+      status: 'PENDING' as const,
+      paymentStatus: 'PENDING' as const,
+      suffix: 'PENDING',
+    },
+    {
+      student: students[0],
+      course: courseList[1],
+      status: 'CANCELLED' as const,
+      paymentStatus: 'CANCELLED' as const,
+      suffix: 'CANCELLED',
+    },
+    {
+      student: students[1],
+      course: courseList[0],
+      status: 'REFUNDED' as const,
+      paymentStatus: 'REFUNDED' as const,
+      suffix: 'REFUNDED',
+    },
+  ];
+
+  for (const seed of orderSeeds) {
+    const orderNumber = `SYM-DEV-${seed.suffix}`;
+    const order = await prisma.order.upsert({
+      where: { orderNumber },
+      update: {
+        studentId: seed.student.id,
+        courseId: seed.course.id,
+        amountMinor: seed.course.priceMinor,
+        currency: seed.course.currency,
+        status: seed.status,
+        paidAt: seed.status === 'PAID' || seed.status === 'REFUNDED' ? new Date() : null,
+      },
+      create: {
+        orderNumber,
+        studentId: seed.student.id,
+        courseId: seed.course.id,
+        amountMinor: seed.course.priceMinor,
+        currency: seed.course.currency,
+        status: seed.status,
+        paidAt: seed.status === 'PAID' || seed.status === 'REFUNDED' ? new Date() : null,
+      },
+    });
+
+    await prisma.payment.upsert({
+      where: {
+        provider_providerReference: {
+          provider: 'PAYSTACK',
+          providerReference: `DEV-${seed.suffix}`,
+        },
+      },
+      update: {
+        orderId: order.id,
+        amountMinor: order.amountMinor,
+        currency: order.currency,
+        status: seed.paymentStatus,
+        paidAt:
+          seed.paymentStatus === 'SUCCESS' || seed.paymentStatus === 'REFUNDED' ? new Date() : null,
+      },
+      create: {
+        orderId: order.id,
+        provider: 'PAYSTACK',
+        providerReference: `DEV-${seed.suffix}`,
+        amountMinor: order.amountMinor,
+        currency: order.currency,
+        status: seed.paymentStatus,
+        paidAt:
+          seed.paymentStatus === 'SUCCESS' || seed.paymentStatus === 'REFUNDED' ? new Date() : null,
+      },
+    });
+
+    if (seed.status === 'PAID') {
+      await prisma.enrollment.upsert({
+        where: { studentId_courseId: { studentId: seed.student.id, courseId: seed.course.id } },
+        update: { status: 'ACTIVE', source: 'PAYMENT', orderId: order.id, startedAt: new Date() },
+        create: {
+          studentId: seed.student.id,
+          courseId: seed.course.id,
+          status: 'ACTIVE',
+          source: 'PAYMENT',
+          orderId: order.id,
+          startedAt: new Date(),
+        },
+      });
+    }
+  }
+}
+
 async function main() {
   const admin = await seedAdmin();
   await seedCourses(admin?.id);
+  await seedStudentsAndEnrollments();
+  await seedOrdersAndPayments();
 
-  const [courseCount, weekCount, moduleCount, lessonCount] = await Promise.all([
+  const [
+    courseCount,
+    weekCount,
+    moduleCount,
+    lessonCount,
+    studentCount,
+    enrollmentCount,
+    orderCount,
+    paymentCount,
+  ] = await Promise.all([
     prisma.course.count(),
     prisma.courseWeek.count(),
     prisma.courseModule.count(),
     prisma.lesson.count(),
+    prisma.student.count(),
+    prisma.enrollment.count(),
+    prisma.order.count(),
+    prisma.payment.count(),
   ]);
 
   console.info(
-    `Seed complete: ${courseCount} courses, ${weekCount} weeks, ${moduleCount} modules, ${lessonCount} lessons.`
+    `Seed complete: ${courseCount} courses, ${weekCount} weeks, ${moduleCount} modules, ${lessonCount} lessons, ${studentCount} students, ${enrollmentCount} enrollments, ${orderCount} orders, ${paymentCount} payments.`
   );
 }
 

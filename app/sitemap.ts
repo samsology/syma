@@ -1,9 +1,10 @@
 import { MetadataRoute } from 'next';
+import { OFFICIAL_COURSES } from '@/lib/courses/catalog';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://Symatechsolutions.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechsolutions.com';
 
-  const routes = [
+  const staticRoutes = [
     '',
     '/about',
     '/consultation',
@@ -14,10 +15,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/insights',
   ];
 
-  return routes.map((route) => ({
+  const courseRoutes = OFFICIAL_COURSES.map((course) => `/programs/${course.slug}`);
+
+  const allRoutes = [...staticRoutes, ...courseRoutes];
+
+  return allRoutes.map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date().toISOString(),
     changeFrequency: 'weekly' as const,
-    priority: route === '' ? 1.0 : 0.8,
+    priority: route === '' ? 1.0 : route.startsWith('/programs') ? 0.9 : 0.8,
   }));
 }

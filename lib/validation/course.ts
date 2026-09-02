@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CourseStatus } from '@prisma/client';
+import { CourseStatus, Currency } from '@prisma/client';
 import { courseCategories, courseLevels } from '@/lib/courses/options';
 
 const optionalUrl = z
@@ -10,13 +10,20 @@ const optionalUrl = z
   });
 
 const editableCourseFields = {
-  title: z.string().trim().min(1, 'Course title is required.').max(120, 'Keep the title under 120 characters.'),
+  title: z
+    .string()
+    .trim()
+    .min(1, 'Course title is required.')
+    .max(120, 'Keep the title under 120 characters.'),
   slug: z
     .string()
     .trim()
     .min(1, 'Slug is required.')
     .max(160, 'Keep the slug under 160 characters.')
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase letters, numbers, and single hyphens only.'),
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      'Use lowercase letters, numbers, and single hyphens only.'
+    ),
   shortDescription: z
     .string()
     .trim()
@@ -26,6 +33,11 @@ const editableCourseFields = {
   category: z.enum(courseCategories, { message: 'Select a valid category.' }),
   level: z.enum(courseLevels, { message: 'Select a valid level.' }),
   duration: z.string().trim().min(1, 'Duration is required.').max(40, 'Keep the duration concise.'),
+  priceMinor: z.coerce.number().int().min(0, 'Price must be non-negative.').default(0),
+  currency: z.nativeEnum(Currency).default(Currency.USD),
+  benefits: z.array(z.string().trim()).default([]),
+  cta: z.string().trim().max(80, 'Keep CTA under 80 characters.').default('Apply Today'),
+  sortOrder: z.coerce.number().int().min(0).default(0),
   thumbnailUrl: optionalUrl.optional().default(''),
   instructorId: z.string().trim().optional().nullable(),
 };

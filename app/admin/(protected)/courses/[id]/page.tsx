@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, BookOpen, Eye, Pencil } from 'lucide-react';
+import { ArrowLeft, BookOpen, Eye, Pencil, Users } from 'lucide-react';
 import { db } from '@/lib/db';
 import { CourseStatusBadge } from '@/components/admin/courses/CourseStatusBadge';
 import { CourseActionForm } from '@/components/admin/courses/CourseActionForm';
@@ -30,7 +30,7 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
     where: { id },
     include: {
       instructor: { select: { name: true, email: true } },
-      _count: { select: { weeks: true } },
+      _count: { select: { weeks: true, enrollments: true } },
     },
   });
 
@@ -64,6 +64,10 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
               <BookOpen className="h-4 w-4" />
               Manage Curriculum
             </Link>
+            <Link href={`/admin/courses/${course.id}/students`} className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
+              <Users className="h-4 w-4" />
+              Manage Students
+            </Link>
             <Link href={`/admin/courses/${course.id}/preview`} className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
               <Eye className="h-4 w-4" />
               Preview
@@ -77,15 +81,34 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-950">Description</h3>
-          <div className="mt-4 whitespace-pre-line text-sm leading-7 text-slate-600">{course.description}</div>
-        </section>
+        <div className="space-y-6">
+          <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-950">Description</h3>
+            <div className="mt-4 whitespace-pre-line text-sm leading-7 text-slate-600">{course.description}</div>
+          </section>
+
+          {course.benefits && course.benefits.length > 0 && (
+            <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-slate-950">Key Benefits</h3>
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2 text-sm text-slate-700">
+                {course.benefits.map((benefit, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>{benefit}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
 
         <aside className="space-y-6">
           <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="text-lg font-bold text-slate-950">Course Information</h3>
             <dl className="mt-4 space-y-3 text-sm">
+              <div><dt className="font-semibold text-slate-500">Price</dt><dd className="mt-1 font-bold text-slate-900">${(course.priceMinor / 100).toFixed(2)} {course.currency}</dd></div>
+              <div><dt className="font-semibold text-slate-500">CTA Label</dt><dd className="mt-1 text-slate-900">{course.cta || 'Apply Today'}</dd></div>
+              <div><dt className="font-semibold text-slate-500">Programme Order</dt><dd className="mt-1 text-slate-900">{course.sortOrder}</dd></div>
               <div><dt className="font-semibold text-slate-500">Category</dt><dd className="mt-1 text-slate-900">{course.category}</dd></div>
               <div><dt className="font-semibold text-slate-500">Level</dt><dd className="mt-1 text-slate-900">{course.level}</dd></div>
               <div><dt className="font-semibold text-slate-500">Duration</dt><dd className="mt-1 text-slate-900">{course.duration}</dd></div>
@@ -99,6 +122,14 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
             <p className="mt-3 text-sm font-semibold text-slate-700">{course._count.weeks} weeks currently attached.</p>
             <Link href={`/admin/courses/${course.id}/curriculum`} className="mt-4 inline-flex rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-secondary">
               Manage Curriculum
+            </Link>
+          </section>
+          <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-950">Students</h3>
+            <p className="mt-2 text-sm text-slate-500">Review enrolled students and add learners to this course.</p>
+            <p className="mt-3 text-sm font-semibold text-slate-700">{course._count.enrollments} students enrolled.</p>
+            <Link href={`/admin/courses/${course.id}/students`} className="mt-4 inline-flex rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-secondary">
+              Manage Students
             </Link>
           </section>
         </aside>

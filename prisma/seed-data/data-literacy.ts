@@ -3,12 +3,26 @@ import { SeedCourse } from './types';
 export const dataLiteracyCourse: SeedCourse = {
   title: 'Introduction to Data Literacy',
   slug: 'introduction-to-data-literacy',
-  shortDescription: 'Foundational data thinking for evidence-led work.',
+  shortDescription: 'Build the confidence to understand, interpret and communicate data in everyday decisions.',
   description:
-    'A beginner-friendly foundation for reading datasets, asking useful questions, and communicating insights with clarity.',
-  category: 'Professional Education',
-  level: 'Beginner Friendly',
-  duration: '8 Weeks',
+    'Build the confidence to understand, interpret and communicate data in everyday decisions.',
+  category: 'Data Literacy',
+  level: 'Beginner',
+  duration: '6 Weeks',
+  priceMinor: 1990, // $19.90
+  currency: 'USD',
+  sortOrder: 1,
+  cta: 'Start Your Data Journey',
+  benefits: [
+    'Beginner-friendly curriculum',
+    'Understand & interpret data',
+    'Practical exercises',
+    'Real-world examples',
+    'Learning materials',
+    'Certificate of completion',
+    'Community access',
+    'Instructor guidance',
+  ],
   weeks: [
     {
       weekNumber: 1,

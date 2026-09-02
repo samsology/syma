@@ -6,6 +6,28 @@ import { lessonSchema } from '../lib/validation/lesson';
 import { moduleSchema } from '../lib/validation/module';
 import { resourceSchema } from '../lib/validation/resource';
 import { weekSchema } from '../lib/validation/week';
+import {
+  createEnrollmentSchema,
+  studentEnrollSchema,
+  updateEnrollmentStatusSchema,
+} from '../lib/validation/enrollment';
+import {
+  changeStudentPasswordSchema,
+  studentLoginSchema,
+  studentRegisterSchema,
+} from '../lib/validation/student';
+import {
+  createOrderSchema,
+  initializePaymentSchema,
+  verifyPaymentSchema,
+} from '../lib/validation/payment';
+import {
+  canTransitionOrderStatus,
+  canTransitionPaymentStatus,
+  formatMoney,
+} from '../lib/payments/rules';
+import { summarizeLessonProgress } from '../lib/student-course/progress';
+import { OFFICIAL_COURSES, formatCoursePrice } from '../lib/courses/catalog';
 
 test('login schema accepts valid credentials', () => {
   const parsed = adminLoginSchema.safeParse({
@@ -88,4 +110,154 @@ test('resource schema rejects unsupported file types', () => {
   });
 
   assert.equal(parsed.success, false);
+});
+
+test('student registration normalizes email and requires matching passwords', () => {
+  const parsed = studentRegisterSchema.safeParse({
+    firstName: ' Maya ',
+    lastName: ' Okafor ',
+    email: 'MAYA.STUDENT@EXAMPLE.TEST',
+    phone: '',
+    password: 'studentpassword123',
+    confirmPassword: 'studentpassword123',
+  });
+
+  assert.equal(parsed.success, true);
+  if (parsed.success) assert.equal(parsed.data.email, 'maya.student@example.test');
+
+  const mismatch = studentRegisterSchema.safeParse({
+    firstName: 'Maya',
+    lastName: 'Okafor',
+    email: 'maya@example.test',
+    password: 'studentpassword123',
+    confirmPassword: 'differentpassword123',
+  });
+
+  assert.equal(mismatch.success, false);
+});
+
+test('student login validates email and password presence', () => {
+  assert.equal(
+    studentLoginSchema.safeParse({ email: 'student@example.test', password: 'studentpassword123' })
+      .success,
+    true
+  );
+  assert.equal(studentLoginSchema.safeParse({ email: 'bad', password: '' }).success, false);
+});
+
+test('student password change requires current password and confirmation', () => {
+  assert.equal(
+    changeStudentPasswordSchema.safeParse({
+      currentPassword: 'studentpassword123',
+      newPassword: 'newstudentpassword123',
+      confirmPassword: 'newstudentpassword123',
+    }).success,
+    true
+  );
+
+  assert.equal(
+    changeStudentPasswordSchema.safeParse({
+      currentPassword: '',
+      newPassword: 'newstudentpassword123',
+      confirmPassword: 'wrongstudentpassword123',
+    }).success,
+    false
+  );
+});
+
+test('enrollment validation accepts whitelisted statuses and required ids', () => {
+  assert.equal(
+    createEnrollmentSchema.safeParse({
+      studentId: 'student_1',
+      courseId: 'course_1',
+      status: 'ACTIVE',
+    }).success,
+    true
+  );
+  assert.equal(
+    updateEnrollmentStatusSchema.safeParse({ enrollmentId: 'enrollment_1', status: 'REFUNDED' })
+      .success,
+    false
+  );
+  assert.equal(studentEnrollSchema.safeParse({ courseId: '' }).success, false);
+});
+
+test('payment validation accepts server identifiers and rejects missing references', () => {
+  assert.equal(createOrderSchema.safeParse({ courseId: 'course_1' }).success, true);
+  assert.equal(
+    initializePaymentSchema.safeParse({ orderNumber: 'SYM-20260902-ABC123' }).success,
+    true
+  );
+  assert.equal(verifyPaymentSchema.safeParse({ reference: '' }).success, false);
+});
+
+test('order and payment transitions are constrained', () => {
+  assert.equal(canTransitionOrderStatus('PENDING', 'PAID'), true);
+  assert.equal(canTransitionOrderStatus('PAID', 'FAILED'), false);
+  assert.equal(canTransitionPaymentStatus('PENDING', 'SUCCESS'), true);
+  assert.equal(canTransitionPaymentStatus('FAILED', 'SUCCESS'), false);
+});
+
+test('money formatting uses integer minor units', () => {
+  assert.equal(formatMoney(6990, 'USD'), '$69.90');
+});
+
+test('canonical catalogue contains exactly the 4 official courses in USD', () => {
+  const expected = [
+    { slug: 'introduction-to-data-literacy', price: '$19.90', priceMinor: 1990 },
+    { slug: 'introduction-to-data-analytics', price: '$39.90', priceMinor: 3990 },
+    { slug: 'introduction-to-data-science', price: '$49.90', priceMinor: 4990 },
+    { slug: 'healthcare-analytics', price: '$69.90', priceMinor: 6990 },
+  ];
+
+  assert.equal(OFFICIAL_COURSES.length, expected.length);
+
+  for (const [index, item] of expected.entries()) {
+    const course = OFFICIAL_COURSES[index];
+    assert.equal(course.slug, item.slug);
+    assert.equal(course.currency, 'USD');
+    assert.equal(course.priceMinor, item.priceMinor);
+    assert.equal(course.price, item.price);
+    assert.equal(formatCoursePrice(course.priceMinor, course.currency), item.price);
+  }
+});
+
+test('lesson progress summary handles empty, partial, and complete courses', () => {
+  assert.deepEqual(summarizeLessonProgress([], []), {
+    completedLessons: 0,
+    totalLessons: 0,
+    percentage: 0,
+    isComplete: false,
+    nextLessonId: null,
+  });
+
+  assert.deepEqual(summarizeLessonProgress(['lesson-1', 'lesson-2'], ['lesson-1']), {
+    completedLessons: 1,
+    totalLessons: 2,
+    percentage: 50,
+    isComplete: false,
+    nextLessonId: 'lesson-2',
+  });
+
+  assert.deepEqual(
+    summarizeLessonProgress(
+      ['lesson-1', 'lesson-2', 'lesson-3', 'lesson-4'],
+      ['lesson-1', 'lesson-2', 'lesson-3']
+    ),
+    {
+      completedLessons: 3,
+      totalLessons: 4,
+      percentage: 75,
+      isComplete: false,
+      nextLessonId: 'lesson-4',
+    }
+  );
+
+  assert.deepEqual(summarizeLessonProgress(['lesson-1', 'lesson-2'], ['lesson-1', 'lesson-2']), {
+    completedLessons: 2,
+    totalLessons: 2,
+    percentage: 100,
+    isComplete: true,
+    nextLessonId: null,
+  });
 });

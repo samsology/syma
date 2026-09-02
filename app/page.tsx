@@ -19,13 +19,25 @@ import {
   MapPin,
   FileSpreadsheet,
   PieChart,
-  Award
+  Award,
+  BookOpen,
+  BarChart3,
+  Code2,
+  CheckCircle2,
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Counter } from '@/components/ui/Counter';
+import {
+  OFFICIAL_COURSES,
+  GLOBAL_COURSE_INCLUSIONS,
+  VALUE_PROPOSITION,
+  COURSE_PROGRESSION,
+} from '@/lib/courses/catalog';
 
 const stats = [
   { value: '200+', label: 'Professionals Trained' },
@@ -67,38 +79,12 @@ const solutions = [
   },
 ];
 
-const courses = [
-  {
-    title: 'Healthcare Data Analytics',
-    level: 'Beginner Friendly',
-    duration: '11 Weeks',
-    outcomes: 'Clinical Reporting, SQL, Power BI dashboards',
-    projects: 'Hospital Operations Tracker',
-    price: 'NGN 70,000',
-    usd: 'approx. $51',
-    href: '/enroll?program=Healthcare-Data-Analytics',
-  },
-  {
-    title: 'Python for Data Science',
-    level: 'Intermediate Level',
-    duration: '9 Weeks',
-    outcomes: 'Pandas pipelines, APIs, automation coding',
-    projects: 'Public Health Research Notebooks',
-    price: 'NGN 120,000',
-    usd: 'approx. $87',
-    href: '/enroll?program=Python-for-Data-Science',
-  },
-  {
-    title: 'Business Intelligence',
-    level: 'Advanced Level',
-    duration: '7 Weeks',
-    outcomes: 'DAX modeling, KPI frameworks, executive UX',
-    projects: 'Interactive Performance Board',
-    price: 'NGN 150,000',
-    usd: 'approx. $109',
-    href: '/enroll?program=Business-Intelligence',
-  },
-];
+const courseIcons = {
+  BookOpen,
+  BarChart3,
+  Code2,
+  Activity,
+};
 
 const testimonials = [
   {
@@ -445,59 +431,140 @@ export default function Home() {
       </section>
 
       {/* 6. Programs Section */}
-      <section className="py-24 lg:py-32 border-t border-slate-100 bg-slate-50/50">
+      <section className="py-24 lg:py-32 border-t border-slate-100 bg-slate-50/50 relative overflow-hidden">
         <Container className="space-y-16">
-          <SectionHeading
-            badge="Professional Education"
-            title="Practical Analytics Academy"
-            description="Outcome-driven certification programs built on real-world datasets and guided by industry mentors."
-          />
+          <div className="text-center space-y-4 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-xs font-bold uppercase tracking-wider text-primary">
+              {VALUE_PROPOSITION.mainHeadline}
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight font-heading text-slate-900">
+              Practical Analytics Academy
+            </h2>
+            <p className="text-slate-600 text-lg leading-relaxed">
+              {VALUE_PROPOSITION.supportingHeadline}
+            </p>
+          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {courses.map((course) => (
-              <Card
-                key={course.title}
-                hoverEffect="lift"
-                className="flex flex-col justify-between border-slate-100 bg-white p-8 relative shadow-sm"
-              >
-                <div className="space-y-6">
+          {/* Course Progression Journey */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">Learning Pathway</p>
+                <h3 className="text-lg font-bold text-slate-900 mt-0.5">Progression: From Data Literacy to Specialist</h3>
+              </div>
+              <Link href="/programs" className="text-xs font-bold text-primary hover:text-secondary inline-flex items-center gap-1">
+                Explore Full Catalogue <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {COURSE_PROGRESSION.map((step, idx) => (
+                <div key={step.step} className="relative rounded-xl border border-slate-100 bg-slate-50/60 p-4 flex flex-col justify-between hover:border-primary/30 transition-colors">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/5 px-2.5 py-1 rounded-full">
-                      {course.level}
-                    </span>
-                    <h3 className="text-xl font-bold font-heading text-slate-900 mt-4">{course.title}</h3>
-                  </div>
-
-                  <div className="space-y-3 text-sm text-slate-500">
-                    <p className="flex justify-between border-b border-slate-50 pb-2">
-                      <span className="font-medium text-slate-400">Duration:</span>
-                      <span className="font-semibold text-slate-800">{course.duration}</span>
-                    </p>
-                    <p className="flex justify-between border-b border-slate-50 pb-2">
-                      <span className="font-medium text-slate-400">Main outcome:</span>
-                      <span className="font-semibold text-slate-800 text-right max-w-[160px] truncate">{course.outcomes}</span>
-                    </p>
-                    <p className="flex justify-between pb-2">
-                      <span className="font-medium text-slate-400">Projects:</span>
-                      <span className="font-semibold text-slate-800 text-right max-w-[160px] truncate">{course.projects}</span>
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-100">
-                    <p className="text-2xl font-extrabold text-slate-900">{course.price}</p>
-                    <p className="text-xs font-semibold text-slate-400 mt-0.5">{course.usd}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded">STEP {step.step}</span>
+                      {idx < 3 && <span className="hidden lg:block text-slate-300 font-bold">→</span>}
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 mt-2">{step.title}</h4>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">{step.subtitle}</p>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <div className="mt-8 pt-4">
-                  <Link href={course.href} className="w-full">
-                    <Button variant="primary" className="w-full">
-                      Enroll Track
-                    </Button>
-                  </Link>
-                </div>
-              </Card>
-            ))}
+          {/* 4 Official Course Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {OFFICIAL_COURSES.map((course) => {
+              const IconComponent = courseIcons[course.iconName] || BookOpen;
+              return (
+                <Card
+                  key={course.slug}
+                  hoverEffect="lift"
+                  className="flex flex-col justify-between border-slate-200/80 bg-white p-6 relative shadow-sm hover:border-primary/40 transition-all rounded-2xl"
+                >
+                  <div className="space-y-5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <IconComponent className="h-5 w-5" />
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          COURSE {course.number}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/5 px-2 py-0.5 rounded-full border border-primary/15">
+                          {course.duration}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        {course.badge}
+                      </span>
+                      <h3 className="text-lg font-bold font-heading text-slate-900 mt-1 line-clamp-2 leading-tight">
+                        {course.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed line-clamp-3">
+                        {course.description}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-2xl font-black text-slate-900">{course.price}</span>
+                        <span className="text-xs font-bold text-slate-400">USD</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 font-medium flex items-center gap-1">
+                        <Sparkles className="h-3 w-3 text-primary" /> {course.support}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5 pt-2 border-t border-slate-50">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Key Benefits:</p>
+                      {course.benefits.slice(0, 4).map((b, i) => (
+                        <p key={i} className="text-xs text-slate-600 flex items-start gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                          <span className="line-clamp-1">{b}</span>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-100 space-y-2">
+                    <Link href={`/enroll?program=${course.slug}`} className="w-full block">
+                      <Button variant="primary" className="w-full text-xs font-bold py-2.5">
+                        {course.cta}
+                      </Button>
+                    </Link>
+                    <Link
+                      href={`/programs/${course.slug}`}
+                      className="block text-center text-xs font-semibold text-slate-500 hover:text-primary transition-colors py-1"
+                    >
+                      View Curriculum & Details →
+                    </Link>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Shared Inclusions Banner */}
+          <div className="rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/5 via-white to-primary/5 p-6 sm:p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-1">
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">Universal Guarantee</span>
+                <h3 className="text-xl font-bold text-slate-900">Every Syma Tech Course Includes</h3>
+                <p className="text-xs text-slate-500">All enrollments come backed by industry-standard learning infrastructure.</p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {GLOBAL_COURSE_INCLUSIONS.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-xl bg-white border border-slate-200/80 px-3 py-2.5 shadow-sm">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-xs font-bold text-slate-700">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </Container>
       </section>

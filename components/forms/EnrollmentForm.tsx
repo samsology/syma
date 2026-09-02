@@ -14,10 +14,11 @@ import { enrollmentSchema } from '@/lib/validation';
 type EnrollmentInput = z.infer<typeof enrollmentSchema>;
 
 const programs = [
-  { id: 'Data-Analytics-Fundamentals', label: 'Healthcare Data Analytics (NGN 70,000)' },
-  { id: 'Python-for-Data-Science', label: 'Python for Data Science (₦120,000)' },
-  { id: 'Business-Intelligence', label: 'Business Intelligence (₦150,000)' },
-  { id: 'Corporate-Analytics-Training', label: 'Training & Capacity Building (custom pricing)' },
+  { id: 'introduction-to-data-literacy', label: '01. Introduction to Data Literacy — 6 Weeks ($19.90 USD)' },
+  { id: 'introduction-to-data-analytics', label: '02. Introduction to Data Analytics — 8 Weeks ($39.90 USD)' },
+  { id: 'introduction-to-data-science', label: '03. Introduction to Data Science — 8 Weeks ($49.90 USD)' },
+  { id: 'healthcare-analytics', label: '04. Healthcare Analytics — 8 Weeks ($69.90 USD)' },
+  { id: 'Corporate-Analytics-Training', label: 'Institutional & Capacity Training (Custom Pricing)' },
 ];
 
 const experienceLevels = [
@@ -26,10 +27,23 @@ const experienceLevels = [
   { id: 'advanced', label: 'Advanced (professional analyst, researcher, or technical practitioner)' },
 ];
 
+function normalizeProgramId(param: string | null | undefined): string {
+  if (!param) return '';
+  const lower = param.toLowerCase();
+  const match = programs.find((p) => p.id.toLowerCase() === lower);
+  if (match) return match.id;
+  if (lower.includes('literacy')) return 'introduction-to-data-literacy';
+  if (lower.includes('science') || lower.includes('python')) return 'introduction-to-data-science';
+  if (lower.includes('health')) return 'healthcare-analytics';
+  if (lower.includes('analytics')) return 'introduction-to-data-analytics';
+  return param;
+}
+
 export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const programParam = searchParams?.get('program') || defaultProgram;
+  const rawParam = searchParams?.get('program') || defaultProgram;
+  const initialProgram = normalizeProgramId(rawParam);
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -44,7 +58,7 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
       fullName: '',
       email: '',
       phone: '',
-      program: programParam,
+      program: initialProgram,
       experience: '',
       motivation: '',
       honeypot: '',

@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { BookOpen, LayoutDashboard, LogOut, Shield, User } from 'lucide-react';
+import { BookOpen, LayoutDashboard, LogOut, Receipt, Shield, User } from 'lucide-react';
 import { logoutStudentAction } from '@/app/student/actions';
 import type { StudentSessionUser } from '@/lib/auth/student-session';
 
 const links = [
   { href: '/student', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/student', label: 'My Courses', icon: BookOpen },
+  { href: '/student/orders', label: 'Orders', icon: Receipt },
   { href: '/student/profile', label: 'Profile', icon: User },
   { href: '/student/profile/security', label: 'Security', icon: Shield },
 ];

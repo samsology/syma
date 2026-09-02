@@ -26,6 +26,22 @@ async function hasMeaningfulCurriculum(courseId: string) {
 
 function courseDataFromForm(formData: FormData) {
   const instructorId = String(formData.get('instructorId') ?? '').trim();
+  const rawPrice = formData.get('price');
+  let priceMinor = 0;
+  if (rawPrice !== null && rawPrice !== '') {
+    const num = parseFloat(String(rawPrice));
+    if (!isNaN(num)) {
+      priceMinor = Math.round(num * 100);
+    }
+  } else if (formData.get('priceMinor')) {
+    priceMinor = parseInt(String(formData.get('priceMinor')), 10) || 0;
+  }
+
+  const rawBenefits = String(formData.get('benefits') ?? '');
+  const benefits = rawBenefits
+    .split('\n')
+    .map((b) => b.trim())
+    .filter(Boolean);
 
   return {
     title: formData.get('title'),
@@ -35,6 +51,11 @@ function courseDataFromForm(formData: FormData) {
     category: formData.get('category'),
     level: formData.get('level'),
     duration: formData.get('duration'),
+    priceMinor,
+    currency: 'USD' as const,
+    benefits,
+    cta: String(formData.get('cta') ?? 'Apply Today').trim() || 'Apply Today',
+    sortOrder: parseInt(String(formData.get('sortOrder') ?? '0'), 10) || 0,
     thumbnailUrl: formData.get('thumbnailUrl'),
     instructorId: instructorId || null,
   };
@@ -44,7 +65,10 @@ function isDuplicateSlugError(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
-export async function createCourseAction(_state: CourseFormState, formData: FormData): Promise<CourseFormState> {
+export async function createCourseAction(
+  _state: CourseFormState,
+  formData: FormData
+): Promise<CourseFormState> {
   await requireAdmin();
 
   const parsed = createCourseSchema.safeParse(courseDataFromForm(formData));
@@ -62,6 +86,11 @@ export async function createCourseAction(_state: CourseFormState, formData: Form
         category: parsed.data.category,
         level: parsed.data.level,
         duration: parsed.data.duration,
+        priceMinor: parsed.data.priceMinor,
+        currency: parsed.data.currency,
+        benefits: parsed.data.benefits,
+        cta: parsed.data.cta,
+        sortOrder: parsed.data.sortOrder,
         thumbnailUrl: parsed.data.thumbnailUrl || null,
         instructorId: parsed.data.instructorId || null,
         status: 'DRAFT',
@@ -79,7 +108,11 @@ export async function createCourseAction(_state: CourseFormState, formData: Form
   }
 }
 
-export async function updateCourseAction(courseId: string, _state: CourseFormState, formData: FormData): Promise<CourseFormState> {
+export async function updateCourseAction(
+  courseId: string,
+  _state: CourseFormState,
+  formData: FormData
+): Promise<CourseFormState> {
   await requireAdmin();
 
   const parsed = updateCourseSchema.safeParse(courseDataFromForm(formData));
@@ -105,6 +138,11 @@ export async function updateCourseAction(courseId: string, _state: CourseFormSta
         category: parsed.data.category,
         level: parsed.data.level,
         duration: parsed.data.duration,
+        priceMinor: parsed.data.priceMinor,
+        currency: parsed.data.currency,
+        benefits: parsed.data.benefits,
+        cta: parsed.data.cta,
+        sortOrder: parsed.data.sortOrder,
         thumbnailUrl: parsed.data.thumbnailUrl || null,
         instructorId: parsed.data.instructorId || null,
       },
@@ -131,7 +169,8 @@ export async function publishCourseAction(formData: FormData) {
 
   const parsed = updateCourseSchema.safeParse(course);
   if (!parsed.success) redirect(`/admin/courses/${courseId}?error=publish-invalid`);
-  if (!(await hasMeaningfulCurriculum(courseId))) redirect(`/admin/courses/${courseId}?error=curriculum-required`);
+  if (!(await hasMeaningfulCurriculum(courseId)))
+    redirect(`/admin/courses/${courseId}?error=curriculum-required`);
 
   await db.course.update({
     where: { id: courseId },

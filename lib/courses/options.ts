@@ -1,10 +1,17 @@
-export const courseCategories = ['Data Literacy', 'Data Analytics', 'Data Science', 'Healthcare Analytics'] as const;
-export const courseLevels = ['Beginner', 'Intermediate', 'Advanced'] as const;
+export const courseCategories = [
+  'Data Literacy',
+  'Data Analytics',
+  'Data Science',
+  'Healthcare Analytics',
+] as const;
+
+export const courseLevels = ['Beginner', 'Intermediate', 'Advanced', 'Specialist'] as const;
 
 export type CourseCategory = (typeof courseCategories)[number];
 export type CourseLevel = (typeof courseLevels)[number];
 
 export const courseSortOptions = [
+  { value: 'order', label: 'Programme Order' },
   { value: 'recent', label: 'Recently Updated' },
   { value: 'oldest', label: 'Oldest Updated' },
   { value: 'title-asc', label: 'Title A-Z' },

@@ -12,10 +12,10 @@ const services = [
 ];
 
 const programs = [
-  { href: '/programs', label: 'Healthcare Analytics Program' },
-  { href: '/programs', label: 'Python for Data Science' },
-  { href: '/programs', label: 'Business Intelligence Track' },
-  { href: '/programs', label: 'Institutional Capacity Building' },
+  { href: '/programs/introduction-to-data-literacy', label: 'Introduction to Data Literacy ($19.90)' },
+  { href: '/programs/introduction-to-data-analytics', label: 'Introduction to Data Analytics ($39.90)' },
+  { href: '/programs/introduction-to-data-science', label: 'Introduction to Data Science ($49.90)' },
+  { href: '/programs/healthcare-analytics', label: 'Healthcare Analytics ($69.90)' },
 ];
 
 const companyLinks = [

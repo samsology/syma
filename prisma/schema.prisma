@@ -32,6 +32,37 @@ enum EnrollmentStatus {
   SUSPENDED
 }
 
+enum Currency {
+  USD
+  NGN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  PAYSTACK
+}
+
+enum EnrollmentSource {
+  MANUAL
+  PAYMENT
+}
+
 enum LessonType {
   TEXT
   VIDEO
@@ -49,7 +80,7 @@ model Admin {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  courses Course[] @relation("CourseInstructor")
+  courses  Course[]       @relation("CourseInstructor")
   sessions AdminSession[]
 }
 
@@ -84,6 +115,11 @@ model Course {
   category         String
   level            String
   duration         String
+  priceMinor       Int          @default(0)
+  currency         Currency     @default(USD)
+  benefits         String[]     @default([])
+  cta              String       @default("Enroll Now")
+  sortOrder        Int          @default(0)
   thumbnailUrl     String?
   instructorId     String?
   status           CourseStatus @default(DRAFT)
@@ -91,13 +127,15 @@ model Course {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  instructor Admin?       @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
-  weeks      CourseWeek[]
+  instructor  Admin?       @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+  weeks       CourseWeek[]
   enrollments Enrollment[]
+  orders      Order[]
 
   @@index([status])
   @@index([category])
   @@index([instructorId])
+  @@index([sortOrder])
 }
 
 model Student {
@@ -114,6 +152,8 @@ model Student {
 
   sessions    StudentSession[]
   enrollments Enrollment[]
+  orders      Order[]
+  progress    LessonProgress[]
 
   @@index([status])
   @@index([createdAt])
@@ -146,6 +186,8 @@ model Enrollment {
   studentId   String
   courseId    String
   status      EnrollmentStatus @default(PENDING)
+  source      EnrollmentSource @default(MANUAL)
+  orderId     String?          @unique
   enrolledAt  DateTime         @default(now())
   startedAt   DateTime?
   completedAt DateTime?
@@ -154,10 +196,58 @@ model Enrollment {
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@unique([studentId, courseId])
   @@index([studentId])
   @@index([courseId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique
+  studentId   String
+  courseId    String
+  amountMinor Int
+  currency    Currency    @default(USD)
+  status      OrderStatus @default(PENDING)
+  expiresAt   DateTime?
+  paidAt      DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  student    Student     @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  course     Course      @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  payments   Payment[]
+  enrollment Enrollment?
+
+  @@index([studentId])
+  @@index([courseId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  orderId           String
+  provider          PaymentProvider
+  providerReference String
+  authorizationUrl  String?
+  amountMinor       Int
+  currency          Currency        @default(USD)
+  status            PaymentStatus   @default(PENDING)
+  providerEventId   String?
+  failureReason     String?
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerReference])
+  @@index([orderId])
   @@index([status])
   @@index([createdAt])
 }
@@ -211,9 +301,28 @@ model Lesson {
 
   module    CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   resources LessonResource[]
+  progress  LessonProgress[]
 
   @@unique([moduleId, slug])
   @@index([moduleId])
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  studentId   String
+  lessonId    String
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, lessonId])
+  @@index([studentId])
+  @@index([lessonId])
+  @@index([isCompleted])
 }
 
 model LessonResource {

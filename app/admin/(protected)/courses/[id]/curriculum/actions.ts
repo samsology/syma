@@ -37,12 +37,12 @@ async function requireWeek(courseId: string, weekId: string) {
 }
 
 async function requireModule(courseId: string, moduleId: string) {
-  const module = await db.courseModule.findFirst({
+  const courseModule = await db.courseModule.findFirst({
     where: { id: moduleId, week: { courseId } },
     include: { week: { select: { courseId: true } } },
   });
-  if (!module) throw new Error('Module not found.');
-  return module;
+  if (!courseModule) throw new Error('Module not found.');
+  return courseModule;
 }
 
 async function requireLesson(courseId: string, lessonId: string) {
@@ -313,8 +313,8 @@ export async function moveModuleAction(formData: FormData) {
   const moduleId = String(formData.get('moduleId') ?? '');
   const parsed = reorderSchema.parse({ direction: formData.get('direction') });
   await requireCourse(courseId);
-  const module = await requireModule(courseId, moduleId);
-  const modules = await db.courseModule.findMany({ where: { weekId: module.weekId }, orderBy: { sortOrder: 'asc' } });
+  const courseModule = await requireModule(courseId, moduleId);
+  const modules = await db.courseModule.findMany({ where: { weekId: courseModule.weekId }, orderBy: { sortOrder: 'asc' } });
   const pair = await moveItem(modules, moduleId, parsed.direction);
   if (pair) await db.$transaction(pair.map((item, index) => db.courseModule.update({ where: { id: item.id }, data: { sortOrder: pair[1 - index].sortOrder } })));
   refresh(courseId);

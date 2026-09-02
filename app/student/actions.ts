@@ -14,6 +14,7 @@ import {
 import { studentEnrollSchema } from '@/lib/validation/enrollment';
 import { createStudentSession, destroyStudentSession } from '@/lib/auth/student-session';
 import { requireStudent } from '@/lib/auth/student-authorization';
+import { createOrReuseOrder } from '@/lib/payments/service';
 import {
   clearStudentLoginAttempts,
   isStudentLoginRateLimited,
@@ -37,33 +38,6 @@ async function rateLimitKey(email: string) {
   const realIp = headerStore.get('x-real-ip')?.trim();
   const ip = forwardedFor || realIp || 'unknown';
   return `${email.toLowerCase()}:${ip}`;
-}
-
-async function createAccessibleEnrollment(studentId: string, courseId?: string | null) {
-  if (!courseId) return null;
-
-  const course = await db.course.findUnique({
-    where: { id: courseId },
-    select: { id: true, status: true },
-  });
-
-  if (!course || course.status !== 'PUBLISHED') return null;
-
-  return db.enrollment.upsert({
-    where: {
-      studentId_courseId: {
-        studentId,
-        courseId,
-      },
-    },
-    update: {},
-    create: {
-      studentId,
-      courseId,
-      status: 'ACTIVE',
-      startedAt: new Date(),
-    },
-  });
 }
 
 export async function registerStudentAction(
@@ -115,10 +89,15 @@ export async function registerStudentAction(
     },
   });
 
-  await createAccessibleEnrollment(student.id, parsed.data.courseId);
   await createStudentSession(student.id);
 
-  redirect(parsed.data.courseId ? `/student/courses/${parsed.data.courseId}` : '/student');
+  if (parsed.data.courseId) {
+    const result = await createOrReuseOrder(student.id, parsed.data.courseId);
+    if ('alreadyEnrolled' in result || 'freeEnrollment' in result) redirect(`/student/courses/${parsed.data.courseId}`);
+    if (result.order) redirect(`/checkout/${result.order.orderNumber}`);
+  }
+
+  redirect('/student');
 }
 
 export async function loginStudentAction(
@@ -164,10 +143,15 @@ export async function loginStudentAction(
     clearStudentLoginAttempts(key),
     db.student.update({ where: { id: student.id }, data: { lastLoginAt: new Date() } }),
   ]);
-  await createAccessibleEnrollment(student.id, parsed.data.courseId);
   await createStudentSession(student.id);
 
-  redirect(parsed.data.courseId ? `/student/courses/${parsed.data.courseId}` : '/student');
+  if (parsed.data.courseId) {
+    const result = await createOrReuseOrder(student.id, parsed.data.courseId);
+    if ('alreadyEnrolled' in result || 'freeEnrollment' in result) redirect(`/student/courses/${parsed.data.courseId}`);
+    if (result.order) redirect(`/checkout/${result.order.orderNumber}`);
+  }
+
+  redirect('/student');
 }
 
 export async function logoutStudentAction() {
@@ -246,6 +230,9 @@ export async function enrollCurrentStudentAction(formData: FormData) {
     redirect('/programs');
   }
 
-  await createAccessibleEnrollment(student.id, parsed.data.courseId);
-  redirect(`/student/courses/${parsed.data.courseId}`);
+  const result = await createOrReuseOrder(student.id, parsed.data.courseId);
+  if ('alreadyEnrolled' in result) redirect(`/student/courses/${parsed.data.courseId}`);
+  if ('freeEnrollment' in result) redirect(`/student/courses/${parsed.data.courseId}`);
+  if (result.order) redirect(`/checkout/${result.order.orderNumber}`);
+  redirect('/programs');
 }

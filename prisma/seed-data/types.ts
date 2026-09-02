@@ -1,4 +1,4 @@
-import { LessonType } from '@prisma/client';
+import { Currency, LessonType } from '@prisma/client';
 
 export type SeedLesson = {
   title: string;
@@ -31,6 +31,11 @@ export type SeedCourse = {
   category: string;
   level: string;
   duration: string;
+  priceMinor: number;
+  currency?: Currency;
+  benefits: string[];
+  cta: string;
+  sortOrder?: number;
   thumbnailUrl?: string;
   weeks: SeedWeek[];
 };

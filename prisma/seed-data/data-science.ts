@@ -3,12 +3,27 @@ import { SeedCourse } from './types';
 export const dataScienceCourse: SeedCourse = {
   title: 'Introduction to Data Science',
   slug: 'introduction-to-data-science',
-  shortDescription: 'Python data science foundations for research and automation workflows.',
+  shortDescription:
+    'Build the foundations of data science, machine learning and predictive analytics using Python.',
   description:
-    'A practical Python-oriented track aligned with Syma Tech research pipeline training, including data cleaning, APIs, and exploratory analysis.',
+    'Build the foundations of data science, machine learning and predictive analytics using Python.',
   category: 'Data Science',
-  level: 'Intermediate Level',
+  level: 'Intermediate',
   duration: '8 Weeks',
+  priceMinor: 4990, // $49.90
+  currency: 'USD',
+  sortOrder: 3,
+  cta: 'Build Data Science Skills',
+  benefits: [
+    'Python programming basics',
+    'Statistics & probability',
+    'Data wrangling & EDA',
+    'Machine learning foundations',
+    'Model building projects',
+    'Real-world datasets',
+    'Certificate of completion',
+    'Community + mentor support',
+  ],
   weeks: [
     {
       weekNumber: 1,

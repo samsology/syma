@@ -9,7 +9,7 @@ type StudentLoginPageProps = {
 export default async function StudentLoginPage({ searchParams }: StudentLoginPageProps) {
   const [params, student] = await Promise.all([searchParams, getCurrentStudent()]);
 
-  if (student) redirect(params.courseId ? `/student/courses/${params.courseId}` : '/student');
+  if (student) redirect(params.courseId ? `/student/enroll?courseId=${params.courseId}` : '/student');
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-12">

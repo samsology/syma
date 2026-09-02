@@ -161,7 +161,7 @@ export default function About() {
                   <span className="text-xs font-semibold text-primary mt-1 block">Co-founder & Healthcare Analyst</span>
                 </div>
                 <p className="text-xs sm:text-sm leading-relaxed text-slate-500">
-                  Samuel is a Healthcare Data Analyst and Bioinformatics Enthusiast with a background in Human Anatomy from Ahmadu Bello University, Zaria. He guides data strategy, research modeling, and analytics curriculum mapping.
+                  Samuel is a Healthcare Data Analyst and Bioinformatics Enthusiast with a background in Biomedical science(Bsc), Bioinformatics (Msc). He guides data strategy, research modeling, and analytics curriculum mapping.
                 </p>
                 <div className="pt-2 flex items-center justify-center sm:justify-start gap-3">
                   <a

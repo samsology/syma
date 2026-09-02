@@ -77,7 +77,7 @@ export async function getAdminEnrollments(params: EnrollmentListParams) {
 }
 
 export async function getAdminEnrollmentDetail(id: string) {
-  return db.enrollment.findUnique({
+  const enrollment = await db.enrollment.findUnique({
     where: { id },
     include: {
       student: {
@@ -96,10 +96,55 @@ export async function getAdminEnrollmentDetail(id: string) {
           title: true,
           slug: true,
           status: true,
+          weeks: {
+            select: {
+              modules: {
+                select: {
+                  lessons: {
+                    where: { status: 'PUBLISHED' },
+                    select: {
+                      id: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       },
     },
   });
+
+  if (!enrollment) return null;
+
+  const lessonIds = enrollment.course.weeks.flatMap((week) =>
+    week.modules.flatMap((module) => module.lessons.map((lesson) => lesson.id))
+  );
+
+  const completedProgress = lessonIds.length
+    ? await db.lessonProgress.findMany({
+        where: {
+          studentId: enrollment.studentId,
+          lessonId: { in: lessonIds },
+          isCompleted: true,
+        },
+        select: { lessonId: true },
+      })
+    : [];
+
+  const completedCount = completedProgress.length;
+  const totalCount = lessonIds.length;
+  const progressPercentage = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+
+  return {
+    ...enrollment,
+    progressSummary: {
+      completedCount,
+      totalCount,
+      progressPercentage,
+      isComplete: totalCount > 0 && completedCount === totalCount,
+    },
+  };
 }
 
 export async function getEnrollmentCreateOptions() {

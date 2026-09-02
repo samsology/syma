@@ -3,12 +3,26 @@ import { SeedCourse } from './types';
 export const dataAnalyticsCourse: SeedCourse = {
   title: 'Introduction to Data Analytics',
   slug: 'introduction-to-data-analytics',
-  shortDescription: 'Practical analytics foundations with SQL, reporting, and dashboards.',
+  shortDescription: 'Learn how to turn raw data into meaningful insights and solve real-world problems.',
   description:
-    'A hands-on introduction to structured querying, clinical-style reporting, and practical dashboard thinking.',
-  category: 'Healthcare Analytics',
-  level: 'Beginner Friendly',
+    'Learn how to turn raw data into meaningful insights and solve real-world problems.',
+  category: 'Data Analytics',
+  level: 'Beginner',
   duration: '8 Weeks',
+  priceMinor: 3990, // $39.90
+  currency: 'USD',
+  sortOrder: 2,
+  cta: 'Become a Data Analyst',
+  benefits: [
+    'Data analysis fundamentals',
+    'Excel, SQL & Data cleaning',
+    'Data visualization',
+    'Insights & Storytelling',
+    'Hands-on analytics project',
+    'Industry case studies',
+    'Certificate of completion',
+    'Community + Instructor support',
+  ],
   weeks: [
     {
       weekNumber: 1,
@@ -41,7 +55,7 @@ export const dataAnalyticsCourse: SeedCourse = {
     {
       weekNumber: 2,
       title: 'SQL and Dashboard Basics',
-      description: 'Build the query and visualization habits used in the existing Syma analytics tracks.',
+      description: 'Build the query and visualization habits used in modern analytics workflows.',
       modules: [
         {
           title: 'Structured Reporting',

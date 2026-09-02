@@ -42,16 +42,37 @@ export default async function PreviewCoursePage({ params }: PreviewCoursePagePro
           </div>
         </div>
         <div className="grid gap-8 p-6 sm:p-10 lg:grid-cols-[1fr_280px]">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-950">About this course</h2>
-            <div className="mt-4 whitespace-pre-line text-sm leading-7 text-slate-600">{course.description}</div>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-950">About this course</h2>
+              <div className="mt-4 whitespace-pre-line text-sm leading-7 text-slate-600">{course.description}</div>
+            </div>
+
+            {course.benefits && course.benefits.length > 0 && (
+              <div>
+                <h3 className="text-xl font-bold text-slate-950">What you&apos;ll gain</h3>
+                <ul className="mt-4 grid gap-2 sm:grid-cols-2 text-sm text-slate-700">
+                  {course.benefits.map((benefit, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-          <aside className="rounded-lg bg-neutral-light p-5">
+          <aside className="rounded-lg bg-neutral-light p-5 space-y-4">
             <h3 className="font-bold text-slate-950">Course Details</h3>
-            <dl className="mt-4 space-y-3 text-sm">
+            <div className="border-b border-slate-200 pb-3">
+              <span className="text-2xl font-black text-slate-900">${(course.priceMinor / 100).toFixed(2)}</span>
+              <span className="text-xs font-semibold text-slate-500 ml-1.5">{course.currency}</span>
+            </div>
+            <dl className="space-y-3 text-sm">
               <div><dt className="font-semibold text-slate-500">Instructor</dt><dd>{course.instructor?.name ?? 'Syma Tech Faculty'}</dd></div>
               <div><dt className="font-semibold text-slate-500">Duration</dt><dd>{course.duration}</dd></div>
               <div><dt className="font-semibold text-slate-500">Level</dt><dd>{course.level}</dd></div>
+              <div><dt className="font-semibold text-slate-500">CTA Label</dt><dd>{course.cta || 'Apply Today'}</dd></div>
             </dl>
           </aside>
         </div>

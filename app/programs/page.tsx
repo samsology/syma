@@ -1,27 +1,55 @@
 import type { Metadata } from 'next';
 import ProgramsPageContent from './ProgramsPageContent';
 import { db } from '@/lib/db';
+import { getCurrentStudent } from '@/lib/auth/student-session';
 
 export const metadata: Metadata = {
-  title: 'Programs & Pricing',
+  title: 'Practical-Based Data Programs | Syma Tech Solutions',
   description:
-    'Outcome-focused analytics training for students, professionals, and institutional teams. Compare healthcare analytics, Python for data science, and business intelligence programs.',
+    'LEARN. PRACTICE. BUILD. APPLY. Practical-based data programs built to take you from beginners to specialist across Data Literacy, Data Analytics, Data Science, and Healthcare Analytics.',
 };
 
 export default async function ProgramsPage() {
-  const courses = await db.course.findMany({
-    where: { status: 'PUBLISHED' },
-    orderBy: { updatedAt: 'desc' },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      shortDescription: true,
-      category: true,
-      level: true,
-      duration: true,
-    },
-  });
+  const student = await getCurrentStudent();
+  const [courses, enrolledCourseIds] = await Promise.all([
+    db.course.findMany({
+      where: { status: 'PUBLISHED' },
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        shortDescription: true,
+        description: true,
+        category: true,
+        level: true,
+        duration: true,
+        priceMinor: true,
+        currency: true,
+        benefits: true,
+        cta: true,
+        sortOrder: true,
+        thumbnailUrl: true,
+      },
+    }),
+    student
+      ? db.enrollment
+          .findMany({
+            where: {
+              studentId: student.id,
+              status: { in: ['ACTIVE', 'COMPLETED'] },
+            },
+            select: { courseId: true },
+          })
+          .then((enrollments) => enrollments.map((enrollment) => enrollment.courseId))
+      : Promise.resolve([]),
+  ]);
 
-  return <ProgramsPageContent publishedCourses={courses} />;
+  return (
+    <ProgramsPageContent
+      publishedCourses={courses}
+      enrolledCourseIds={enrolledCourseIds}
+      isStudentSignedIn={Boolean(student)}
+    />
+  );
 }

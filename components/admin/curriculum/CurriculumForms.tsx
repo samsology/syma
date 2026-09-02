@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useState } from 'react';
 import type { CourseModule, CourseWeek, Lesson } from '@prisma/client';
 import type { CurriculumFormState } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
 import { slugifyCourseTitle } from '@/lib/courses/options';
@@ -101,9 +101,12 @@ export function InlineLessonForm({
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
 
-  useEffect(() => {
-    if (!slugTouched) setSlug(slugifyCourseTitle(title));
-  }, [slugTouched, title]);
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+    if (!slugTouched) {
+      setSlug(slugifyCourseTitle(newTitle));
+    }
+  };
 
   return (
     <form action={formAction} className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
@@ -111,7 +114,7 @@ export function InlineLessonForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="lesson-title-new" className="block text-xs font-bold uppercase text-slate-500">Lesson Title</label>
-          <input id="lesson-title-new" name="title" value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <input id="lesson-title-new" name="title" value={title} onChange={(event) => handleTitleChange(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
           <FieldError errors={state.fieldErrors?.title} />
         </div>
         <div>

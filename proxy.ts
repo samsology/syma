@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { ADMIN_SESSION_COOKIE } from '@/lib/auth/constants';
+import { ADMIN_SESSION_COOKIE, STUDENT_SESSION_COOKIE } from '@/lib/auth/constants';
 
 const protectedAdminRoutes = [
   '/admin/dashboard',
@@ -7,10 +7,21 @@ const protectedAdminRoutes = [
   '/admin/resources',
   '/admin/settings',
   '/admin/lessons',
+  '/admin/students',
+  '/admin/enrollments',
+  '/admin/orders',
+  '/admin/payments',
 ];
+
+const publicStudentRoutes = ['/student/login', '/student/register'];
 
 function isProtectedAdminPath(pathname: string) {
   return protectedAdminRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+function isProtectedStudentPath(pathname: string) {
+  if (publicStudentRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))) return false;
+  return pathname === '/student' || pathname.startsWith('/student/');
 }
 
 export function proxy(request: NextRequest) {
@@ -22,9 +33,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (isProtectedStudentPath(pathname) && !request.cookies.get(STUDENT_SESSION_COOKIE)?.value) {
+    const loginUrl = new URL('/student/login', request.url);
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/student/:path*'],
 };

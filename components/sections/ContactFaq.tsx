@@ -10,7 +10,7 @@ const faqs = [
   },
   {
     q: 'Do you still offer professional training?',
-    a: 'Yes. Our education arm trains professionals in healthcare analytics, Python, business intelligence, Power BI, SQL, and applied reporting through practical projects.',
+    a: 'Yes. Our academy offers practical-based data programmes across Data Literacy, Data Analytics, Data Science, and Healthcare Analytics, taking learners from beginners to specialist with hands-on projects and mentorship.',
   },
   {
     q: 'What consulting services can we request?',

@@ -93,6 +93,24 @@ export async function getAdminStudentDetail(id: string) {
               title: true,
               slug: true,
               status: true,
+              weeks: {
+                select: {
+                  modules: {
+                    select: {
+                      lessons: {
+                        where: { status: 'PUBLISHED' },
+                        select: {
+                          id: true,
+                          progress: {
+                            where: { studentId: id, isCompleted: true },
+                            select: { id: true },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
