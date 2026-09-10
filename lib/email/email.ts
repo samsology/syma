@@ -1,3 +1,10 @@
+export type EmailResult = {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+  skipped?: boolean;
+};
+
 type SendEmailInput = {
   to: string;
   subject: string;
@@ -9,9 +16,9 @@ type SendEmailInput = {
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 function getEmailConfig() {
-  const apiKey = process.env.BREVO_API_KEY;
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || 'symatechsolutions@gmail.com';
-  const senderName = process.env.BREVO_SENDER_NAME || 'Syma Tech Solutions';
+  const apiKey = process.env.BREVO_API_KEY?.trim();
+  const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || 'symatechsolutions@gmail.com';
+  const senderName = process.env.BREVO_SENDER_NAME?.trim() || 'Syma Tech Solutions';
 
   if (!apiKey) {
     return null;
@@ -26,12 +33,25 @@ export async function sendTransactionalEmail({
   html,
   text,
   replyTo,
-}: SendEmailInput) {
+}: SendEmailInput): Promise<EmailResult> {
+  const trimmedTo = to?.trim();
+  if (!trimmedTo || !trimmedTo.includes('@')) {
+    console.error('Email provider request failed. Provider: Brevo. Reason: Invalid or missing recipient email address.');
+    return {
+      success: false,
+      error: 'Invalid recipient email address.',
+    };
+  }
+
   const config = getEmailConfig();
 
   if (!config) {
-    console.warn('Skipping email because BREVO_API_KEY is not configured.');
-    return { skipped: true };
+    console.warn('Email skipped. Provider: Brevo. Reason: BREVO_API_KEY is not configured in environment.');
+    return {
+      success: false,
+      skipped: true,
+      error: 'Email service is not configured.',
+    };
   }
 
   const payload: {
@@ -48,7 +68,7 @@ export async function sendTransactionalEmail({
     },
     to: [
       {
-        email: to,
+        email: trimmedTo,
       },
     ],
     subject,
@@ -56,29 +76,56 @@ export async function sendTransactionalEmail({
     textContent: text,
   };
 
-  if (replyTo) {
+  const trimmedReplyTo = replyTo?.trim();
+  if (trimmedReplyTo) {
     payload.replyTo = {
-      email: replyTo,
+      email: trimmedReplyTo,
     };
   }
 
-  const response = await fetch(BREVO_API_URL, {
-    method: 'POST',
-    headers: {
-      'api-key': config.apiKey,
-      'Content-Type': 'application/json',
-      accept: 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const response = await fetch(BREVO_API_URL, {
+      method: 'POST',
+      headers: {
+        'api-key': config.apiKey,
+        'Content-Type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-  const data = await response.json();
+    let data: Record<string, unknown> = {};
+    const rawText = await response.text();
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      data = { message: rawText || `HTTP ${response.status} ${response.statusText}` };
+    }
 
-  if (!response.ok) {
-    throw new Error(data.message || 'Unable to send email via Brevo.');
+    if (!response.ok) {
+      const reason = typeof data?.message === 'string' ? data.message : `HTTP ${response.status} ${response.statusText}`;
+      console.error(`Email provider request failed. Provider: Brevo. Status: ${response.status}. Reason: ${reason}`);
+      return {
+        success: false,
+        error: reason,
+      };
+    }
+
+    const messageId = typeof data?.messageId === 'string' ? data.messageId : undefined;
+    console.log(`Email accepted by provider. Provider: Brevo. MessageId: ${messageId || 'acknowledged'}`);
+
+    return {
+      success: true,
+      messageId,
+    };
+  } catch (err) {
+    const error = err as Error;
+    console.error(`Email provider request failed. Provider: Brevo. Reason: ${error.message || 'Network failure'}`);
+    return {
+      success: false,
+      error: error.message || 'Network failure contacting email provider.',
+    };
   }
-
-  return data;
 }
 
 function escapeHtml(value: string) {

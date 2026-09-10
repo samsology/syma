@@ -46,6 +46,7 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
   const initialProgram = normalizeProgramId(rawParam);
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const {
@@ -74,6 +75,7 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
       if (!res.success) {
         throw new Error(res.error);
       }
+      setEmailSent(Boolean(res.data.emailSent));
       setIsSuccess(true);
     } catch (err) {
       const error = err as Error;
@@ -286,9 +288,13 @@ export default function EnrollmentForm({ defaultProgram = '' }: { defaultProgram
             <div className="mx-auto w-16 h-16 rounded-full bg-green-50 text-green-600 flex items-center justify-center border border-green-100">
               <CheckCircle2 className="w-8 h-8 animate-bounce" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Submission Successful</h3>
+            <h3 className="text-xl font-bold text-slate-900">
+              {emailSent ? 'Submission Successful' : 'Application Received'}
+            </h3>
             <p className="text-slate-500 leading-relaxed text-sm">
-              Thank you. We have received your program application. Please check your email inbox for an enrollment receipt and details.
+              {emailSent
+                ? 'Thank you. We have received your program application. Please check your email inbox for an enrollment receipt and details.'
+                : 'Thank you. We have received and saved your program application, but we could not send a confirmation email at this time. Our team will review your application and follow up directly.'}
             </p>
             <div className="pt-2">
               <button

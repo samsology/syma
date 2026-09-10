@@ -10,6 +10,11 @@ import {
 
 import { enrollmentSchema, consultationSchema, contactSchema } from '@/lib/validation';
 
+export type FormSubmissionData = {
+  id: string;
+  emailSent: boolean;
+};
+
 export type ServerActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
@@ -53,17 +58,9 @@ async function checkRateLimitAndSpam(honeypot?: string): Promise<ServerActionRes
   return null;
 }
 
-async function sendBestEffortEmail(sendEmail: () => Promise<unknown>) {
-  try {
-    await sendEmail();
-  } catch (err) {
-    console.error('Confirmation email error:', err);
-  }
-}
-
 export async function submitEnrollmentAction(
   rawInput: unknown
-): Promise<ServerActionResult<{ id: string }>> {
+): Promise<ServerActionResult<FormSubmissionData>> {
   try {
     const validated = enrollmentSchema.parse(rawInput);
 
@@ -71,7 +68,7 @@ export async function submitEnrollmentAction(
     const check = await checkRateLimitAndSpam(validated.honeypot);
     if (check) {
       if (check.success) {
-        return { success: true, data: { id: 'spam-filtered' } };
+        return { success: true, data: { id: 'spam-filtered', emailSent: false } };
       }
       return { success: false, error: check.error };
     }
@@ -96,15 +93,27 @@ export async function submitEnrollmentAction(
       throw new Error(error.message);
     }
 
-    await sendBestEffortEmail(() =>
-      sendEnrollmentConfirmation({
+    let emailSent = false;
+    try {
+      const emailResult = await sendEnrollmentConfirmation({
         fullName: validated.fullName,
         email: validated.email,
         program: validated.program,
-      })
-    );
+      });
+      emailSent = emailResult.success;
+    } catch (emailErr) {
+      const emailError = emailErr as Error;
+      console.error('Email provider unexpected error:', emailError.message);
+      emailSent = false;
+    }
 
-    return { success: true, data: { id: enrollmentId } };
+    return {
+      success: true,
+      data: {
+        id: enrollmentId,
+        emailSent,
+      },
+    };
   } catch (err) {
     const error = err as Error;
     console.error('submitEnrollmentAction error:', error);
@@ -114,7 +123,7 @@ export async function submitEnrollmentAction(
 
 export async function submitConsultationAction(
   rawInput: unknown
-): Promise<ServerActionResult<{ id: string }>> {
+): Promise<ServerActionResult<FormSubmissionData>> {
   try {
     const validated = consultationSchema.parse(rawInput);
 
@@ -122,7 +131,7 @@ export async function submitConsultationAction(
     const check = await checkRateLimitAndSpam(validated.honeypot);
     if (check) {
       if (check.success) {
-        return { success: true, data: { id: 'spam-filtered' } };
+        return { success: true, data: { id: 'spam-filtered', emailSent: false } };
       }
       return { success: false, error: check.error };
     }
@@ -147,15 +156,27 @@ export async function submitConsultationAction(
       throw new Error(error.message);
     }
 
-    await sendBestEffortEmail(() =>
-      sendConsultationConfirmation({
+    let emailSent = false;
+    try {
+      const emailResult = await sendConsultationConfirmation({
         fullName: validated.fullName,
         email: validated.email,
         consultationType: validated.consultationType,
-      })
-    );
+      });
+      emailSent = emailResult.success;
+    } catch (emailErr) {
+      const emailError = emailErr as Error;
+      console.error('Email provider unexpected error:', emailError.message);
+      emailSent = false;
+    }
 
-    return { success: true, data: { id: consultationId } };
+    return {
+      success: true,
+      data: {
+        id: consultationId,
+        emailSent,
+      },
+    };
   } catch (err) {
     const error = err as Error;
     console.error('submitConsultationAction error:', error);
@@ -165,7 +186,7 @@ export async function submitConsultationAction(
 
 export async function submitContactAction(
   rawInput: unknown
-): Promise<ServerActionResult<{ id: string }>> {
+): Promise<ServerActionResult<FormSubmissionData>> {
   try {
     const validated = contactSchema.parse(rawInput);
 
@@ -173,7 +194,7 @@ export async function submitContactAction(
     const check = await checkRateLimitAndSpam(validated.honeypot);
     if (check) {
       if (check.success) {
-        return { success: true, data: { id: 'spam-filtered' } };
+        return { success: true, data: { id: 'spam-filtered', emailSent: false } };
       }
       return { success: false, error: check.error };
     }
@@ -196,15 +217,27 @@ export async function submitContactAction(
       throw new Error(error.message);
     }
 
-    await sendBestEffortEmail(() =>
-      sendContactConfirmation({
+    let emailSent = false;
+    try {
+      const emailResult = await sendContactConfirmation({
         name: validated.name,
         email: validated.email,
         subject: validated.subject,
-      })
-    );
+      });
+      emailSent = emailResult.success;
+    } catch (emailErr) {
+      const emailError = emailErr as Error;
+      console.error('Email provider unexpected error:', emailError.message);
+      emailSent = false;
+    }
 
-    return { success: true, data: { id: contactMessageId } };
+    return {
+      success: true,
+      data: {
+        id: contactMessageId,
+        emailSent,
+      },
+    };
   } catch (err) {
     const error = err as Error;
     console.error('submitContactAction error:', error);

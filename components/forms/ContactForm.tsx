@@ -12,6 +12,7 @@ type ContactInput = z.infer<typeof contactSchema>;
 
 export default function ContactForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -40,6 +41,7 @@ export default function ContactForm() {
       if (!res.success) {
         throw new Error(res.error);
       }
+      setEmailSent(Boolean(res.data.emailSent));
       setIsSubmitted(true);
       reset();
     } catch (err) {
@@ -153,9 +155,13 @@ export default function ContactForm() {
             <div className="mx-auto w-16 h-16 rounded-full bg-green-50 text-green-600 flex items-center justify-center border border-green-100">
               <CheckCircle2 className="w-8 h-8 animate-bounce" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Message Sent</h3>
+            <h3 className="text-xl font-bold text-slate-900">
+              {emailSent ? 'Message Sent' : 'Message Received'}
+            </h3>
             <p className="text-slate-500 leading-relaxed text-sm">
-              Thank you. We have received your query. Please check your email for a confirmation receipt.
+              {emailSent
+                ? 'Thank you. We have received your query. Please check your email for a confirmation receipt.'
+                : 'Thank you. We have received and saved your message, but we could not send a confirmation email at this time. Our team will review your query and reply directly.'}
             </p>
             <div className="pt-2">
               <button
