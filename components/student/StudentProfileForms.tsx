@@ -6,6 +6,7 @@ import {
   updateStudentProfileAction,
   type StudentActionState,
 } from '@/app/student/actions';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
 function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
@@ -56,21 +57,48 @@ export function StudentPasswordForm() {
   return (
     <form action={formAction} className="space-y-5">
       {state.formError ? <p className="rounded-lg border border-error/30 bg-red-50 px-4 py-3 text-sm font-semibold text-error">{state.formError}</p> : null}
-      <label className="block text-sm font-semibold text-slate-700">
-        Current password
-        <input name="currentPassword" type="password" className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" required />
+      <div>
+        <label htmlFor="current-password" className="block text-sm font-semibold text-slate-700">
+          Current password
+        </label>
+        <PasswordInput
+          id="current-password"
+          name="currentPassword"
+          autoComplete="current-password"
+          required
+          placeholder="Enter current password"
+          className="mt-2"
+        />
         <FieldError errors={state.fieldErrors?.currentPassword} />
-      </label>
-      <label className="block text-sm font-semibold text-slate-700">
-        New password
-        <input name="newPassword" type="password" className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" required />
+      </div>
+      <div>
+        <label htmlFor="profile-new-password" className="block text-sm font-semibold text-slate-700">
+          New password
+        </label>
+        <PasswordInput
+          id="profile-new-password"
+          name="newPassword"
+          autoComplete="new-password"
+          required
+          placeholder="At least 12 characters"
+          className="mt-2"
+        />
         <FieldError errors={state.fieldErrors?.newPassword} />
-      </label>
-      <label className="block text-sm font-semibold text-slate-700">
-        Confirm new password
-        <input name="confirmPassword" type="password" className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" required />
+      </div>
+      <div>
+        <label htmlFor="profile-confirm-password" className="block text-sm font-semibold text-slate-700">
+          Confirm new password
+        </label>
+        <PasswordInput
+          id="profile-confirm-password"
+          name="confirmPassword"
+          autoComplete="new-password"
+          required
+          placeholder="Re-enter new password"
+          className="mt-2"
+        />
         <FieldError errors={state.fieldErrors?.confirmPassword} />
-      </label>
+      </div>
       <button type="submit" disabled={pending} className="rounded-lg bg-primary px-5 py-3 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-60">
         {pending ? 'Updating...' : 'Change password'}
       </button>

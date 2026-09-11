@@ -228,3 +228,42 @@ export async function sendContactConfirmation(input: {
     replyTo: process.env.SYMA_REPLY_TO_EMAIL,
   });
 }
+
+export async function sendPasswordResetEmail(input: {
+  fullName: string;
+  email: string;
+  resetUrl: string;
+}) {
+  const name = escapeHtml(input.fullName);
+  const resetUrl = escapeHtml(input.resetUrl);
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b; line-height: 1.6;">
+      <h2 style="color: #0f172a; margin-bottom: 16px;">Reset your Syma Tech password</h2>
+      <p>Hi ${name},</p>
+      <p>We received a request to reset the password for your Syma Tech Solutions student account.</p>
+      <p>To choose a new password, click the button below:</p>
+      <div style="margin: 28px 0;">
+        <a href="${resetUrl}" style="background-color: #0284c7; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px;">
+          Reset Password
+        </a>
+      </div>
+      <p style="font-size: 13px; color: #64748b;">
+        This password reset link will expire in 1 hour and can only be used once.<br />
+        If you did not request this password reset, you can safely ignore this email. Your password will remain unchanged and your account is secure.
+      </p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0 20px;" />
+      <p style="font-size: 13px; color: #94a3b8;">Syma Tech Solutions — Health &amp; Research Intelligence</p>
+    </div>
+  `;
+
+  const text = `Hi ${input.fullName},\n\nWe received a request to reset the password for your Syma Tech Solutions student account.\n\nTo choose a new password, visit the link below:\n${input.resetUrl}\n\nThis link will expire in 1 hour and can only be used once.\n\nIf you did not request this reset, you can safely ignore this email. Your password will remain unchanged.\n\nSyma Tech Solutions — Health & Research Intelligence`;
+
+  return sendTransactionalEmail({
+    to: input.email,
+    subject: 'Reset your Syma Tech password',
+    html,
+    text,
+  });
+}
+

@@ -13,7 +13,13 @@ const protectedAdminRoutes = [
   '/admin/payments',
 ];
 
-const publicStudentRoutes = ['/student/login', '/student/register'];
+const publicStudentRoutes = [
+  '/student/login',
+  '/student/register',
+  '/student/forgot-password',
+  '/student/reset-password',
+  '/student/registration/resend',
+];
 
 function isProtectedAdminPath(pathname: string) {
   return protectedAdminRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));

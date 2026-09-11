@@ -21,6 +21,16 @@ const cookieOptions = {
 };
 
 export async function createStudentSession(studentId: string) {
+  // Clean up any existing sessions for this student and expired sessions
+  await db.studentSession.deleteMany({
+    where: {
+      OR: [
+        { studentId },
+        { expiresAt: { lte: new Date() } },
+      ],
+    },
+  });
+
   const token = createSessionToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + STUDENT_SESSION_MAX_AGE_MS);
@@ -49,7 +59,11 @@ export async function destroyStudentSession() {
     });
   }
 
-  cookieStore.delete(STUDENT_SESSION_COOKIE);
+  // Explicitly expire the cookie with matching attributes to prevent browser rejection
+  cookieStore.set(STUDENT_SESSION_COOKIE, '', {
+    ...cookieOptions,
+    maxAge: 0,
+  });
 }
 
 export async function getCurrentStudent(): Promise<StudentSessionUser | null> {
@@ -71,10 +85,22 @@ export async function getCurrentStudent(): Promise<StudentSessionUser | null> {
     if (session) {
       await db.studentSession.delete({ where: { id: session.id } });
     }
+    // Clear dead or expired cookie from browser
+    cookieStore.set(STUDENT_SESSION_COOKIE, '', {
+      ...cookieOptions,
+      maxAge: 0,
+    });
     return null;
   }
 
-  if (session.student.status !== 'ACTIVE') return null;
+  if (session.student.status !== 'ACTIVE') {
+    await db.studentSession.delete({ where: { id: session.id } });
+    cookieStore.set(STUDENT_SESSION_COOKIE, '', {
+      ...cookieOptions,
+      maxAge: 0,
+    });
+    return null;
+  }
 
   return {
     id: session.student.id,

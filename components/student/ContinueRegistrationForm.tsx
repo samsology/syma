@@ -6,6 +6,7 @@ import {
   completeStudentRegistrationAction,
   type ContinueRegistrationActionState,
 } from '@/app/continue-registration/actions';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 
 type ContinueRegistrationFormProps = {
   token: string;
@@ -135,31 +136,37 @@ export function ContinueRegistrationForm({
 
       {/* Passwords */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-semibold text-slate-700">
-          Password
-          <input
+        <div>
+          <label htmlFor="continue-password" className="block text-sm font-semibold text-slate-700">
+            Password
+          </label>
+          <PasswordInput
+            id="continue-password"
             name="password"
-            type="password"
+            autoComplete="new-password"
             required
             minLength={8}
             placeholder="At least 8 characters"
-            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="mt-2"
           />
           <FieldError errors={state.fieldErrors?.password} />
-        </label>
+        </div>
 
-        <label className="block text-sm font-semibold text-slate-700">
-          Confirm Password
-          <input
+        <div>
+          <label htmlFor="continue-confirm-password" className="block text-sm font-semibold text-slate-700">
+            Confirm Password
+          </label>
+          <PasswordInput
+            id="continue-confirm-password"
             name="confirmPassword"
-            type="password"
+            autoComplete="new-password"
             required
             minLength={8}
             placeholder="Re-enter password"
-            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="mt-2"
           />
           <FieldError errors={state.fieldErrors?.confirmPassword} />
-        </label>
+        </div>
       </div>
 
       {/* Terms Agreement Checkbox */}

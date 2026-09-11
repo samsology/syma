@@ -150,11 +150,12 @@ model Student {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  sessions     StudentSession[]
-  enrollments  Enrollment[]
-  orders       Order[]
-  progress     LessonProgress[]
-  applications StudentApplication[]
+  sessions            StudentSession[]
+  enrollments         Enrollment[]
+  orders              Order[]
+  progress            LessonProgress[]
+  applications        StudentApplication[]
+  passwordResetTokens StudentPasswordResetToken[]
 
   @@index([status])
   @@index([createdAt])
@@ -195,6 +196,21 @@ model StudentSession {
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
+  @@index([expiresAt])
+}
+
+model StudentPasswordResetToken {
+  id        String    @id @default(cuid())
+  studentId String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([tokenHash])
   @@index([expiresAt])
 }
 

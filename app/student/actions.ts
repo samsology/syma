@@ -7,6 +7,8 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import {
   changeStudentPasswordSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   studentLoginSchema,
   studentRegisterSchema,
   updateStudentProfileSchema,
@@ -20,6 +22,12 @@ import {
   isStudentLoginRateLimited,
   recordStudentLoginAttempt,
 } from '@/lib/auth/rate-limit';
+import {
+  generatePasswordResetToken,
+  getPasswordResetUrl,
+  validatePasswordResetToken,
+} from '@/lib/auth/password-reset-token';
+import { sendPasswordResetEmail } from '@/lib/email/email';
 
 type FieldErrors = Record<string, string[] | undefined>;
 
@@ -90,6 +98,8 @@ export async function registerStudentAction(
   });
 
   await createStudentSession(student.id);
+  revalidatePath('/student', 'layout');
+  revalidatePath('/student');
 
   if (parsed.data.courseId) {
     const result = await createOrReuseOrder(student.id, parsed.data.courseId);
@@ -144,6 +154,8 @@ export async function loginStudentAction(
     db.student.update({ where: { id: student.id }, data: { lastLoginAt: new Date() } }),
   ]);
   await createStudentSession(student.id);
+  revalidatePath('/student', 'layout');
+  revalidatePath('/student');
 
   if (parsed.data.courseId) {
     const result = await createOrReuseOrder(student.id, parsed.data.courseId);
@@ -151,12 +163,148 @@ export async function loginStudentAction(
     if (result.order) redirect(`/checkout/${result.order.orderNumber}`);
   }
 
+  const nextParam = formData.get('next')?.toString().trim();
+  if (nextParam && nextParam.startsWith('/student') && !nextParam.startsWith('//')) {
+    redirect(nextParam);
+  }
+
   redirect('/student');
 }
 
 export async function logoutStudentAction() {
   await destroyStudentSession();
+  revalidatePath('/student', 'layout');
+  revalidatePath('/student');
   redirect('/student/login');
+}
+
+export async function requestPasswordResetAction(
+  _previousState: StudentActionState,
+  formData: FormData
+): Promise<StudentActionState> {
+  const parsed = forgotPasswordSchema.safeParse({
+    email: formData.get('email'),
+  });
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      values: { email: String(formData.get('email') ?? '') },
+    };
+  }
+
+  const key = `reset:${await rateLimitKey(parsed.data.email)}`;
+  if (await isStudentLoginRateLimited(key)) {
+    return {
+      formError: 'Too many requests. Please try again in a few minutes.',
+      values: { email: parsed.data.email },
+    };
+  }
+
+  await recordStudentLoginAttempt(key);
+
+  const genericSuccess = 'If an account exists for this email address, you will receive a password reset link.';
+
+  const student = await db.student.findUnique({
+    where: { email: parsed.data.email },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      status: true,
+    },
+  });
+
+  if (!student || student.status !== 'ACTIVE') {
+    return {
+      success: genericSuccess,
+    };
+  }
+
+  // Invalidate any existing unused reset tokens for this student
+  await db.studentPasswordResetToken.deleteMany({
+    where: {
+      studentId: student.id,
+      usedAt: null,
+    },
+  });
+
+  const { rawToken, tokenHash, expiresAt } = generatePasswordResetToken();
+
+  await db.studentPasswordResetToken.create({
+    data: {
+      studentId: student.id,
+      tokenHash,
+      expiresAt,
+    },
+  });
+
+  const resetUrl = getPasswordResetUrl(rawToken);
+
+  await sendPasswordResetEmail({
+    fullName: `${student.firstName} ${student.lastName}`.trim(),
+    email: student.email,
+    resetUrl,
+  });
+
+  return {
+    success: genericSuccess,
+  };
+}
+
+export async function resetStudentPasswordAction(
+  _previousState: StudentActionState,
+  formData: FormData
+): Promise<StudentActionState> {
+  const parsed = resetPasswordSchema.safeParse({
+    token: formData.get('token'),
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
+  });
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const validation = await validatePasswordResetToken(parsed.data.token);
+
+  if (!validation.valid) {
+    const errorMessages: Record<string, string> = {
+      expired: 'This password reset link has expired. Please request a new one.',
+      used: 'This password reset link has already been used. Please request a new one.',
+      inactive_student: 'This account is not active. Please contact support.',
+      invalid: 'Invalid or expired password reset link.',
+    };
+    return {
+      formError: errorMessages[validation.reason] || 'Invalid or expired password reset link.',
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+
+  await db.student.update({
+    where: { id: validation.student.id },
+    data: { passwordHash },
+  });
+
+  await db.studentPasswordResetToken.update({
+    where: { id: validation.tokenRecord.id },
+    data: { usedAt: new Date() },
+  });
+
+  // Invalidate all existing student sessions
+  await db.studentSession.deleteMany({
+    where: { studentId: validation.student.id },
+  });
+
+  await destroyStudentSession();
+  revalidatePath('/student', 'layout');
+  revalidatePath('/student');
+
+  redirect('/student/login?passwordReset=1');
 }
 
 export async function updateStudentProfileAction(
