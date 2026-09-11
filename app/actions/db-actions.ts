@@ -7,6 +7,8 @@ import {
   sendContactConfirmation,
   sendEnrollmentConfirmation,
 } from '@/lib/email/email';
+import { db } from '@/lib/db';
+import { generateRegistrationToken, getContinuationUrl } from '@/lib/auth/registration-token';
 
 import { enrollmentSchema, consultationSchema, contactSchema } from '@/lib/validation';
 
@@ -93,12 +95,35 @@ export async function submitEnrollmentAction(
       throw new Error(error.message);
     }
 
+    // Generate secure continuation token
+    const { rawToken, tokenHash, expiresAt } = generateRegistrationToken();
+    const continuationUrl = getContinuationUrl(rawToken);
+
+    // Save StudentApplication record in Prisma for continuation & onboarding
+    try {
+      await db.studentApplication.create({
+        data: {
+          fullName: validated.fullName,
+          email: validated.email.toLowerCase(),
+          phone: validated.phone,
+          program: validated.program,
+          experience: validated.experience,
+          motivation: validated.motivation,
+          registrationTokenHash: tokenHash,
+          registrationTokenExpiresAt: expiresAt,
+        },
+      });
+    } catch (appErr) {
+      console.error('Failed to create StudentApplication record in Prisma:', appErr);
+    }
+
     let emailSent = false;
     try {
       const emailResult = await sendEnrollmentConfirmation({
         fullName: validated.fullName,
         email: validated.email,
         program: validated.program,
+        continuationUrl,
       });
       emailSent = emailResult.success;
     } catch (emailErr) {

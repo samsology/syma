@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { ArrowRight, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
@@ -55,7 +55,7 @@ export default function Navbar() {
           />
           <span>
             <span className="block text-base font-bold leading-none text-slate-900">SYMA TECH</span>
-            <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wider text-primary">Intelligence</span>
+            <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wider text-primary">SOLUTIONS</span>
           </span>
         </Link>
 
@@ -81,10 +81,16 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-3 lg:flex">
           <Link
-            href="/consultation"
+            href="/student/login"
+            className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+          >
+            Student Login
+          </Link>
+          <Link
+            href="/programs"
             className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white transition-all duration-200 hover:bg-secondary hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02]"
           >
-            Book Consultation
+            Get Started
           </Link>
         </div>
 
@@ -115,13 +121,22 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/consultation"
-              onClick={() => setIsOpen(false)}
-              className="mt-3 inline-flex h-12 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white hover:bg-secondary transition-colors"
-            >
-              Book Consultation
-            </Link>
+            <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3">
+              <Link
+                href="/student/login"
+                onClick={() => setIsOpen(false)}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50"
+              >
+                Student Login
+              </Link>
+              <Link
+                href="/programs"
+                onClick={() => setIsOpen(false)}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white transition-colors hover:bg-secondary"
+              >
+                Get Started
+              </Link>
+            </div>
           </div>
         </div>
       )}

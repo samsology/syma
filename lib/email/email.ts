@@ -141,21 +141,48 @@ export async function sendEnrollmentConfirmation(input: {
   fullName: string;
   email: string;
   program: string;
+  continuationUrl?: string;
 }) {
   const name = escapeHtml(input.fullName);
   const program = escapeHtml(input.program);
+  const continuationUrl = input.continuationUrl ? escapeHtml(input.continuationUrl) : undefined;
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b; line-height: 1.6;">
+      <h2 style="color: #0f172a; margin-bottom: 16px;">Your Syma Tech application has been received</h2>
+      <p>Hi ${name},</p>
+      <p>Thank you for applying to Syma Tech Solutions.</p>
+      <p>We have received your application for <strong>${program}</strong>.</p>
+      ${
+        continuationUrl
+          ? `
+      <p style="margin-top: 20px;">To continue your registration and create your student profile, use the button below:</p>
+      <div style="margin: 28px 0;">
+        <a href="${continuationUrl}" style="background-color: #0284c7; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px;">
+          Continue Registration
+        </a>
+      </div>
+      <p style="font-size: 13px; color: #64748b;">
+        This link is unique to your application and will expire after 48 hours.<br />
+        If you did not submit this application, you can safely ignore this email.
+      </p>
+      `
+          : `<p>Our team will review your submission and follow up with the next steps.</p>`
+      }
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0 20px;" />
+      <p style="font-size: 13px; color: #94a3b8;">Syma Tech Solutions — Health &amp; Research Intelligence</p>
+    </div>
+  `;
+
+  const text = continuationUrl
+    ? `Hi ${input.fullName},\n\nThank you for applying to Syma Tech Solutions. We have received your application for ${input.program}.\n\nTo continue your registration and create your student profile, visit the link below:\n${input.continuationUrl}\n\nThis link is unique to your application and will expire after 48 hours. If you did not submit this application, you can safely ignore this email.\n\nSyma Tech Solutions`
+    : `Hi ${input.fullName},\n\nThank you for applying to Syma Tech Solutions. We have received your application for ${input.program}.\n\nOur team will review your submission and follow up with the next steps.\n\nSyma Tech Solutions`;
 
   return sendTransactionalEmail({
     to: input.email,
     subject: 'Your Syma Tech application has been received',
-    html: `
-      <p>Hi ${name},</p>
-      <p>Thank you for applying to Syma Tech Solutions.</p>
-      <p>We have received your application for <strong>${program}</strong>.</p>
-      <p>Our team will review your submission and follow up with the next steps.</p>
-      <p>Syma Tech Solutions</p>
-    `,
-    text: `Hi ${input.fullName},\n\nThank you for applying to Syma Tech Solutions. We have received your application for ${input.program}.\n\nOur team will review your submission and follow up with the next steps.\n\nSyma Tech Solutions`,
+    html,
+    text,
   });
 }
 

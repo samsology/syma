@@ -242,6 +242,12 @@ export default async function CourseDetailPage({ params }: Props) {
                   <p className="text-center text-[11px] text-slate-400">
                     Cohort spots are limited. Instant access upon confirmation.
                   </p>
+                  <p className="text-center text-xs text-slate-500 pt-1">
+                    Already enrolled?{' '}
+                    <Link href="/student/login" className="font-semibold text-primary hover:underline">
+                      Student login
+                    </Link>
+                  </p>
                 </div>
               </div>
             </Card>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, MapPin, Phone } from 'lucide-react';
+import { Mail, MapPin } from 'lucide-react';
 
 const services = [
   { href: '/solutions', label: 'Healthcare Analytics' },
@@ -12,10 +12,10 @@ const services = [
 ];
 
 const programs = [
-  { href: '/programs/introduction-to-data-literacy', label: 'Introduction to Data Literacy ($19.90)' },
-  { href: '/programs/introduction-to-data-analytics', label: 'Introduction to Data Analytics ($39.90)' },
-  { href: '/programs/introduction-to-data-science', label: 'Introduction to Data Science ($49.90)' },
-  { href: '/programs/healthcare-analytics', label: 'Healthcare Analytics ($69.90)' },
+  { href: '/programs/introduction-to-data-literacy', label: 'Introduction to Data Literacy' },
+  { href: '/programs/introduction-to-data-analytics', label: 'Introduction to Data Analytics' },
+  { href: '/programs/introduction-to-data-science', label: 'Introduction to Data Science' },
+  { href: '/programs/healthcare-analytics', label: 'Healthcare Analytics' },
 ];
 
 const companyLinks = [
@@ -23,6 +23,7 @@ const companyLinks = [
   { href: '/portfolio', label: 'Portfolio & Cases' },
   { href: '/insights', label: 'Insights & Blog' },
   { href: '/contact', label: 'Contact Support' },
+  { href: '/student/login', label: 'Student Login' },
 ];
 
 export default function Footer() {
@@ -124,7 +125,7 @@ export default function Footer() {
             <div className="space-y-2 text-xs border-t border-slate-100 pt-4">
               <p className="flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                Nigeria (Kaduna State / Online)
+                Kaduna,Nigeria
               </p>
               <a href="mailto:symatechsolutions@gmail.com" className="flex items-center gap-2 hover:text-primary">
                 <Mail className="h-3.5 w-3.5 text-slate-400" />

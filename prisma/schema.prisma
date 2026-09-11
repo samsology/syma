@@ -150,13 +150,38 @@ model Student {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  sessions    StudentSession[]
-  enrollments Enrollment[]
-  orders      Order[]
-  progress    LessonProgress[]
+  sessions     StudentSession[]
+  enrollments  Enrollment[]
+  orders       Order[]
+  progress     LessonProgress[]
+  applications StudentApplication[]
 
   @@index([status])
   @@index([createdAt])
+}
+
+model StudentApplication {
+  id                         String    @id @default(cuid())
+  fullName                   String
+  email                      String
+  phone                      String
+  program                    String
+  experience                 String
+  motivation                 String
+  status                     String    @default("PENDING")
+  registrationTokenHash      String?   @unique
+  registrationTokenExpiresAt DateTime?
+  registrationTokenUsedAt    DateTime?
+
+  studentId                  String?
+  student                    Student?  @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  @@index([email])
+  @@index([studentId])
+  @@index([registrationTokenHash])
 }
 
 model StudentSession {

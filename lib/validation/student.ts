@@ -48,3 +48,23 @@ export const adminUpdateStudentStatusSchema = z.object({
   studentId: z.string().trim().min(1, 'Student is required.'),
   status: studentStatusSchema,
 });
+
+export const continueRegistrationSchema = z
+  .object({
+    token: z.string().trim().min(1, 'Registration token is required.'),
+    firstName: nameSchema,
+    lastName: nameSchema,
+    phone: phoneSchema,
+    password: z.string().min(8, 'Password must be at least 8 characters.'),
+    confirmPassword: z.string(),
+    agreeTerms: z
+      .preprocess((val) => val === 'on' || val === 'true' || val === true, z.boolean())
+      .refine((val) => val === true, {
+        message: 'You must agree to the Terms of Service and Privacy Policy.',
+      }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Passwords do not match.',
+  });
+
