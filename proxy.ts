@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { ADMIN_SESSION_COOKIE, STUDENT_SESSION_COOKIE } from '@/lib/auth/constants';
+import { ADMIN_SESSION_COOKIE, STUDENT_SESSION_COOKIE, PUBLIC_STUDENT_ROUTES } from '@/lib/auth/constants';
 
 const protectedAdminRoutes = [
   '/admin/dashboard',
@@ -13,20 +13,12 @@ const protectedAdminRoutes = [
   '/admin/payments',
 ];
 
-const publicStudentRoutes = [
-  '/student/login',
-  '/student/register',
-  '/student/forgot-password',
-  '/student/reset-password',
-  '/student/registration/resend',
-];
-
 function isProtectedAdminPath(pathname: string) {
   return protectedAdminRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
 function isProtectedStudentPath(pathname: string) {
-  if (publicStudentRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))) return false;
+  if (PUBLIC_STUDENT_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))) return false;
   return pathname === '/student' || pathname.startsWith('/student/');
 }
 

@@ -261,3 +261,42 @@ test('lesson progress summary handles empty, partial, and complete courses', () 
     nextLessonId: null,
   });
 });
+
+test('public student routes are explicitly defined and protected routes are excluded', async () => {
+  const { PUBLIC_STUDENT_ROUTES } = await import('../lib/auth/constants');
+
+  assert.ok(PUBLIC_STUDENT_ROUTES.includes('/student/login'));
+  assert.ok(PUBLIC_STUDENT_ROUTES.includes('/student/register'));
+  assert.ok(PUBLIC_STUDENT_ROUTES.includes('/student/forgot-password'));
+  assert.ok(PUBLIC_STUDENT_ROUTES.includes('/student/reset-password'));
+  assert.ok(!PUBLIC_STUDENT_ROUTES.includes('/student'));
+  assert.ok(!PUBLIC_STUDENT_ROUTES.includes('/student/dashboard'));
+  assert.ok(!PUBLIC_STUDENT_ROUTES.includes('/student/orders'));
+  assert.ok(!PUBLIC_STUDENT_ROUTES.includes('/student/profile'));
+});
+
+test('login redirect safety rejects redirecting back to auth pages or external URLs', async () => {
+  const { PUBLIC_STUDENT_ROUTES } = await import('../lib/auth/constants');
+
+  function isSafeStudentRedirect(target: string | null | undefined): boolean {
+    if (!target) return false;
+    const trimmed = target.trim();
+    if (!trimmed.startsWith('/student') || trimmed.startsWith('//')) return false;
+    const isPublic = PUBLIC_STUDENT_ROUTES.some((route) => trimmed === route || trimmed.startsWith(`${route}/`));
+    return !isPublic;
+  }
+
+  // Dangerous / looping redirect parameters
+  assert.equal(isSafeStudentRedirect('/student/login'), false);
+  assert.equal(isSafeStudentRedirect('/student/register'), false);
+  assert.equal(isSafeStudentRedirect('/student/forgot-password'), false);
+  assert.equal(isSafeStudentRedirect('//evil.com/student'), false);
+  assert.equal(isSafeStudentRedirect('https://evil.com/student'), false);
+  assert.equal(isSafeStudentRedirect('/admin/dashboard'), false);
+
+  // Safe destinations
+  assert.equal(isSafeStudentRedirect('/student'), true);
+  assert.equal(isSafeStudentRedirect('/student/courses/cmtjaxyja0023udfg2g8j95pv'), true);
+  assert.equal(isSafeStudentRedirect('/student/profile'), true);
+  assert.equal(isSafeStudentRedirect('/student/orders'), true);
+});

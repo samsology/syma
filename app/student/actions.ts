@@ -15,6 +15,7 @@ import {
 } from '@/lib/validation/student';
 import { studentEnrollSchema } from '@/lib/validation/enrollment';
 import { createStudentSession, destroyStudentSession } from '@/lib/auth/student-session';
+import { PUBLIC_STUDENT_ROUTES } from '@/lib/auth/constants';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { createOrReuseOrder } from '@/lib/payments/service';
 import {
@@ -156,6 +157,7 @@ export async function loginStudentAction(
   await createStudentSession(student.id);
   revalidatePath('/student', 'layout');
   revalidatePath('/student');
+  revalidatePath('/student/login');
 
   if (parsed.data.courseId) {
     const result = await createOrReuseOrder(student.id, parsed.data.courseId);
@@ -164,7 +166,8 @@ export async function loginStudentAction(
   }
 
   const nextParam = formData.get('next')?.toString().trim();
-  if (nextParam && nextParam.startsWith('/student') && !nextParam.startsWith('//')) {
+  const isPublicRoute = nextParam && PUBLIC_STUDENT_ROUTES.some((route) => nextParam === route || nextParam.startsWith(`${route}/`));
+  if (nextParam && nextParam.startsWith('/student') && !nextParam.startsWith('//') && !isPublicRoute) {
     redirect(nextParam);
   }
 
@@ -175,6 +178,7 @@ export async function logoutStudentAction() {
   await destroyStudentSession();
   revalidatePath('/student', 'layout');
   revalidatePath('/student');
+  revalidatePath('/student/login');
   redirect('/student/login');
 }
 
@@ -303,6 +307,7 @@ export async function resetStudentPasswordAction(
   await destroyStudentSession();
   revalidatePath('/student', 'layout');
   revalidatePath('/student');
+  revalidatePath('/student/login');
 
   redirect('/student/login?passwordReset=1');
 }
@@ -366,6 +371,9 @@ export async function changeStudentPasswordAction(
   });
   await db.studentSession.deleteMany({ where: { studentId: student.id } });
   await destroyStudentSession();
+  revalidatePath('/student', 'layout');
+  revalidatePath('/student');
+  revalidatePath('/student/login');
 
   redirect('/student/login?passwordChanged=1');
 }

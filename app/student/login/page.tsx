@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { StudentLoginForm } from '@/components/student/StudentAuthForms';
 import { getCurrentStudent } from '@/lib/auth/student-session';
+import { PUBLIC_STUDENT_ROUTES } from '@/lib/auth/constants';
 
 type StudentLoginPageProps = {
   searchParams: Promise<{ courseId?: string; passwordChanged?: string; passwordReset?: string; next?: string }>;
@@ -10,7 +11,11 @@ export default async function StudentLoginPage({ searchParams }: StudentLoginPag
   const [params, student] = await Promise.all([searchParams, getCurrentStudent()]);
 
   if (student) {
-    if (params.next && params.next.startsWith('/student') && !params.next.startsWith('//')) {
+    const isPublicRoute =
+      params.next &&
+      PUBLIC_STUDENT_ROUTES.some((route) => params.next === route || params.next?.startsWith(`${route}/`));
+
+    if (params.next && params.next.startsWith('/student') && !params.next.startsWith('//') && !isPublicRoute) {
       redirect(params.next);
     }
     redirect(params.courseId ? `/student/enroll?courseId=${params.courseId}` : '/student');
