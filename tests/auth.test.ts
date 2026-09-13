@@ -300,3 +300,39 @@ test('login redirect safety rejects redirecting back to auth pages or external U
   assert.equal(isSafeStudentRedirect('/student/profile'), true);
   assert.equal(isSafeStudentRedirect('/student/orders'), true);
 });
+
+test('destroyStudentSession sets matching expired cookie options', async () => {
+  const { STUDENT_SESSION_COOKIE, STUDENT_SESSION_MAX_AGE_SECONDS } = await import('../lib/auth/constants');
+  assert.equal(STUDENT_SESSION_COOKIE, 'syma_student_session');
+  assert.equal(STUDENT_SESSION_MAX_AGE_SECONDS, 60 * 60 * 24 * 7);
+});
+
+test('proxy bypasses internal action requests and action redirects', async () => {
+  const { proxy } = await import('../proxy');
+  const { NextRequest } = await import('next/server');
+
+  // Request with x-action-redirect header should pass through without redirecting to login
+  const actionRedirectReq = new NextRequest('http://localhost:3000/student', {
+    headers: {
+      'x-action-redirect': '/student;push',
+    },
+  });
+  const res1 = proxy(actionRedirectReq);
+  assert.equal(res1.status, 200);
+
+  // Request with next-action header should pass through without redirecting to login
+  const nextActionReq = new NextRequest('http://localhost:3000/student', {
+    headers: {
+      'next-action': 'some-action-id',
+    },
+  });
+  const res2 = proxy(nextActionReq);
+  assert.equal(res2.status, 200);
+
+  // Standard unauthenticated request to protected student route should still redirect to login
+  const normalReq = new NextRequest('http://localhost:3000/student');
+  const res3 = proxy(normalReq);
+  assert.equal(res3.status, 307);
+  assert.ok(res3.headers.get('location')?.includes('/student/login?next=%2Fstudent'));
+});
+

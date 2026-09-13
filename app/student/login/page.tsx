@@ -3,6 +3,8 @@ import { StudentLoginForm } from '@/components/student/StudentAuthForms';
 import { getCurrentStudent } from '@/lib/auth/student-session';
 import { PUBLIC_STUDENT_ROUTES } from '@/lib/auth/constants';
 
+export const dynamic = 'force-dynamic';
+
 type StudentLoginPageProps = {
   searchParams: Promise<{ courseId?: string; passwordChanged?: string; passwordReset?: string; next?: string }>;
 };

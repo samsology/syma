@@ -34,7 +34,7 @@ export const metadata: Metadata = {
       'Healthcare analytics, research intelligence, business intelligence, technology solutions, and professional data education for organizations and professionals.',
     images: [
       {
-        url: '/images/SYMA TECH.webp',
+        url: '/logo/logoo.png',
         width: 1200,
         height: 630,
         alt: 'Syma Tech Solutions - Health and Research Intelligence',
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     title: 'Syma Tech Solutions | Health & Research Intelligence',
     description:
       'Healthcare analytics, research intelligence, business intelligence, dashboard development, and professional data education in Nigeria.',
-    images: ['/images/SYMA TECH.webp'],
+    images: ['/logo/logoo.png'],
     creator: '@Symatech',
   },
   robots: {

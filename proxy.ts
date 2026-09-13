@@ -25,6 +25,11 @@ function isProtectedStudentPath(pathname: string) {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Bypassing internal server action executions and action redirects so proxy does not interfere with action redirects
+  if (request.headers.has('x-action-redirect') || request.headers.has('next-action')) {
+    return NextResponse.next();
+  }
+
   if (isProtectedAdminPath(pathname) && !request.cookies.get(ADMIN_SESSION_COOKIE)?.value) {
     const loginUrl = new URL('/admin/login', request.url);
     loginUrl.searchParams.set('next', pathname);

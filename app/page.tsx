@@ -40,11 +40,11 @@ import {
 } from '@/lib/courses/catalog';
 
 const stats = [
-  { value: '200+', label: 'Professionals Trained' },
-  { value: '40+', label: 'Dashboards Delivered' },
-  { value: '150+', label: 'Consultations Scoped' },
-  { value: '100%', label: 'Satisfaction Rate' },
-  { value: '5+', label: 'Years of Experience' },
+  { value: '50+', label: 'Professionals Trained' },
+  { value: '20+', label: 'Dashboards Delivered' },
+  { value: '10+', label: 'Consultations Scoped' },
+  { value: '98%', label: 'Satisfaction Rate' },
+  { value: '3+', label: 'Years of Experience' },
 ];
 
 const industries = [
@@ -90,21 +90,21 @@ const testimonials = [
   {
     name: 'Emmanuella A.',
     role: 'Data Analyst, Operations',
-    focus: 'Data Analytics Cohort 8',
+    focus: 'Data Analytics Cohort 1',
     image: '/images/Testimonials/Testimonial_001.webp',
     quote: 'The capstone project helped me explain business numbers with confidence. I left with a dashboard and a story I could defend in interviews.',
   },
   {
     name: 'Ezekiel O.',
     role: 'BI Associate',
-    focus: 'Business Intelligence Cohort 5',
+    focus: 'Business Intelligence Cohort 1',
     image: '/images/Testimonials/Testimonial_002.webp',
     quote: 'Mentor reviews made the biggest difference. My Power BI report went from basic charts to an executive-ready project.',
   },
   {
     name: 'Ann I.',
     role: 'Python Data Intern',
-    focus: 'Python for Data Science Cohort 3',
+    focus: 'Python for Data Science Cohort 2',
     image: '/images/Testimonials/Testimonial_003.webp',
     quote: 'I learned how to clean messy datasets, use notebooks properly, and present findings like real workplace analysis.',
   },

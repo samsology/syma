@@ -99,8 +99,6 @@ export async function registerStudentAction(
   });
 
   await createStudentSession(student.id);
-  revalidatePath('/student', 'layout');
-  revalidatePath('/student');
 
   if (parsed.data.courseId) {
     const result = await createOrReuseOrder(student.id, parsed.data.courseId);
@@ -155,9 +153,6 @@ export async function loginStudentAction(
     db.student.update({ where: { id: student.id }, data: { lastLoginAt: new Date() } }),
   ]);
   await createStudentSession(student.id);
-  revalidatePath('/student', 'layout');
-  revalidatePath('/student');
-  revalidatePath('/student/login');
 
   if (parsed.data.courseId) {
     const result = await createOrReuseOrder(student.id, parsed.data.courseId);
@@ -176,9 +171,6 @@ export async function loginStudentAction(
 
 export async function logoutStudentAction() {
   await destroyStudentSession();
-  revalidatePath('/student', 'layout');
-  revalidatePath('/student');
-  revalidatePath('/student/login');
   redirect('/student/login');
 }
 
@@ -305,10 +297,6 @@ export async function resetStudentPasswordAction(
   });
 
   await destroyStudentSession();
-  revalidatePath('/student', 'layout');
-  revalidatePath('/student');
-  revalidatePath('/student/login');
-
   redirect('/student/login?passwordReset=1');
 }
 
@@ -371,10 +359,6 @@ export async function changeStudentPasswordAction(
   });
   await db.studentSession.deleteMany({ where: { studentId: student.id } });
   await destroyStudentSession();
-  revalidatePath('/student', 'layout');
-  revalidatePath('/student');
-  revalidatePath('/student/login');
-
   redirect('/student/login?passwordChanged=1');
 }
 

@@ -62,6 +62,12 @@ export async function destroyStudentSession() {
     });
   }
 
+  // Explicitly expire the cookie with matching attributes to ensure all browsers clear it
+  cookieStore.set(STUDENT_SESSION_COOKIE, '', {
+    ...cookieOptions,
+    maxAge: 0,
+    expires: new Date(0),
+  });
   cookieStore.delete(STUDENT_SESSION_COOKIE);
 }
 
