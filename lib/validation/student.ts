@@ -1,7 +1,14 @@
 import { z } from 'zod';
 
 const nameSchema = z.string().trim().min(1, 'Required.').max(80, 'Must be 80 characters or fewer.');
-const phoneSchema = z.string().trim().max(40, 'Must be 40 characters or fewer.').optional().or(z.literal(''));
+const optionalTrimmedString = (max?: number) =>
+  z.preprocess((val) => {
+    if (typeof val !== 'string') return undefined;
+    const trimmed = val.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }, max ? z.string().max(max, `Must be ${max} characters or fewer.`).optional() : z.string().optional());
+
+const phoneSchema = optionalTrimmedString(40);
 export const studentPasswordSchema = z.string().min(12, 'Password must be at least 12 characters.');
 const passwordSchema = studentPasswordSchema;
 
@@ -15,7 +22,7 @@ export const studentRegisterSchema = z
     phone: phoneSchema,
     password: passwordSchema,
     confirmPassword: z.string(),
-    courseId: z.string().trim().optional(),
+    courseId: optionalTrimmedString(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     path: ['confirmPassword'],
@@ -25,7 +32,7 @@ export const studentRegisterSchema = z
 export const studentLoginSchema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
   password: z.string().min(1, 'Required.'),
-  courseId: z.string().trim().optional(),
+  courseId: optionalTrimmedString(),
 });
 
 export const updateStudentProfileSchema = z.object({

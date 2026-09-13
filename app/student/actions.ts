@@ -53,19 +53,31 @@ export async function registerStudentAction(
   _previousState: StudentActionState,
   formData: FormData
 ): Promise<StudentActionState> {
+  const courseIdRaw = formData.get('courseId');
+  const courseId = typeof courseIdRaw === 'string' && courseIdRaw.trim() ? courseIdRaw.trim() : undefined;
+  const phoneRaw = formData.get('phone');
+  const phone = typeof phoneRaw === 'string' && phoneRaw.trim() ? phoneRaw.trim() : undefined;
+
   const parsed = studentRegisterSchema.safeParse({
     firstName: formData.get('firstName'),
     lastName: formData.get('lastName'),
     email: formData.get('email'),
-    phone: formData.get('phone'),
+    phone,
     password: formData.get('password'),
     confirmPassword: formData.get('confirmPassword'),
-    courseId: formData.get('courseId'),
+    courseId,
   });
 
   if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    const recognizedKeys = new Set(['firstName', 'lastName', 'email', 'phone', 'password', 'confirmPassword']);
+    const unhandledErrors = Object.entries(fieldErrors)
+      .filter(([key]) => !recognizedKeys.has(key))
+      .flatMap(([, errors]) => errors || []);
+
     return {
-      fieldErrors: parsed.error.flatten().fieldErrors,
+      fieldErrors,
+      formError: unhandledErrors.length > 0 ? unhandledErrors[0] : undefined,
       values: Object.fromEntries(['firstName', 'lastName', 'email', 'phone'].map((key) => [key, String(formData.get(key) ?? '')])),
     };
   }
@@ -113,15 +125,25 @@ export async function loginStudentAction(
   _previousState: StudentActionState,
   formData: FormData
 ): Promise<StudentActionState> {
+  const emailRaw = formData.get('email');
+  const passwordRaw = formData.get('password');
+  const courseIdRaw = formData.get('courseId');
+
   const parsed = studentLoginSchema.safeParse({
-    email: formData.get('email'),
-    password: formData.get('password'),
-    courseId: formData.get('courseId'),
+    email: typeof emailRaw === 'string' ? emailRaw.trim() : emailRaw,
+    password: passwordRaw,
+    courseId: typeof courseIdRaw === 'string' && courseIdRaw.trim() ? courseIdRaw.trim() : undefined,
   });
 
   if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    const unhandledErrors = Object.entries(fieldErrors)
+      .filter(([key]) => key !== 'email' && key !== 'password')
+      .flatMap(([, errors]) => errors || []);
+
     return {
-      fieldErrors: parsed.error.flatten().fieldErrors,
+      fieldErrors,
+      formError: unhandledErrors.length > 0 ? unhandledErrors[0] : undefined,
       values: { email: String(formData.get('email') ?? '') },
     };
   }

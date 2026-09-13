@@ -50,6 +50,11 @@ export function StudentLoginForm({
           {state.formError}
         </p>
       ) : null}
+      {state.fieldErrors?.courseId ? (
+        <p className="rounded-lg border border-error/30 bg-red-50 px-4 py-3 text-sm font-semibold text-error">
+          {state.fieldErrors.courseId[0]}
+        </p>
+      ) : null}
       <label className="block text-sm font-semibold text-slate-700">
         Email
         <input
@@ -112,6 +117,11 @@ export function StudentRegisterForm({ courseId }: { courseId?: string }) {
       {state.formError ? (
         <p className="rounded-lg border border-error/30 bg-red-50 px-4 py-3 text-sm font-semibold text-error">
           {state.formError}
+        </p>
+      ) : null}
+      {state.fieldErrors?.courseId ? (
+        <p className="rounded-lg border border-error/30 bg-red-50 px-4 py-3 text-sm font-semibold text-error">
+          {state.fieldErrors.courseId[0]}
         </p>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">

@@ -136,13 +136,50 @@ test('student registration normalizes email and requires matching passwords', ()
   assert.equal(mismatch.success, false);
 });
 
-test('student login validates email and password presence', () => {
+test('student login validates email and password presence and accepts null/empty courseId', () => {
   assert.equal(
     studentLoginSchema.safeParse({ email: 'student@example.test', password: 'studentpassword123' })
       .success,
     true
   );
+  assert.equal(
+    studentLoginSchema.safeParse({ email: 'student@example.test', password: 'studentpassword123', courseId: null })
+      .success,
+    true
+  );
+  assert.equal(
+    studentLoginSchema.safeParse({ email: 'student@example.test', password: 'studentpassword123', courseId: '' })
+      .success,
+    true
+  );
+  assert.equal(
+    studentLoginSchema.safeParse({ email: 'student@example.test', password: 'studentpassword123', courseId: '   ' })
+      .success,
+    true
+  );
+  assert.equal(
+    studentLoginSchema.safeParse({ email: 'student@example.test', password: 'studentpassword123', courseId: 'intro-course' })
+      .success,
+    true
+  );
   assert.equal(studentLoginSchema.safeParse({ email: 'bad', password: '' }).success, false);
+});
+
+test('student registration accepts null/empty phone and courseId', () => {
+  const parsed = studentRegisterSchema.safeParse({
+    firstName: 'Maya',
+    lastName: 'Okafor',
+    email: 'maya@example.test',
+    phone: null,
+    password: 'studentpassword123',
+    confirmPassword: 'studentpassword123',
+    courseId: null,
+  });
+  assert.equal(parsed.success, true);
+  if (parsed.success) {
+    assert.equal(parsed.data.phone, undefined);
+    assert.equal(parsed.data.courseId, undefined);
+  }
 });
 
 test('student password change requires current password and confirmation', () => {
