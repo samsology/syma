@@ -9,8 +9,8 @@ export const dataAnalyticsCourse: SeedCourse = {
   category: 'Data Analytics',
   level: 'Beginner',
   duration: '8 Weeks',
-  priceMinor: 3990, // $39.90
-  currency: 'USD',
+  priceMinor: 5990000, // ₦59,900
+  currency: 'NGN',
   sortOrder: 2,
   cta: 'Become a Data Analyst',
   benefits: [

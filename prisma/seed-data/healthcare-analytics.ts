@@ -10,8 +10,8 @@ export const healthcareAnalyticsCourse: SeedCourse = {
   category: 'Healthcare Analytics',
   level: 'Specialist',
   duration: '8 Weeks',
-  priceMinor: 6990, // $69.90
-  currency: 'USD',
+  priceMinor: 8990000, // ₦89,900
+  currency: 'NGN',
   sortOrder: 4,
   cta: 'Specialize in Healthcare',
   benefits: [

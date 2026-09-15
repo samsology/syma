@@ -47,6 +47,23 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
       {message && <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">{message}</div>}
       {query.error === 'publish-invalid' && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-error">Complete the required course fields before publishing.</div>}
       {query.error === 'curriculum-required' && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-error">Add at least one week, one module, and one lesson before publishing.</div>}
+      {query.error === 'publish-failed' && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-error">
+          <p className="font-bold">Cannot publish course. Please resolve the following curriculum issues:</p>
+          <ul className="mt-2 list-disc pl-5 space-y-1 font-medium text-xs">
+            {String(query.details ?? '')
+              .split(';')
+              .map((err, idx) => (
+                <li key={idx}>{err.trim()}</li>
+              ))}
+          </ul>
+        </div>
+      )}
+      {query.error === 'delete-restricted' && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-error">
+          Cannot delete course with existing student enrollments or orders. Please archive the course instead to preserve student records.
+        </div>
+      )}
 
       <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

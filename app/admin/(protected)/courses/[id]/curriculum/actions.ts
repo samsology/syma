@@ -117,7 +117,23 @@ export async function deleteWeekAction(formData: FormData) {
   const weekId = String(formData.get('weekId') ?? '');
   await requireCourse(courseId);
   await requireWeek(courseId, weekId);
-  await db.courseWeek.delete({ where: { id: weekId } });
+
+  await db.$transaction(async (tx) => {
+    await tx.courseWeek.delete({ where: { id: weekId } });
+    const remainingWeeks = await tx.courseWeek.findMany({
+      where: { courseId },
+      orderBy: { sortOrder: 'asc' },
+    });
+    for (let i = 0; i < remainingWeeks.length; i++) {
+      if (remainingWeeks[i].sortOrder !== i + 1) {
+        await tx.courseWeek.update({
+          where: { id: remainingWeeks[i].id },
+          data: { sortOrder: i + 1 },
+        });
+      }
+    }
+  });
+
   refresh(courseId);
 }
 
@@ -158,8 +174,24 @@ export async function deleteModuleAction(formData: FormData) {
   const courseId = String(formData.get('courseId') ?? '');
   const moduleId = String(formData.get('moduleId') ?? '');
   await requireCourse(courseId);
-  await requireModule(courseId, moduleId);
-  await db.courseModule.delete({ where: { id: moduleId } });
+  const targetModule = await requireModule(courseId, moduleId);
+
+  await db.$transaction(async (tx) => {
+    await tx.courseModule.delete({ where: { id: moduleId } });
+    const remaining = await tx.courseModule.findMany({
+      where: { weekId: targetModule.weekId },
+      orderBy: { sortOrder: 'asc' },
+    });
+    for (let i = 0; i < remaining.length; i++) {
+      if (remaining[i].sortOrder !== i + 1) {
+        await tx.courseModule.update({
+          where: { id: remaining[i].id },
+          data: { sortOrder: i + 1 },
+        });
+      }
+    }
+  });
+
   refresh(courseId);
 }
 
@@ -247,8 +279,24 @@ export async function deleteLessonAction(formData: FormData) {
   const courseId = String(formData.get('courseId') ?? '');
   const lessonId = String(formData.get('lessonId') ?? '');
   await requireCourse(courseId);
-  await requireLesson(courseId, lessonId);
-  await db.lesson.delete({ where: { id: lessonId } });
+  const targetLesson = await requireLesson(courseId, lessonId);
+
+  await db.$transaction(async (tx) => {
+    await tx.lesson.delete({ where: { id: lessonId } });
+    const remaining = await tx.lesson.findMany({
+      where: { moduleId: targetLesson.moduleId },
+      orderBy: { sortOrder: 'asc' },
+    });
+    for (let i = 0; i < remaining.length; i++) {
+      if (remaining[i].sortOrder !== i + 1) {
+        await tx.lesson.update({
+          where: { id: remaining[i].id },
+          data: { sortOrder: i + 1 },
+        });
+      }
+    }
+  });
+
   refresh(courseId);
 }
 
@@ -277,6 +325,43 @@ export async function createResourceAction(courseId: string, lessonId: string, _
     return {};
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to save resource.' };
+  }
+}
+
+export async function updateResourceAction(
+  courseId: string,
+  resourceId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
+  await requireCourse(courseId);
+  const parsed = resourceSchema.safeParse({
+    name: formData.get('name'),
+    fileUrl: formData.get('fileUrl'),
+    fileType: formData.get('fileType'),
+    fileSize: formData.get('fileSize') || undefined,
+  });
+  if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
+
+  try {
+    const resource = await db.lessonResource.findFirst({
+      where: { id: resourceId, lesson: { module: { week: { courseId } } } },
+    });
+    if (!resource) throw new Error('Resource not found.');
+
+    await db.lessonResource.update({
+      where: { id: resourceId },
+      data: {
+        name: parsed.data.name,
+        fileUrl: parsed.data.fileUrl,
+        fileType: parsed.data.fileType.toLowerCase(),
+        fileSize: parsed.data.fileSize === '' ? null : parsed.data.fileSize,
+      },
+    });
+    refresh(courseId);
+    return {};
+  } catch (error) {
+    return { formError: error instanceof Error ? error.message : 'Unable to update resource.' };
   }
 }
 

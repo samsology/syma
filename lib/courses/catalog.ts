@@ -1,3 +1,5 @@
+import { formatMoney } from '@/lib/payments/rules';
+
 export type OfficialCourse = {
   number: string;
   order: number;
@@ -189,9 +191,11 @@ export function getCourseBySlug(slug: string): OfficialCourse | undefined {
 }
 
 export function formatCoursePrice(priceMinor: number, currency: string = 'USD'): string {
-  if (currency !== 'USD') {
-    throw new Error('Unsupported launch catalogue currency.');
+  if (currency === 'USD') {
+    return `$${(priceMinor / 100).toFixed(2)}`;
   }
-
-  return `$${(priceMinor / 100).toFixed(2)}`;
+  if (currency === 'NGN') {
+    return formatMoney(priceMinor, 'NGN');
+  }
+  throw new Error('Unsupported launch catalogue currency.');
 }

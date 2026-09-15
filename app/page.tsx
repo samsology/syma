@@ -5,27 +5,17 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
-  TrendingUp,
   Activity,
   LineChart,
   Brain,
   GraduationCap,
-  Clock,
-  Layers,
   ChevronRight,
-  CalendarDays,
   Star,
-  Quote,
-  MapPin,
-  FileSpreadsheet,
-  PieChart,
-  Award,
   BookOpen,
   BarChart3,
   Code2,
   CheckCircle2,
   Sparkles,
-  ShieldCheck,
 } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { SectionHeading } from '@/components/ui/SectionHeading';
@@ -130,11 +120,6 @@ const articles = [
     time: '4 min read',
   },
 ];
-
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
-};
 
 const staggerContainer = {
   hidden: { opacity: 1 },

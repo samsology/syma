@@ -9,8 +9,8 @@ export const dataLiteracyCourse: SeedCourse = {
   category: 'Data Literacy',
   level: 'Beginner',
   duration: '6 Weeks',
-  priceMinor: 1990, // $19.90
-  currency: 'USD',
+  priceMinor: 2990000, // ₦29,900
+  currency: 'NGN',
   sortOrder: 1,
   cta: 'Start Your Data Journey',
   benefits: [

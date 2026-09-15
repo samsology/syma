@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2, Loader2, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { submitConsultationAction } from '@/app/actions/db-actions';
 import { consultationSchema } from '@/lib/validation';

@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Code, ShieldCheck, Database, Layout, BarChart, ChevronRight } from 'lucide-react';
+import { ArrowRight, Code, Database, Layout, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
+import { Card, CardTitle } from '@/components/ui/Card';
 import { Container } from '@/components/ui/Container';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import PortfolioShowcase from '@/components/sections/PortfolioShowcase';

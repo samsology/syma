@@ -10,6 +10,8 @@ export type InitializePaymentInput = {
     orderNumber: string;
     studentId: string;
     courseId: string;
+    courseSlug?: string;
+    courseTitle?: string;
   };
 };
 

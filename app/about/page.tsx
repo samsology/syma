@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
 import {
   ArrowRight,
   Eye,
@@ -11,9 +10,6 @@ import {
   Lightbulb,
   ShieldCheck,
   Target,
-  Calendar,
-  Award,
-  BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';

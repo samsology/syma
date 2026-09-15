@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { StatusPill } from '@/components/admin/StatusPill';
+import { CheckoutPayButton } from '@/components/checkout/CheckoutPayButton';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { formatMoney } from '@/lib/payments/rules';
 import { verifyAndSettlePayment } from '@/lib/payments/service';
+import { retryOrderPaymentAction } from '@/app/checkout/actions';
 
 type CheckoutStatusPageProps = {
   params: Promise<{ orderNumber: string }>;
@@ -35,7 +37,17 @@ export default async function CheckoutStatusPage({ params, searchParams }: Check
         {query.reference ? <p className="mt-4 text-sm text-slate-600">Provider reference received and verified server-side.</p> : null}
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           {order.status === 'PAID' ? <Link href={`/student/courses/${order.courseId}`} className="rounded-lg bg-primary px-5 py-3 text-center text-sm font-black text-white">Continue Learning</Link> : null}
-          {order.status === 'PENDING' || order.status === 'FAILED' ? <Link href={`/checkout/${order.orderNumber}`} className="rounded-lg bg-primary px-5 py-3 text-center text-sm font-black text-white">Try Payment Again</Link> : null}
+          {order.status === 'PENDING' ? (
+            <Link href={`/checkout/${order.orderNumber}`} className="rounded-lg bg-primary px-5 py-3 text-center text-sm font-black text-white hover:bg-primary/90">
+              Continue Payment
+            </Link>
+          ) : null}
+          {order.status === 'FAILED' ? (
+            <form action={retryOrderPaymentAction}>
+              <input type="hidden" name="orderNumber" value={order.orderNumber} />
+              <CheckoutPayButton label="Retry Payment" loadingLabel="Preparing Order..." />
+            </form>
+          ) : null}
           <Link href="/student/orders" className="rounded-lg border border-slate-200 px-5 py-3 text-center text-sm font-black text-slate-700">My Orders</Link>
         </div>
       </section>

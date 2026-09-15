@@ -1,11 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Search, BookOpen, Clock, ChevronRight, Mail } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Mail } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
-import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 

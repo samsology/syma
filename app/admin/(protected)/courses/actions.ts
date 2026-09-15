@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth/authorization';
 import { db } from '@/lib/db';
 import { createCourseSchema, updateCourseSchema } from '@/lib/validation/course';
+import { validateCourseForPublishing } from '@/lib/courses/publishing';
 
 export type CourseFormState = {
   fieldErrors?: Record<string, string[] | undefined>;
@@ -13,16 +14,6 @@ export type CourseFormState = {
 };
 
 const duplicateSlugMessage = 'A course with this slug already exists.';
-
-async function hasMeaningfulCurriculum(courseId: string) {
-  const [weekCount, moduleCount, lessonCount] = await Promise.all([
-    db.courseWeek.count({ where: { courseId } }),
-    db.courseModule.count({ where: { week: { courseId } } }),
-    db.lesson.count({ where: { module: { week: { courseId } } } }),
-  ]);
-
-  return weekCount > 0 && moduleCount > 0 && lessonCount > 0;
-}
 
 function courseDataFromForm(formData: FormData) {
   const instructorId = String(formData.get('instructorId') ?? '').trim();
@@ -52,7 +43,7 @@ function courseDataFromForm(formData: FormData) {
     level: formData.get('level'),
     duration: formData.get('duration'),
     priceMinor,
-    currency: 'USD' as const,
+    currency: (String(formData.get('currency') ?? '').toUpperCase() === 'USD' ? 'USD' : 'NGN') as 'USD' | 'NGN',
     benefits,
     cta: String(formData.get('cta') ?? 'Apply Today').trim() || 'Apply Today',
     sortOrder: parseInt(String(formData.get('sortOrder') ?? '0'), 10) || 0,
@@ -167,10 +158,11 @@ export async function publishCourseAction(formData: FormData) {
   const course = await db.course.findUnique({ where: { id: courseId } });
   if (!course) redirect('/admin/courses?error=not-found');
 
-  const parsed = updateCourseSchema.safeParse(course);
-  if (!parsed.success) redirect(`/admin/courses/${courseId}?error=publish-invalid`);
-  if (!(await hasMeaningfulCurriculum(courseId)))
-    redirect(`/admin/courses/${courseId}?error=curriculum-required`);
+  const validation = await validateCourseForPublishing(courseId);
+  if (!validation.valid) {
+    const errorParam = encodeURIComponent(validation.errors.join('; '));
+    redirect(`/admin/courses/${courseId}?error=publish-failed&details=${errorParam}`);
+  }
 
   await db.course.update({
     where: { id: courseId },
@@ -229,3 +221,25 @@ export async function restoreCourseAction(formData: FormData) {
   revalidatePath(`/admin/courses/${courseId}`);
   redirect(`/admin/courses/${courseId}?success=restored`);
 }
+
+export async function deleteCourseAction(formData: FormData) {
+  await requireAdmin();
+  const courseId = String(formData.get('courseId') ?? '');
+
+  const [enrollmentCount, orderCount] = await Promise.all([
+    db.enrollment.count({ where: { courseId } }),
+    db.order.count({ where: { courseId } }),
+  ]);
+
+  if (enrollmentCount > 0 || orderCount > 0) {
+    redirect(`/admin/courses/${courseId}?error=delete-restricted`);
+  }
+
+  await db.course.delete({ where: { id: courseId } });
+
+  revalidatePath('/admin/courses');
+  revalidatePath('/admin/dashboard');
+  revalidatePath('/programs');
+  redirect('/admin/courses?success=deleted');
+}
+

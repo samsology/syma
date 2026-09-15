@@ -12,8 +12,6 @@ import {
 } from '../lib/validation/student';
 import {
   createEnrollmentSchema,
-  studentEnrollSchema,
-  updateEnrollmentStatusSchema,
 } from '../lib/validation/enrollment';
 import { adminLoginSchema } from '../lib/validation/login';
 import { courseSchema } from '../lib/validation/course';
@@ -196,11 +194,11 @@ test('9. Admin Course Management: Course, Week, Module, Lesson Schemas', () => {
   });
   assert.equal(week.success, true);
 
-  const module = moduleSchema.safeParse({
+  const parsedModule = moduleSchema.safeParse({
     title: 'Clinical Data Structures',
     description: 'ICD-10, SNOMED, and FHIR standards.',
   });
-  assert.equal(module.success, true);
+  assert.equal(parsedModule.success, true);
 
   const lesson = lessonSchema.safeParse({
     title: 'Understanding Patient Encounters',

@@ -105,7 +105,14 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
       {course.weeks.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
           <h3 className="text-lg font-bold text-slate-950">This course has no curriculum yet.</h3>
-          <p className="mt-2 text-sm text-slate-500">Start building your course by adding the first week.</p>
+          <p className="mt-2 text-sm text-slate-500">Start building your course by adding your first week.</p>
+          <button
+            type="button"
+            onClick={() => setAddingWeek(true)}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary"
+          >
+            <Plus className="h-4 w-4" /> Add your first week
+          </button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -122,13 +129,24 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                     <form action={moveWeekAction}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="weekId" value={week.id} /><ReorderButton direction="up" disabled={weekIndex === 0} /></form>
                     <form action={moveWeekAction}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="weekId" value={week.id} /><ReorderButton direction="down" disabled={weekIndex === course.weeks.length - 1} /></form>
                     <button type="button" onClick={() => setEditingWeek(editingWeek === week.id ? null : week.id)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-100" aria-label="Edit week"><Edit className="h-4 w-4" /></button>
-                    <form action={deleteWeekAction} onSubmit={(event) => { if (!window.confirm('Delete Week? Deleting this week will also delete all modules, lessons, and resources inside it. This action cannot be undone.')) event.preventDefault(); }}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="weekId" value={week.id} /><button type="submit" className="rounded-lg border border-red-200 p-2 text-error hover:bg-red-50" aria-label="Delete week"><Trash2 className="h-4 w-4" /></button></form>
+                    <form action={deleteWeekAction} onSubmit={(event) => { if (!window.confirm(`Delete Week ${week.weekNumber}? This will permanently delete all modules, lessons, and resources inside it.`)) event.preventDefault(); }}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="weekId" value={week.id} /><button type="submit" className="rounded-lg border border-red-200 p-2 text-error hover:bg-red-50" aria-label="Delete week"><Trash2 className="h-4 w-4" /></button></form>
                   </div>
                 </div>
                 {editingWeek === week.id && <div className="p-4"><WeekForm action={updateWeekAction.bind(null, course.id, week.id)} week={week} onDone={() => setEditingWeek(null)} /></div>}
                 {weekOpen && (
                   <div className="space-y-3 p-4">
-                    {week.modules.length === 0 && <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No modules in this week.</p>}
+                    {week.modules.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center">
+                        <p className="text-sm text-slate-500">No modules in this week yet.</p>
+                        <button
+                          type="button"
+                          onClick={() => setAddingModule(week.id)}
+                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Add module
+                        </button>
+                      </div>
+                    )}
                     {week.modules.map((module, moduleIndex) => {
                       const moduleOpen = openModules.has(module.id);
                       return (
@@ -142,13 +160,24 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                               <form action={moveModuleAction}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="moduleId" value={module.id} /><ReorderButton direction="up" disabled={moduleIndex === 0} /></form>
                               <form action={moveModuleAction}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="moduleId" value={module.id} /><ReorderButton direction="down" disabled={moduleIndex === week.modules.length - 1} /></form>
                               <button type="button" onClick={() => setEditingModule(editingModule === module.id ? null : module.id)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white" aria-label="Edit module"><Edit className="h-4 w-4" /></button>
-                              <form action={deleteModuleAction} onSubmit={(event) => { if (!window.confirm('Delete Module? This will also remove all lessons and resources contained in this module.')) event.preventDefault(); }}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="moduleId" value={module.id} /><button type="submit" className="rounded-lg border border-red-200 p-2 text-error hover:bg-red-50" aria-label="Delete module"><Trash2 className="h-4 w-4" /></button></form>
+                              <form action={deleteModuleAction} onSubmit={(event) => { if (!window.confirm(`Delete Module "${module.title}"? This will permanently remove all lessons and resources inside it.`)) event.preventDefault(); }}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="moduleId" value={module.id} /><button type="submit" className="rounded-lg border border-red-200 p-2 text-error hover:bg-red-50" aria-label="Delete module"><Trash2 className="h-4 w-4" /></button></form>
                             </div>
                           </div>
                           {editingModule === module.id && <div className="px-4 pb-4"><ModuleForm action={updateModuleAction.bind(null, course.id, module.id)} module={module} onDone={() => setEditingModule(null)} /></div>}
                           {moduleOpen && (
                             <div className="space-y-3 px-4 pb-4">
-                              {module.lessons.length === 0 && <p className="rounded-lg bg-white p-4 text-sm text-slate-500">No lessons in this module.</p>}
+                              {module.lessons.length === 0 && (
+                                <div className="rounded-lg border border-dashed border-slate-200 bg-white p-4 text-center">
+                                  <p className="text-sm text-slate-500">No lessons in this module yet.</p>
+                                  <button
+                                    type="button"
+                                    onClick={() => setAddingLesson(module.id)}
+                                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                                  >
+                                    <Plus className="h-3.5 w-3.5" /> Add lesson
+                                  </button>
+                                </div>
+                              )}
                               {module.lessons.map((lesson, lessonIndex) => (
                                 <div key={lesson.id} className="rounded-lg bg-white p-4">
                                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -157,7 +186,7 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                                       <form action={moveLessonAction}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="lessonId" value={lesson.id} /><ReorderButton direction="up" disabled={lessonIndex === 0} /></form>
                                       <form action={moveLessonAction}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="lessonId" value={lesson.id} /><ReorderButton direction="down" disabled={lessonIndex === module.lessons.length - 1} /></form>
                                       <Link href={`/admin/courses/${course.id}/lessons/${lesson.id}/edit`} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Edit</Link>
-                                      <form action={deleteLessonAction} onSubmit={(event) => { if (!window.confirm('Delete Lesson? This lesson and its attached resources will be permanently removed.')) event.preventDefault(); }}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="lessonId" value={lesson.id} /><button type="submit" className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-error hover:bg-red-50">Delete</button></form>
+                                      <form action={deleteLessonAction} onSubmit={(event) => { if (!window.confirm(`Delete Lesson "${lesson.title}"? This lesson and its attached resources will be permanently removed.`)) event.preventDefault(); }}><input type="hidden" name="courseId" value={course.id} /><input type="hidden" name="lessonId" value={lesson.id} /><button type="submit" className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-error hover:bg-red-50">Delete</button></form>
                                     </div>
                                   </div>
                                   <ResourceManager courseId={course.id} lessonId={lesson.id} resources={lesson.resources} />

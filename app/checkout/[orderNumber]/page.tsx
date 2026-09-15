@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { initializePaymentAction } from '../actions';
+import { initializePaymentAction, retryOrderPaymentAction } from '@/app/checkout/actions';
 import { StatusPill } from '@/components/admin/StatusPill';
+import { CheckoutPayButton } from '@/components/checkout/CheckoutPayButton';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { formatMoney } from '@/lib/payments/rules';
@@ -39,10 +40,19 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
           <div><dt className="font-black text-slate-500">Status</dt><dd><StatusPill status={order.status} /></dd></div>
         </dl>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <form action={initializePaymentAction}>
-            <input type="hidden" name="orderNumber" value={order.orderNumber} />
-            <button disabled={order.status !== 'PENDING'} className="rounded-lg bg-primary px-5 py-3 text-sm font-black text-white hover:bg-primary/90 disabled:opacity-60">Pay Now with Paystack</button>
-          </form>
+          {order.status === 'PENDING' ? (
+            <form action={initializePaymentAction}>
+              <input type="hidden" name="orderNumber" value={order.orderNumber} />
+              <CheckoutPayButton label="Pay Now with Paystack" loadingLabel="Connecting to Paystack..." />
+            </form>
+          ) : order.status === 'FAILED' ? (
+            <form action={retryOrderPaymentAction}>
+              <input type="hidden" name="orderNumber" value={order.orderNumber} />
+              <CheckoutPayButton label="Retry Payment" loadingLabel="Preparing Order..." />
+            </form>
+          ) : (
+            <button disabled className="rounded-lg bg-primary px-5 py-3 text-sm font-black text-white opacity-60">Order {order.status}</button>
+          )}
           <Link href="/student/orders" className="rounded-lg border border-slate-200 px-5 py-3 text-center text-sm font-black text-slate-700">My Orders</Link>
         </div>
       </section>

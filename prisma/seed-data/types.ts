@@ -1,4 +1,11 @@
-import { Currency, LessonType } from '@prisma/client';
+import { CourseStatus, Currency, LessonType } from '@prisma/client';
+
+export type SeedResource = {
+  name: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize?: number;
+};
 
 export type SeedLesson = {
   title: string;
@@ -8,6 +15,7 @@ export type SeedLesson = {
   videoUrl?: string;
   duration?: number;
   isPreview?: boolean;
+  resources?: SeedResource[];
 };
 
 export type SeedModule = {
@@ -37,5 +45,7 @@ export type SeedCourse = {
   cta: string;
   sortOrder?: number;
   thumbnailUrl?: string;
+  status?: CourseStatus;
   weeks: SeedWeek[];
 };
+

@@ -5,7 +5,6 @@ import {
   studentPasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-  studentRegisterSchema,
 } from '../lib/validation/student';
 import {
   generatePasswordResetToken,

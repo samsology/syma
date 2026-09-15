@@ -16,10 +16,15 @@ function generatePaymentReference(orderNumber: string) {
 }
 
 async function callbackUrl(orderNumber: string) {
-  const headerStore = await headers();
-  const proto = headerStore.get('x-forwarded-proto') ?? 'http';
-  const host = headerStore.get('host') ?? 'localhost:3000';
-  return `${proto}://${host}/checkout/${orderNumber}/status`;
+  try {
+    const headerStore = await headers();
+    const proto = headerStore.get('x-forwarded-proto') ?? 'http';
+    const host = headerStore.get('host') ?? 'localhost:3000';
+    return `${proto}://${host}/checkout/${orderNumber}/status`;
+  } catch {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    return `${baseUrl.replace(/\/$/, '')}/checkout/${orderNumber}/status`;
+  }
 }
 
 export async function createOrReuseOrder(studentId: string, courseId: string) {
@@ -92,7 +97,7 @@ export async function createOrReuseOrder(studentId: string, courseId: string) {
 export async function initializeOrderPayment(studentId: string, orderNumber: string) {
   const order = await db.order.findUnique({
     where: { orderNumber },
-    include: { student: true, course: { select: { id: true, title: true } } },
+    include: { student: true, course: { select: { id: true, title: true, slug: true } } },
   });
 
   if (!order || order.studentId !== studentId) return { error: 'Order not found.' } as const;
@@ -123,6 +128,8 @@ export async function initializeOrderPayment(studentId: string, orderNumber: str
         orderNumber: order.orderNumber,
         studentId,
         courseId: order.courseId,
+        courseSlug: order.course.slug,
+        courseTitle: order.course.title,
       },
     });
 
@@ -178,18 +185,31 @@ export async function verifyAndSettlePayment(reference: string) {
         where: { id: currentPayment.orderId },
         data: { status: 'PAID', paidAt: verified.paidAt ?? new Date() },
       });
-      await tx.enrollment.upsert({
+      const existingEnrollment = await tx.enrollment.findUnique({
         where: { studentId_courseId: { studentId: paidOrder.studentId, courseId: paidOrder.courseId } },
-        update: { status: 'ACTIVE', source: 'PAYMENT', orderId: paidOrder.id, startedAt: new Date() },
-        create: {
-          studentId: paidOrder.studentId,
-          courseId: paidOrder.courseId,
-          status: 'ACTIVE',
-          source: 'PAYMENT',
-          orderId: paidOrder.id,
-          startedAt: new Date(),
-        },
       });
+      if (existingEnrollment) {
+        await tx.enrollment.update({
+          where: { id: existingEnrollment.id },
+          data: {
+            status: 'ACTIVE',
+            source: 'PAYMENT',
+            orderId: paidOrder.id,
+            startedAt: existingEnrollment.startedAt ?? new Date(),
+          },
+        });
+      } else {
+        await tx.enrollment.create({
+          data: {
+            studentId: paidOrder.studentId,
+            courseId: paidOrder.courseId,
+            status: 'ACTIVE',
+            source: 'PAYMENT',
+            orderId: paidOrder.id,
+            startedAt: new Date(),
+          },
+        });
+      }
       return paidOrder;
     }
 

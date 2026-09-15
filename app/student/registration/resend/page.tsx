@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { ResendRegistrationForm } from '@/components/student/ResendRegistrationForm';
 
 export const metadata = {

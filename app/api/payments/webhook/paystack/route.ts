@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (event.event === 'charge.success' && event.data?.reference) {
+    console.info(`[Paystack Webhook] Processing charge.success for reference: ${event.data.reference}`);
     await verifyAndSettlePayment(event.data.reference);
   }
 

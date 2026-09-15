@@ -10,8 +10,8 @@ export const dataScienceCourse: SeedCourse = {
   category: 'Data Science',
   level: 'Intermediate',
   duration: '8 Weeks',
-  priceMinor: 4990, // $49.90
-  currency: 'USD',
+  priceMinor: 6900000, // ₦69,000
+  currency: 'NGN',
   sortOrder: 3,
   cta: 'Build Data Science Skills',
   benefits: [

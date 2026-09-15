@@ -15,7 +15,7 @@ import {
   CheckCircle,
   ChevronRight
 } from 'lucide-react';
-import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
+import { Card, CardTitle } from '@/components/ui/Card';
 import { Container } from '@/components/ui/Container';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Button } from '@/components/ui/Button';
@@ -68,11 +68,6 @@ const solutions = [
 const staggerContainer = {
   hidden: { opacity: 1 },
   visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-
-const fadeInUp = {
-  hidden: { opacity: 0, y: 15 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
 
 export default function Solutions() {

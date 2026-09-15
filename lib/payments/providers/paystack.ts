@@ -7,10 +7,12 @@ import type {
   VerifiedPayment,
 } from '../types';
 
+import { getPaystackSecretKey } from '../config';
+
 const baseUrl = 'https://api.paystack.co';
 
 function secretKey() {
-  return process.env.PAYSTACK_SECRET_KEY;
+  return getPaystackSecretKey();
 }
 
 function toCurrency(value: unknown): Currency {
@@ -107,10 +109,23 @@ export const paystackProvider: PaymentProviderAdapter = {
     };
   },
 
-  verifyWebhookSignature(payload: string, signature: string | null) {
+  verifyWebhookSignature(payload: string, signature: string | null): boolean {
     const key = secretKey();
-    if (!key || !signature) return false;
-    const hash = crypto.createHmac('sha512', key).update(payload).digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signature));
+    if (!key || !signature || typeof signature !== 'string' || typeof payload !== 'string') {
+      return false;
+    }
+    try {
+      const hash = crypto.createHmac('sha512', key).update(payload).digest('hex');
+      const hashBuf = Buffer.from(hash);
+      const sigBuf = Buffer.from(signature);
+
+      if (hashBuf.length !== sigBuf.length) {
+        return false;
+      }
+
+      return crypto.timingSafeEqual(hashBuf, sigBuf);
+    } catch {
+      return false;
+    }
   },
 };

@@ -1,9 +1,16 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Download, FileText } from 'lucide-react';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { getStudentLesson } from '@/lib/student-course/queries';
 import { setLessonProgressAction } from '@/app/student/progress-actions';
+
+function formatFileSize(bytes?: number | null) {
+  if (!bytes || bytes <= 0) return null;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 type StudentLessonPageProps = {
   params: Promise<{ courseId: string; lessonId: string }>;
@@ -54,6 +61,41 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
           </a>
         ) : null}
       </section>
+      {lesson.resources && lesson.resources.length > 0 ? (
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-black text-slate-950">Lesson Resources &amp; Materials</h2>
+          <div className="mt-4 divide-y divide-slate-100">
+            {lesson.resources.map((resource) => (
+              <div
+                key={resource.id}
+                className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-md bg-slate-100 p-2 text-slate-600">
+                    <FileText className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900">{resource.name}</p>
+                    <p className="text-xs text-slate-500 uppercase">
+                      {resource.fileType}
+                      {resource.fileSize ? ` · ${formatFileSize(resource.fileSize)}` : ''}
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={resource.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary inline-flex items-center gap-1.5 text-sm font-black hover:underline"
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  Download
+                </a>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
       <form
         action={setLessonProgressAction}
         className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"

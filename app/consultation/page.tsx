@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Loader2, Calendar, FileText, CheckSquare, Clock } from 'lucide-react';
+import { Loader2, FileText, CheckSquare, Clock } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import ConsultationForm from '@/components/forms/ConsultationForm';
 
