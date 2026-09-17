@@ -40,7 +40,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <strong className="block text-slate-900 font-bold mb-0.5">Headquarters</strong>
-                  <span>Nigeria (Kaduna State / Online)</span>
+                  <span>Abuja, Nigeria</span>
                 </div>
               </div>
 

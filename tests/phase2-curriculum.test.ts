@@ -117,10 +117,10 @@ test('Curriculum 3.1: Migration data structures guarantee idempotency on repeate
   const firstModCount = processedModules.size;
   const firstLessonCount = processedLessons.size;
 
-  assert.equal(firstCourseCount, 5);
-  assert.equal(firstWeekCount, 10);
-  assert.equal(firstModCount, 10);
-  assert.equal(firstLessonCount, 20);
+  assert.equal(firstCourseCount, courses.length);
+  assert.equal(firstWeekCount, courses.reduce((acc, c) => acc + c.weeks.length, 0));
+  assert.equal(firstModCount, courses.reduce((acc, c) => acc + c.weeks.reduce((wAcc, w) => wAcc + w.modules.length, 0), 0));
+  assert.equal(firstLessonCount, courses.reduce((acc, c) => acc + c.weeks.reduce((wAcc, w) => wAcc + w.modules.reduce((mAcc, m) => mAcc + m.lessons.length, 0), 0), 0));
 
   // Second run (simulating repeated migration)
   for (const course of courses) {

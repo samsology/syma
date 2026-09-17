@@ -83,6 +83,11 @@ async function seedCourses(instructorId?: string) {
       },
     });
 
+    // Clean up existing curriculum weeks to ensure exact alignment with seed data
+    await prisma.courseWeek.deleteMany({
+      where: { courseId: upsertedCourse.id },
+    });
+
     for (const [weekIndex, week] of course.weeks.entries()) {
       const upsertedWeek = await prisma.courseWeek.upsert({
         where: {

@@ -5,7 +5,7 @@ export const courseCategories = [
   'Healthcare Analytics',
 ] as const;
 
-export const courseLevels = ['Beginner', 'Intermediate', 'Advanced', 'Specialist'] as const;
+export const courseLevels = ['Foundation', 'Beginner', 'Intermediate', 'Advanced', 'Specialist'] as const;
 
 export type CourseCategory = (typeof courseCategories)[number];
 export type CourseLevel = (typeof courseLevels)[number];

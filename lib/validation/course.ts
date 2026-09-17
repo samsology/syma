@@ -38,7 +38,7 @@ const editableCourseFields = {
   benefits: z.array(z.string().trim()).default([]),
   cta: z.string().trim().max(80, 'Keep CTA under 80 characters.').default('Apply Today'),
   sortOrder: z.coerce.number().int().min(0).default(0),
-  thumbnailUrl: optionalUrl.optional().default(''),
+  thumbnailUrl: optionalUrl.optional().nullable().default(''),
   instructorId: z.string().trim().optional().nullable(),
 };
 

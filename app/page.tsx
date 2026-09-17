@@ -140,16 +140,6 @@ export default function Home() {
         </div>
 
         <Container className="relative z-10 text-center space-y-8">
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/10 bg-primary/5 text-xs font-bold text-primary shadow-sm"
-          >
-            <Activity className="w-3.5 h-3.5 text-secondary animate-pulse" />
-            <span>Health & Research Intelligence Systems</span>
-          </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

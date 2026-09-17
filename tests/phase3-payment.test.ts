@@ -252,7 +252,14 @@ test('4.2: paystackProvider.initializePayment sends correct parameters to Paysta
     let capturedUrl = '';
     let capturedMethod = '';
     let capturedHeaders: Record<string, string> = {};
-    let capturedBody: { email?: string; amount?: number; currency?: string; reference?: string; callback_url?: string; metadata?: { courseSlug?: string } } | null = null;
+    let capturedBody: {
+      email?: string;
+      amount?: number;
+      currency?: string;
+      reference?: string;
+      callback_url?: string;
+      metadata?: { courseSlug?: string };
+    } = {};
 
     globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
       capturedUrl = String(url);
@@ -454,10 +461,10 @@ test('7.1: Settlement logic marks payment as FAILED when provider amount does no
   const orderCurrency = 'NGN';
 
   // Simulating provider returning less than expected amount
-  const spoofedVerified = {
+  const spoofedVerified: { amountMinor: number; currency: string; status: string } = {
     amountMinor: 1000, // Spoofed amount!
-    currency: 'NGN' as const,
-    status: 'SUCCESS' as const,
+    currency: 'NGN',
+    status: 'SUCCESS',
   };
 
   const amountMatches = spoofedVerified.amountMinor === orderAmount;
@@ -479,13 +486,13 @@ test('7.1: Settlement logic marks payment as FAILED when provider amount does no
 
 test('7.2: Settlement logic marks payment as FAILED when provider currency does not match order currency', () => {
   const orderAmount = 2990000;
-  const orderCurrency = 'NGN';
+  const orderCurrency: string = 'NGN';
 
   // Simulating provider returning USD instead of NGN
-  const spoofedVerified = {
+  const spoofedVerified: { amountMinor: number; currency: string; status: string } = {
     amountMinor: 2990000,
-    currency: 'USD' as const, // Mismatched currency!
-    status: 'SUCCESS' as const,
+    currency: 'USD', // Mismatched currency!
+    status: 'SUCCESS',
   };
 
   const amountMatches = spoofedVerified.amountMinor === orderAmount;

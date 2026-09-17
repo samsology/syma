@@ -93,6 +93,20 @@ export async function validateCourseForPublishing(courseId: string): Promise<Pub
         } else if (lesson.lessonType === 'ASSIGNMENT' && trimmedContent.length === 0) {
           errors.push(`Lesson "${lesson.title}" (Assignment) requires prompt or assignment instructions in content.`);
         }
+
+        // Validate that instructional content and resources are not pending placeholders
+        if (trimmedContent.includes('[Instructional content pending]')) {
+          errors.push(`Lesson "${lesson.title}" has pending instructional content that must be completed before publishing.`);
+        }
+        if (trimmedContent.includes('STATUS: Resource pending')) {
+          errors.push(`Lesson "${lesson.title}" has pending resources that must be finalized before publishing.`);
+        }
+
+        for (const res of lesson.resources) {
+          if (res.fileUrl.toLowerCase().includes('pending') || res.name.toLowerCase().includes('pending')) {
+            errors.push(`Resource "${res.name}" in lesson "${lesson.title}" is pending.`);
+          }
+        }
       }
     }
   }

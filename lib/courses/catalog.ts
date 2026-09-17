@@ -12,7 +12,7 @@ export type OfficialCourse = {
   description: string;
   shortDescription: string;
   category: 'Data Literacy' | 'Data Analytics' | 'Data Science' | 'Healthcare Analytics';
-  level: 'Beginner' | 'Intermediate' | 'Specialist';
+  level: 'Foundation' | 'Beginner' | 'Intermediate' | 'Specialist';
   badge: string;
   cta: string;
   support: string;
@@ -26,7 +26,7 @@ export const OFFICIAL_COURSES: OfficialCourse[] = [
     order: 1,
     title: 'Introduction to Data Literacy',
     slug: 'introduction-to-data-literacy',
-    duration: '6 Weeks',
+    duration: '8 Weeks',
     price: '$19.90',
     priceMinor: 1990,
     currency: 'USD',
@@ -35,7 +35,7 @@ export const OFFICIAL_COURSES: OfficialCourse[] = [
     shortDescription:
       'Build the confidence to understand, interpret and communicate data in everyday decisions.',
     category: 'Data Literacy',
-    level: 'Beginner',
+    level: 'Foundation',
     badge: 'Foundational Track',
     cta: 'Start Your Data Journey',
     support: 'Instructor guidance',

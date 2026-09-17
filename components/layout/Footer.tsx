@@ -125,7 +125,7 @@ export default function Footer() {
             <div className="space-y-2 text-xs border-t border-slate-100 pt-4">
               <p className="flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                Kaduna,Nigeria
+                Abuja,Nigeria
               </p>
               <a href="mailto:symatechsolutions@gmail.com" className="flex items-center gap-2 hover:text-primary">
                 <Mail className="h-3.5 w-3.5 text-slate-400" />

@@ -36,7 +36,7 @@ test('1. Public Catalogue contains exactly 4 official courses in USD', () => {
 
   // Validate pricing and duration for each course
   const expectedPrices = ['$19.90', '$39.90', '$49.90', '$69.90'];
-  const expectedDurations = ['6 Weeks', '8 Weeks', '8 Weeks', '8 Weeks'];
+  const expectedDurations = ['8 Weeks', '8 Weeks', '8 Weeks', '8 Weeks'];
 
   OFFICIAL_COURSES.forEach((course, i) => {
     assert.equal(course.currency, 'USD');
