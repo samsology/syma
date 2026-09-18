@@ -69,7 +69,6 @@ async function main() {
           phone: student.phone,
           passwordHash: student.passwordHash,
           status: student.status,
-          avatarUrl: student.avatarUrl,
         },
         create: {
           id: student.id,
@@ -79,7 +78,6 @@ async function main() {
           phone: student.phone,
           passwordHash: student.passwordHash,
           status: student.status,
-          avatarUrl: student.avatarUrl,
           createdAt: new Date(student.createdAt),
           updatedAt: new Date(student.updatedAt),
         },
