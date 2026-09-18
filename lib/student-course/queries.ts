@@ -94,9 +94,12 @@ export async function getStudentLesson(studentId: string, courseId: string, less
           weeks: {
             orderBy: [{ sortOrder: 'asc' }, { weekNumber: 'asc' }],
             include: {
+              assignment: true,
               modules: {
                 orderBy: { sortOrder: 'asc' },
                 include: {
+                  summary: true,
+                  quiz: true,
                   lessons: {
                     where: { status: 'PUBLISHED' },
                     orderBy: { sortOrder: 'asc' },

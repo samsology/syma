@@ -11,6 +11,9 @@ import { lessonSchema } from '@/lib/validation/lesson';
 import { moduleSchema } from '@/lib/validation/module';
 import { resourceSchema } from '@/lib/validation/resource';
 import { weekSchema } from '@/lib/validation/week';
+import { summarySchema } from '@/lib/validation/summary';
+import { quizSchema } from '@/lib/validation/quiz';
+import { assignmentSchema } from '@/lib/validation/assignment';
 
 export type CurriculumFormState = {
   fieldErrors?: Record<string, string[] | undefined>;
@@ -201,7 +204,9 @@ export async function createLessonAction(courseId: string, moduleId: string, _st
     title: formData.get('title'),
     slug: String(formData.get('slug') || slugifyCourseTitle(String(formData.get('title') ?? ''))).toLowerCase(),
     lessonType: formData.get('lessonType'),
-    content: formData.get('content'),
+    resourceType: formData.get('resourceType') || 'VIDEO',
+    slideUrl: formData.get('slideUrl') || '',
+    content: formData.get('content') || 'Lesson content',
     videoUrl: formData.get('videoUrl'),
     duration: formData.get('duration') || undefined,
     isPreview: formData.get('isPreview') === 'on',
@@ -218,6 +223,8 @@ export async function createLessonAction(courseId: string, moduleId: string, _st
         title: parsed.data.title,
         slug: parsed.data.slug,
         lessonType: parsed.data.lessonType,
+        resourceType: parsed.data.resourceType,
+        slideUrl: parsed.data.slideUrl || null,
         content: parsed.data.content,
         videoUrl: parsed.data.videoUrl || null,
         duration: parsed.data.duration === '' ? null : parsed.data.duration,
@@ -242,6 +249,8 @@ export async function updateLessonAction(courseId: string, lessonId: string, _st
     title: formData.get('title'),
     slug: String(formData.get('slug') ?? '').toLowerCase(),
     lessonType: formData.get('lessonType'),
+    resourceType: formData.get('resourceType') || 'VIDEO',
+    slideUrl: formData.get('slideUrl') || '',
     content: formData.get('content'),
     videoUrl: formData.get('videoUrl'),
     duration: formData.get('duration') || undefined,
@@ -258,6 +267,8 @@ export async function updateLessonAction(courseId: string, lessonId: string, _st
         title: parsed.data.title,
         slug: parsed.data.slug,
         lessonType: parsed.data.lessonType,
+        resourceType: parsed.data.resourceType,
+        slideUrl: parsed.data.slideUrl || null,
         content: parsed.data.content,
         videoUrl: parsed.data.videoUrl || null,
         duration: parsed.data.duration === '' ? null : parsed.data.duration,
@@ -416,3 +427,166 @@ export async function moveLessonAction(formData: FormData) {
   if (pair) await db.$transaction(pair.map((item, index) => db.lesson.update({ where: { id: item.id }, data: { sortOrder: pair[1 - index].sortOrder } })));
   refresh(courseId);
 }
+
+export async function upsertModuleSummaryAction(courseId: string, moduleId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+  await requireCourse(courseId);
+  const parsed = summarySchema.safeParse({
+    title: formData.get('title'),
+    description: formData.get('description'),
+    content: formData.get('content'),
+    resourceType: formData.get('resourceType') || 'SLIDE',
+    resourceUrl: formData.get('resourceUrl'),
+    duration: formData.get('duration') || undefined,
+  });
+  if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
+
+  try {
+    await requireModule(courseId, moduleId);
+    await db.moduleSummary.upsert({
+      where: { moduleId },
+      create: {
+        moduleId,
+        title: parsed.data.title,
+        description: parsed.data.description || null,
+        content: parsed.data.content || null,
+        resourceType: parsed.data.resourceType,
+        resourceUrl: parsed.data.resourceUrl || null,
+        duration: parsed.data.duration === '' ? null : parsed.data.duration,
+      },
+      update: {
+        title: parsed.data.title,
+        description: parsed.data.description || null,
+        content: parsed.data.content || null,
+        resourceType: parsed.data.resourceType,
+        resourceUrl: parsed.data.resourceUrl || null,
+        duration: parsed.data.duration === '' ? null : parsed.data.duration,
+      },
+    });
+    refresh(courseId);
+    return {};
+  } catch (error) {
+    return { formError: error instanceof Error ? error.message : 'Unable to save module summary.' };
+  }
+}
+
+export async function deleteModuleSummaryAction(formData: FormData) {
+  const courseId = String(formData.get('courseId') ?? '');
+  const moduleId = String(formData.get('moduleId') ?? '');
+  await requireCourse(courseId);
+  await requireModule(courseId, moduleId);
+  await db.moduleSummary.deleteMany({ where: { moduleId } });
+  refresh(courseId);
+}
+
+export async function upsertModuleQuizAction(courseId: string, moduleId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+  await requireCourse(courseId);
+  const parsed = quizSchema.safeParse({
+    title: formData.get('title'),
+    description: formData.get('description'),
+    instructions: formData.get('instructions'),
+    passingScore: formData.get('passingScore'),
+    maxAttempts: formData.get('maxAttempts'),
+    timeLimitMinutes: formData.get('timeLimitMinutes') || undefined,
+    status: formData.get('status'),
+  });
+  if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
+
+  try {
+    await requireModule(courseId, moduleId);
+    await db.moduleQuiz.upsert({
+      where: { moduleId },
+      create: {
+        moduleId,
+        title: parsed.data.title,
+        description: parsed.data.description || null,
+        instructions: parsed.data.instructions || null,
+        passingScore: parsed.data.passingScore,
+        maxAttempts: parsed.data.maxAttempts,
+        timeLimitMinutes: parsed.data.timeLimitMinutes === '' ? null : parsed.data.timeLimitMinutes,
+        status: parsed.data.status,
+      },
+      update: {
+        title: parsed.data.title,
+        description: parsed.data.description || null,
+        instructions: parsed.data.instructions || null,
+        passingScore: parsed.data.passingScore,
+        maxAttempts: parsed.data.maxAttempts,
+        timeLimitMinutes: parsed.data.timeLimitMinutes === '' ? null : parsed.data.timeLimitMinutes,
+        status: parsed.data.status,
+      },
+    });
+    refresh(courseId);
+    return {};
+  } catch (error) {
+    return { formError: error instanceof Error ? error.message : 'Unable to save module quiz.' };
+  }
+}
+
+export async function deleteModuleQuizAction(formData: FormData) {
+  const courseId = String(formData.get('courseId') ?? '');
+  const moduleId = String(formData.get('moduleId') ?? '');
+  await requireCourse(courseId);
+  await requireModule(courseId, moduleId);
+  await db.moduleQuiz.deleteMany({ where: { moduleId } });
+  refresh(courseId);
+}
+
+export async function upsertWeeklyAssignmentAction(courseId: string, weekId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+  await requireCourse(courseId);
+  const parsed = assignmentSchema.safeParse({
+    title: formData.get('title'),
+    description: formData.get('description'),
+    instructions: formData.get('instructions'),
+    submissionType: formData.get('submissionType') || 'FILE_OR_TEXT',
+    submissionRequirements: formData.get('submissionRequirements'),
+    datasetUrl: formData.get('datasetUrl'),
+    datasetName: formData.get('datasetName'),
+    dueDateDays: formData.get('dueDateDays') || undefined,
+    status: formData.get('status'),
+  });
+  if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
+
+  try {
+    await requireWeek(courseId, weekId);
+    await db.weeklyAssignment.upsert({
+      where: { weekId },
+      create: {
+        weekId,
+        title: parsed.data.title,
+        description: parsed.data.description,
+        instructions: parsed.data.instructions,
+        submissionType: parsed.data.submissionType,
+        submissionRequirements: parsed.data.submissionRequirements || null,
+        datasetUrl: parsed.data.datasetUrl || null,
+        datasetName: parsed.data.datasetName || null,
+        dueDateDays: parsed.data.dueDateDays === '' ? null : parsed.data.dueDateDays,
+        status: parsed.data.status,
+      },
+      update: {
+        title: parsed.data.title,
+        description: parsed.data.description,
+        instructions: parsed.data.instructions,
+        submissionType: parsed.data.submissionType,
+        submissionRequirements: parsed.data.submissionRequirements || null,
+        datasetUrl: parsed.data.datasetUrl || null,
+        datasetName: parsed.data.datasetName || null,
+        dueDateDays: parsed.data.dueDateDays === '' ? null : parsed.data.dueDateDays,
+        status: parsed.data.status,
+      },
+    });
+    refresh(courseId);
+    return {};
+  } catch (error) {
+    return { formError: error instanceof Error ? error.message : 'Unable to save weekly assignment.' };
+  }
+}
+
+export async function deleteWeeklyAssignmentAction(formData: FormData) {
+  const courseId = String(formData.get('courseId') ?? '');
+  const weekId = String(formData.get('weekId') ?? '');
+  await requireCourse(courseId);
+  await requireWeek(courseId, weekId);
+  await db.weeklyAssignment.deleteMany({ where: { weekId } });
+  refresh(courseId);
+}
+

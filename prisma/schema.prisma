@@ -69,6 +69,11 @@ enum LessonType {
   ASSIGNMENT
 }
 
+enum LessonResourceType {
+  SLIDE
+  VIDEO
+}
+
 model Admin {
   id           String    @id @default(cuid())
   name         String
@@ -153,9 +158,12 @@ model Student {
   sessions            StudentSession[]
   enrollments         Enrollment[]
   orders              Order[]
-  progress            LessonProgress[]
-  applications        StudentApplication[]
-  passwordResetTokens StudentPasswordResetToken[]
+  progress              LessonProgress[]
+  summaryProgress       ModuleSummaryProgress[]
+  quizAttempts          QuizAttempt[]
+  assignmentSubmissions AssignmentSubmission[]
+  applications          StudentApplication[]
+  passwordResetTokens   StudentPasswordResetToken[]
 
   @@index([status])
   @@index([createdAt])
@@ -303,8 +311,9 @@ model CourseWeek {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  course  Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  modules CourseModule[]
+  course      Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  modules     CourseModule[]
+  assignment  WeeklyAssignment?
 
   @@unique([courseId, weekNumber])
   @@index([courseId])
@@ -319,26 +328,30 @@ model CourseModule {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  week    CourseWeek @relation(fields: [weekId], references: [id], onDelete: Cascade)
-  lessons Lesson[]
+  week        CourseWeek     @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  summary     ModuleSummary?
+  quiz        ModuleQuiz?
 
   @@index([weekId])
 }
 
 model Lesson {
-  id         String       @id @default(cuid())
-  moduleId   String
-  title      String
-  slug       String
-  lessonType LessonType   @default(TEXT)
-  content    String
-  videoUrl   String?
-  duration   Int?
-  isPreview  Boolean      @default(false)
-  status     CourseStatus @default(DRAFT)
-  sortOrder  Int
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id           String              @id @default(cuid())
+  moduleId     String
+  title        String
+  slug         String
+  lessonType   LessonType          @default(TEXT)
+  resourceType LessonResourceType? @default(VIDEO)
+  slideUrl     String?
+  content      String
+  videoUrl     String?
+  duration     Int?
+  isPreview    Boolean             @default(false)
+  status       CourseStatus        @default(DRAFT)
+  sortOrder    Int
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   module    CourseModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   resources LessonResource[]
@@ -379,4 +392,114 @@ model LessonResource {
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@index([lessonId])
+}
+
+model ModuleSummary {
+  id           String              @id @default(cuid())
+  moduleId     String              @unique
+  title        String
+  description  String?
+  content      String?
+  resourceType LessonResourceType  @default(SLIDE)
+  resourceUrl  String?
+  duration     Int?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  module       CourseModule            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress     ModuleSummaryProgress[]
+
+  @@index([moduleId])
+}
+
+model ModuleSummaryProgress {
+  id              String        @id @default(cuid())
+  studentId       String
+  moduleSummaryId String
+  isCompleted     Boolean       @default(false)
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  summary         ModuleSummary @relation(fields: [moduleSummaryId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, moduleSummaryId])
+  @@index([studentId])
+  @@index([moduleSummaryId])
+  @@index([isCompleted])
+}
+
+model ModuleQuiz {
+  id               String       @id @default(cuid())
+  moduleId         String       @unique
+  title            String
+  description      String?
+  instructions     String?
+  passingScore     Int          @default(70)
+  maxAttempts      Int          @default(2)
+  timeLimitMinutes Int?
+  status           CourseStatus @default(DRAFT)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  module           CourseModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  attempts         QuizAttempt[]
+
+  @@index([moduleId])
+}
+
+model QuizAttempt {
+  id            String     @id @default(cuid())
+  quizId        String
+  studentId     String
+  attemptNumber Int        @default(1)
+  score         Float      @default(0)
+  passed        Boolean    @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime   @default(now())
+
+  quiz          ModuleQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student       Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([quizId, studentId])
+}
+
+model WeeklyAssignment {
+  id                     String                 @id @default(cuid())
+  weekId                 String                 @unique
+  title                  String
+  description            String
+  instructions           String
+  submissionType         String                 @default("FILE_OR_TEXT")
+  submissionRequirements String?
+  datasetUrl             String?
+  datasetName            String?
+  dueDateDays            Int?
+  status                 CourseStatus           @default(DRAFT)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  week                   CourseWeek             @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  submissions            AssignmentSubmission[]
+
+  @@index([weekId])
+}
+
+model AssignmentSubmission {
+  id           String           @id @default(cuid())
+  assignmentId String
+  studentId    String
+  content      String?
+  fileUrl      String?
+  status       String           @default("SUBMITTED")
+  submittedAt  DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  assignment   WeeklyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, assignmentId])
+  @@index([assignmentId])
+  @@index([studentId])
 }

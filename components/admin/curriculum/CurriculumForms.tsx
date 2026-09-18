@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react';
 import type { CourseModule, CourseWeek, Lesson } from '@prisma/client';
-import { ExternalLink, Video } from 'lucide-react';
+import { ExternalLink, Video, Presentation } from 'lucide-react';
 import type { CurriculumFormState } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
 import { slugifyCourseTitle } from '@/lib/courses/options';
 
@@ -151,6 +151,8 @@ export function InlineLessonForm({
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [lessonType, setLessonType] = useState('TEXT');
+  const [resourceType, setResourceType] = useState<'SLIDE' | 'VIDEO'>('VIDEO');
+  const [slideUrl, setSlideUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
 
   const handleTitleChange = (newTitle: string) => {
@@ -230,32 +232,82 @@ export function InlineLessonForm({
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-bold uppercase text-slate-500">
-          Video URL {lessonType === 'VIDEO' ? <span className="text-primary">(Recommended for Video)</span> : '(Optional)'}
-        </label>
-        <div className="mt-1 flex gap-2">
-          <input
-            name="videoUrl"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
-          {videoUrl && (
-            <a
-              href={videoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Test
-            </a>
-          )}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <label className="block text-xs font-bold uppercase text-slate-500 mb-1.5">Delivery Format</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setResourceType('VIDEO')}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-semibold ${
+              resourceType === 'VIDEO' ? 'border-primary bg-primary text-white' : 'border-slate-300 bg-white text-slate-700'
+            }`}
+          >
+            <Video className="h-3.5 w-3.5" /> Video Explainer
+          </button>
+          <button
+            type="button"
+            onClick={() => setResourceType('SLIDE')}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-semibold ${
+              resourceType === 'SLIDE' ? 'border-primary bg-primary text-white' : 'border-slate-300 bg-white text-slate-700'
+            }`}
+          >
+            <Presentation className="h-3.5 w-3.5" /> Slide Deck
+          </button>
         </div>
-        <FieldError errors={state.fieldErrors?.videoUrl} />
+        <input type="hidden" name="resourceType" value={resourceType} />
       </div>
+
+      {resourceType === 'SLIDE' ? (
+        <div>
+          <label className="block text-xs font-bold uppercase text-slate-500">Slide Presentation URL</label>
+          <div className="mt-1 flex gap-2">
+            <input
+              name="slideUrl"
+              value={slideUrl}
+              onChange={(e) => setSlideUrl(e.target.value)}
+              placeholder="https://docs.google.com/presentation/d/... or Canva / slide URL"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            {slideUrl && (
+              <a
+                href={slideUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> Test
+              </a>
+            )}
+          </div>
+          <FieldError errors={state.fieldErrors?.slideUrl} />
+        </div>
+      ) : (
+        <div>
+          <label className="block text-xs font-bold uppercase text-slate-500">
+            Video URL {lessonType === 'VIDEO' ? <span className="text-primary">(Recommended for Video)</span> : '(Optional)'}
+          </label>
+          <div className="mt-1 flex gap-2">
+            <input
+              name="videoUrl"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            {videoUrl && (
+              <a
+                href={videoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                <ExternalLink className="h-3.5 w-3.5" /> Test
+              </a>
+            )}
+          </div>
+          <FieldError errors={state.fieldErrors?.videoUrl} />
+        </div>
+      )}
 
       <div>
         <label className="block text-xs font-bold uppercase text-slate-500">Instructional Content</label>
@@ -304,6 +356,8 @@ export function LessonForm({
   const [title, setTitle] = useState(lesson.title);
   const [slug, setSlug] = useState(lesson.slug);
   const [lessonType, setLessonType] = useState(lesson.lessonType);
+  const [resourceType, setResourceType] = useState<'SLIDE' | 'VIDEO'>(lesson.resourceType ?? 'VIDEO');
+  const [slideUrl, setSlideUrl] = useState(lesson.slideUrl ?? '');
   const [videoUrl, setVideoUrl] = useState(lesson.videoUrl ?? '');
 
   return (
@@ -375,49 +429,106 @@ export function LessonForm({
         </div>
       </div>
 
-      {lessonType === 'VIDEO' && (
-        <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3 text-xs text-blue-900 flex items-center gap-2">
-          <Video className="h-4 w-4 text-blue-600 shrink-0" />
-          <span>Video lessons display an embedded or direct player to enrolled students. Provide a valid video URL below.</span>
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <label className="block text-xs font-bold uppercase text-slate-600 mb-2">Delivery Format</label>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setResourceType('VIDEO')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2 text-sm font-semibold transition ${
+              resourceType === 'VIDEO' ? 'border-primary bg-primary text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <Video className="h-4 w-4" /> Video Explainer
+          </button>
+          <button
+            type="button"
+            onClick={() => setResourceType('SLIDE')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2 text-sm font-semibold transition ${
+              resourceType === 'SLIDE' ? 'border-primary bg-primary text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <Presentation className="h-4 w-4" /> Slide Deck
+          </button>
+        </div>
+        <input type="hidden" name="resourceType" value={resourceType} />
+      </div>
+
+      {resourceType === 'SLIDE' ? (
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="lesson-slideUrl" className="block text-sm font-semibold text-slate-700">
+              Slide Presentation URL
+            </label>
+            {slideUrl && (
+              <div className="flex items-center gap-2">
+                <a
+                  href={slideUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Test Slide Link
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSlideUrl('')}
+                  className="text-xs text-slate-400 hover:text-slate-600"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+          <input
+            id="lesson-slideUrl"
+            name="slideUrl"
+            value={slideUrl}
+            onChange={(e) => setSlideUrl(e.target.value)}
+            placeholder="https://docs.google.com/presentation/d/... or Canva presentation URL"
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+          />
+          <FieldError errors={state.fieldErrors?.slideUrl} />
+        </div>
+      ) : (
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="lesson-videoUrl" className="block text-sm font-semibold text-slate-700">
+              Video URL
+            </label>
+            {videoUrl && (
+              <div className="flex items-center gap-2">
+                <a
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Test Video Link
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setVideoUrl('')}
+                  className="text-xs text-slate-400 hover:text-slate-600"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+          <input
+            id="lesson-videoUrl"
+            name="videoUrl"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+          />
+          <FieldError errors={state.fieldErrors?.videoUrl} />
         </div>
       )}
-
-      <div>
-        <div className="flex items-center justify-between">
-          <label htmlFor="lesson-videoUrl" className="block text-sm font-semibold text-slate-700">
-            Video URL
-          </label>
-          {videoUrl && (
-            <div className="flex items-center gap-2">
-              <a
-                href={videoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Test Video Link
-              </a>
-              <button
-                type="button"
-                onClick={() => setVideoUrl('')}
-                className="text-xs text-slate-400 hover:text-slate-600"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-        <input
-          id="lesson-videoUrl"
-          name="videoUrl"
-          value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
-          placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
-          className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
-        />
-        <FieldError errors={state.fieldErrors?.videoUrl} />
-      </div>
 
       <div>
         <label htmlFor="lesson-content" className="block text-sm font-semibold text-slate-700">

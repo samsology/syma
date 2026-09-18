@@ -16,9 +16,12 @@ export default async function CurriculumPage({ params }: CurriculumPageProps) {
       weeks: {
         orderBy: [{ sortOrder: 'asc' }, { weekNumber: 'asc' }],
         include: {
+          assignment: true,
           modules: {
             orderBy: { sortOrder: 'asc' },
             include: {
+              summary: true,
+              quiz: true,
               lessons: {
                 orderBy: { sortOrder: 'asc' },
                 include: {
