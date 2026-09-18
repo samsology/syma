@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Download, FileText, Presentation, Video } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { getStudentLesson } from '@/lib/student-course/queries';
 import { setLessonProgressAction } from '@/app/student/progress-actions';
+import { ResourceStage } from '@/components/resources/ResourceStage';
 
 function formatFileSize(bytes?: number | null) {
   if (!bytes || bytes <= 0) return null;
@@ -53,88 +54,21 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
           </div>
         </div>
       </header>
-      <section className="rounded-lg border border-slate-200 bg-white p-6 leading-7 text-slate-700 shadow-sm space-y-4">
-        <div className="whitespace-pre-wrap">{lesson.content}</div>
+      {/* In-Portal Media Stage & Attached Resources */}
+      <ResourceStage
+        lessonTitle={lesson.title}
+        primaryVideoUrl={lesson.videoUrl}
+        primarySlideUrl={lesson.slideUrl}
+        primaryResourceType={lesson.resourceType}
+        resources={lesson.resources}
+      />
 
-        {lesson.resourceType === 'SLIDE' && lesson.slideUrl ? (
-          <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-md bg-indigo-600 p-2 text-white">
-                <Presentation className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-bold text-slate-900 text-sm">Interactive Slide Presentation</p>
-                <p className="text-xs text-slate-500">Access full presentation deck for this lesson</p>
-              </div>
-            </div>
-            <a
-              href={lesson.slideUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition"
-            >
-              Open Slide Deck
-            </a>
-          </div>
-        ) : null}
-
-        {lesson.videoUrl ? (
-          <div className="rounded-lg border border-sky-200 bg-sky-50/50 p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-md bg-sky-600 p-2 text-white">
-                <Video className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-bold text-slate-900 text-sm">Video Lecture Explainer</p>
-                <p className="text-xs text-slate-500">Watch instructor walkthrough</p>
-              </div>
-            </div>
-            <a
-              href={lesson.videoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-lg bg-sky-600 px-4 py-2 text-xs font-bold text-white hover:bg-sky-700 transition"
-            >
-              Watch Video
-            </a>
-          </div>
-        ) : null}
-      </section>
-      {lesson.resources && lesson.resources.length > 0 ? (
-        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-black text-slate-950">Lesson Resources &amp; Materials</h2>
-          <div className="mt-4 divide-y divide-slate-100">
-            {lesson.resources.map((resource) => (
-              <div
-                key={resource.id}
-                className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-md bg-slate-100 p-2 text-slate-600">
-                    <FileText className="h-4 w-4" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900">{resource.name}</p>
-                    <p className="text-xs text-slate-500 uppercase">
-                      {resource.fileType}
-                      {resource.fileSize ? ` · ${formatFileSize(resource.fileSize)}` : ''}
-                    </p>
-                  </div>
-                </div>
-                <a
-                  href={resource.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary inline-flex items-center gap-1.5 text-sm font-black hover:underline"
-                >
-                  <Download className="h-4 w-4" aria-hidden="true" />
-                  Download
-                </a>
-              </div>
-            ))}
-          </div>
+      {lesson.content && (
+        <section className="rounded-lg border border-slate-200 bg-white p-6 leading-7 text-slate-700 shadow-sm space-y-3">
+          <h2 className="text-lg font-black text-slate-950">Lesson Notes &amp; Instructions</h2>
+          <div className="whitespace-pre-wrap">{lesson.content}</div>
         </section>
-      ) : null}
+      )}
       <form
         action={setLessonProgressAction}
         className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"

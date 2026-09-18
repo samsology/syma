@@ -103,7 +103,12 @@ export async function getStudentLesson(studentId: string, courseId: string, less
                   lessons: {
                     where: { status: 'PUBLISHED' },
                     orderBy: { sortOrder: 'asc' },
-                    include: { resources: true },
+                    include: {
+                      resources: {
+                        where: { isActive: true },
+                        orderBy: { sortOrder: 'asc' },
+                      },
+                    },
                   },
                 },
               },

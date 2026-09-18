@@ -16,6 +16,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev --name init_admin_cms",
     "db:seed": "prisma db seed",
+    "db:export": "tsx scripts/export-data.ts",
+    "db:import": "tsx scripts/import-data.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

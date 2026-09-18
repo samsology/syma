@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ExternalLink, FileText, FolderOpen, Pencil } from 'lucide-react';
+import { ExternalLink, FileText, FolderOpen, Pencil, Presentation, Video } from 'lucide-react';
 import { db } from '@/lib/db';
 
 export const metadata = {
@@ -157,7 +157,8 @@ export default async function AdminResourcesPage({ searchParams }: AdminResource
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Resource Name</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Type</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Type &amp; Source</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Size</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Course</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Lesson</th>
@@ -174,17 +175,46 @@ export default async function AdminResourcesPage({ searchParams }: AdminResource
                           href={resource.fileUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 hover:text-primary"
+                          className="inline-flex items-center gap-2 hover:text-primary"
                         >
-                          <FileText className="h-4 w-4 text-primary shrink-0" />
-                          <span>{resource.name}</span>
-                          <ExternalLink className="h-3 w-3 text-slate-400" />
+                          {resource.resourceType === 'VIDEO' ? (
+                            <Video className="h-4 w-4 text-sky-600 shrink-0" />
+                          ) : resource.resourceType === 'DOCUMENT' ? (
+                            <Presentation className="h-4 w-4 text-indigo-600 shrink-0" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-primary shrink-0" />
+                          )}
+                          <div>
+                            <span>{resource.name}</span>
+                            {resource.description && (
+                              <p className="text-xs font-normal text-slate-400 truncate max-w-xs">
+                                {resource.description}
+                              </p>
+                            )}
+                          </div>
+                          <ExternalLink className="h-3 w-3 text-slate-400 shrink-0" />
                         </a>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-bold uppercase text-slate-700">
-                          {resource.fileType}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-bold uppercase text-slate-700 w-fit">
+                            {resource.resourceType || 'FILE'}
+                          </span>
+                          <span className="text-[11px] text-slate-400 uppercase font-semibold">
+                            {resource.sourceType} · {resource.fileType}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {resource.isActive ? (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">
+                            Hidden
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3.5 text-xs text-slate-600">{formatBytes(resource.fileSize)}</td>
                       <td className="px-4 py-3.5 text-slate-700">

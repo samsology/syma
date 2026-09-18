@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Presentation, Video, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { requireEnrollment, requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { setModuleSummaryProgressAction } from '@/app/student/progress-actions';
+import { ResourceRenderer } from '@/components/resources/ResourceRenderer';
 
 type ModuleSummaryPageProps = {
   params: Promise<{ courseId: string; moduleId: string }>;
@@ -71,46 +72,14 @@ export default async function StudentModuleSummaryPage({ params }: ModuleSummary
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <h2 className="text-lg font-bold text-slate-950">Summary Presentation &amp; Material</h2>
 
-        {summary.resourceType === 'SLIDE' && summary.resourceUrl ? (
-          <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-indigo-600 p-2.5 text-white shrink-0">
-                <Presentation className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-slate-950">Module Summary Slide Presentation</p>
-                <p className="text-xs text-slate-500">Review structured deck highlights and key takeaways</p>
-              </div>
-            </div>
-            <a
-              href={summary.resourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> Open Full Slide Deck
-            </a>
-          </div>
-        ) : summary.resourceUrl ? (
-          <div className="rounded-lg border border-sky-200 bg-sky-50/40 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-sky-600 p-2.5 text-white shrink-0">
-                <Video className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="font-bold text-slate-950">Module Summary Video Explainer</p>
-                <p className="text-xs text-slate-500">Watch instructor walkthrough of module highlights</p>
-              </div>
-            </div>
-            <a
-              href={summary.resourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-xs font-bold text-white hover:bg-sky-700 transition"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> Watch Video Explainer
-            </a>
-          </div>
+        {summary.resourceUrl ? (
+          <ResourceRenderer
+            title={summary.title}
+            fileUrl={summary.resourceUrl}
+            resourceType={summary.resourceType === 'SLIDE' ? 'DOCUMENT' : 'VIDEO'}
+            sourceType={summary.resourceType === 'SLIDE' ? 'GOOGLE_DRIVE' : undefined}
+            description={summary.description}
+          />
         ) : (
           <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
             Slide deck or video explainer material for this summary is delivered inline below.

@@ -15,7 +15,7 @@ export const dataLiteracyCourse: SeedCourse = {
   currency: 'NGN',
   sortOrder: 1,
   cta: 'Start Your Data Journey',
-  status: CourseStatus.DRAFT,
+  status: CourseStatus.PUBLISHED,
   benefits: [
     'Beginner-friendly foundation curriculum',
     'Understand & interpret everyday data',
@@ -45,7 +45,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'what-is-data',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• What is data?\n• Why data matters\n\nData consists of raw observations, measurements, facts, or signals gathered from the environment. In this lesson, we explore how data forms the raw foundation of evidence-based systems across business, healthcare, and research.\n\n[Instructional content pending]',
+                'Topics covered:\n• What is data?\n• Why data matters\n\nData consists of raw observations, measurements, facts, or signals gathered from the environment. In this lesson, we explore how data forms the raw foundation of evidence-based systems across business, healthcare, and research.',
               duration: 30,
               isPreview: true,
             },
@@ -54,7 +54,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'data-information-and-insight',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• Data vs information\n• Information vs insight\n\nRaw data becomes information when structured, contextualized, and organized. Information becomes actionable insight when analytical interpretation reveals meaningful patterns that guide decisions.\n\n[Instructional content pending]',
+                'Topics covered:\n• Data vs information\n• Information vs insight\n\nRaw data becomes information when structured, contextualized, and organized. Information becomes actionable insight when analytical interpretation reveals meaningful patterns that guide decisions.',
               duration: 35,
             },
             {
@@ -62,7 +62,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'data-in-organizations-and-everyday-life',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• Why organizations use data\n• Data in everyday life\n\nExamining how institutions use data to optimize resources, assess risk, and evaluate outcomes, and how individuals interact with data in consumer and public settings.\n\n[Instructional content pending]',
+                'Topics covered:\n• Why organizations use data\n• Data in everyday life\n\nExamining how institutions use data to optimize resources, assess risk, and evaluate outcomes, and how individuals interact with data in consumer and public settings.',
               duration: 30,
             },
             {
@@ -70,7 +70,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'sources-of-data',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• Sources of data\n• Primary data\n• Secondary data\n\nUnderstanding how primary data is collected directly for a specific inquiry, while secondary data leverages existing records, surveys, or published datasets.\n\n[Instructional content pending]',
+                'Topics covered:\n• Sources of data\n• Primary data\n• Secondary data\n\nUnderstanding how primary data is collected directly for a specific inquiry, while secondary data leverages existing records, surveys, or published datasets.',
               duration: 30,
             },
           ],
@@ -85,7 +85,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'qualitative-and-quantitative-data',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• Qualitative data\n• Quantitative data\n\nQualitative data describes characteristics, attributes, and categories, whereas quantitative data represents measurable numerical quantities.\n\n[Instructional content pending]',
+                'Topics covered:\n• Qualitative data\n• Quantitative data\n\nQualitative data describes characteristics, attributes, and categories, whereas quantitative data represents measurable numerical quantities.',
               duration: 30,
             },
             {
@@ -93,7 +93,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'discrete-and-continuous-data',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• Discrete data\n• Continuous data\n\nDiscrete data represents countable separate values, while continuous data represents measurements along an unbroken scale.\n\n[Instructional content pending]',
+                'Topics covered:\n• Discrete data\n• Continuous data\n\nDiscrete data represents countable separate values, while continuous data represents measurements along an unbroken scale.',
               duration: 30,
             },
             {
@@ -101,7 +101,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'categorical-and-numerical-data',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• Categorical data\n• Numerical data\n\nGrouping variables into nominal/ordinal categories versus interval/ratio numbers.\n\n[Instructional content pending]',
+                'Topics covered:\n• Categorical data\n• Numerical data\n\nGrouping variables into nominal/ordinal categories versus interval/ratio numbers.',
               duration: 25,
             },
             {
@@ -109,7 +109,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'structured-and-unstructured-data',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• Structured data\n• Unstructured data\n\nContrasting relational tables, schemas, and matrices with text narratives, logs, and freeform inputs.\n\n[Instructional content pending]',
+                'Topics covered:\n• Structured data\n• Unstructured data\n\nContrasting relational tables, schemas, and matrices with text narratives, logs, and freeform inputs.',
               duration: 30,
             },
             {
@@ -117,7 +117,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'time-series-and-cross-sectional-data',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• Time-series data\n• Cross-sectional data\n\nDistinguishing observations recorded over sequential time intervals from observations captured across entities at a single point in time.\n\n[Instructional content pending]',
+                'Topics covered:\n• Time-series data\n• Cross-sectional data\n\nDistinguishing observations recorded over sequential time intervals from observations captured across entities at a single point in time.',
               duration: 30,
             },
           ],
@@ -132,7 +132,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'introduction-to-the-data-lifecycle',
               lessonType: LessonType.TEXT,
               content:
-                'Overview of the complete 7-stage lifecycle:\nCollection → Storage → Preparation → Analysis → Visualization → Communication → Decision.\n\n[Instructional content pending]',
+                'Overview of the complete 7-stage lifecycle:\nCollection → Storage → Preparation → Analysis → Visualization → Communication → Decision.',
               duration: 30,
             },
             {
@@ -140,7 +140,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'data-collection-and-storage',
               lessonType: LessonType.TEXT,
               content:
-                'Lifecycle stages:\n• Collection\n• Storage\n\nMethods for reliable data intake and secure storage architectures.\n\n[Instructional content pending]',
+                'Lifecycle stages:\n• Collection\n• Storage\n\nMethods for reliable data intake and secure storage architectures.',
               duration: 30,
             },
             {
@@ -148,7 +148,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'data-preparation-and-analysis',
               lessonType: LessonType.TEXT,
               content:
-                'Lifecycle stages:\n• Preparation\n• Analysis\n\nTransforming raw records into consistent datasets and applying computational techniques to answer scoped questions.\n\n[Instructional content pending]',
+                'Lifecycle stages:\n• Preparation\n• Analysis\n\nTransforming raw records into consistent datasets and applying computational techniques to answer scoped questions.',
               duration: 35,
             },
             {
@@ -156,7 +156,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'visualization-communication-and-decision',
               lessonType: LessonType.TEXT,
               content:
-                'Lifecycle stages:\n• Visualization\n• Communication\n• Decision\n\nTranslating analytical findings into visual displays and recommendations that inform executive decisions.\n\n[Instructional content pending]',
+                'Lifecycle stages:\n• Visualization\n• Communication\n• Decision\n\nTranslating analytical findings into visual displays and recommendations that inform executive decisions.',
               duration: 35,
             },
           ],
@@ -171,7 +171,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'reading-tables',
               lessonType: LessonType.TEXT,
               content:
-                'How to inspect row headers, column headers, units of measure, sample totals, and data types in tabular presentations.\n\n[Instructional content pending]',
+                'How to inspect row headers, column headers, units of measure, sample totals, and data types in tabular presentations.',
               duration: 25,
             },
             {
@@ -179,7 +179,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'reading-charts',
               lessonType: LessonType.TEXT,
               content:
-                'Interpreting axes, legends, scales, and data encodings without misinterpreting the underlying values.\n\n[Instructional content pending]',
+                'Interpreting axes, legends, scales, and data encodings without misinterpreting the underlying values.',
               duration: 25,
             },
             {
@@ -187,7 +187,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'asking-good-data-questions',
               lessonType: LessonType.TEXT,
               content:
-                'Formulating precise, measurable questions that connect business and clinical objectives with empirical data.\n\n[Instructional content pending]',
+                'Formulating precise, measurable questions that connect business and clinical objectives with empirical data.',
               duration: 30,
             },
             {
@@ -195,7 +195,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'assumptions-and-context',
               lessonType: LessonType.TEXT,
               content:
-                'Topics covered:\n• Identifying assumptions\n• Understanding context\n\nRecognizing unstated assumptions, sampling limitations, and environmental context that frame data interpretation.\n\n[Instructional content pending]',
+                'Topics covered:\n• Identifying assumptions\n• Understanding context\n\nRecognizing unstated assumptions, sampling limitations, and environmental context that frame data interpretation.',
               duration: 30,
             },
             {
@@ -203,7 +203,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'identifying-misleading-information',
               lessonType: LessonType.TEXT,
               content:
-                'Techniques for recognizing cherry-picked timeframes, truncated axes, deceptive scales, and flawed comparisons.\n\n[Instructional content pending]',
+                'Techniques for recognizing cherry-picked timeframes, truncated axes, deceptive scales, and flawed comparisons.',
               duration: 30,
             },
           ],
@@ -217,7 +217,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-1-practical-lab',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Practical Lab Instructions:\nStudents receive a small dataset containing business, education, and healthcare examples.\n\nTasks:\n1. Identify all variables in the dataset.\n2. Classify each variable (qualitative vs quantitative, discrete vs continuous, categorical vs numerical).\n3. Identify possible data sources and collection methods.\n4. Develop five analytical questions that could be answered using this dataset.\n\nResource: Small Multi-Domain Dataset\nSTATUS: Resource pending',
+                'Practical Lab Instructions:\nStudents receive a small dataset containing business, education, and healthcare examples.\n\nTasks:\n1. Identify all variables in the dataset.\n2. Classify each variable (qualitative vs quantitative, discrete vs continuous, categorical vs numerical).\n3. Identify possible data sources and collection methods.\n4. Develop five analytical questions that could be answered using this dataset.\n\nResource: Small Multi-Domain Dataset',
               duration: 60,
             },
             {
@@ -225,7 +225,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-1-deliverable-data-literacy-worksheet',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Deliverable Instructions:\nSubmit your completed Data Literacy Worksheet containing your variable classifications, data source evaluations, and analytical questions.\n\nResource: Data Literacy Worksheet\nSTATUS: Resource pending',
+                'Deliverable Instructions:\nSubmit your completed Data Literacy Worksheet containing your variable classifications, data source evaluations, and analytical questions.\n\nResource: Data Literacy Worksheet',
               duration: 45,
             },
           ],
@@ -251,7 +251,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'workbook-and-worksheet',
               lessonType: LessonType.TEXT,
               content:
-                'Understanding workbooks, multiple worksheets, tabs, navigation shortcuts, and file organization.\n\n[Instructional content pending]',
+                'Understanding workbooks, multiple worksheets, tabs, navigation shortcuts, and file organization.',
               duration: 25,
             },
             {
@@ -259,7 +259,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'rows-columns-cells-and-ranges',
               lessonType: LessonType.TEXT,
               content:
-                'Cell coordinates, contiguous and non-contiguous ranges, selections, and name box usage.\n\n[Instructional content pending]',
+                'Cell coordinates, contiguous and non-contiguous ranges, selections, and name box usage.',
               duration: 25,
             },
             {
@@ -267,7 +267,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'data-entry-and-basic-formatting',
               lessonType: LessonType.TEXT,
               content:
-                'Best practices for entering clean data, text alignment, fonts, borders, and row/column resizing.\n\n[Instructional content pending]',
+                'Best practices for entering clean data, text alignment, fonts, borders, and row/column resizing.',
               duration: 30,
             },
             {
@@ -275,7 +275,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'number-formats-and-relative-references',
               lessonType: LessonType.TEXT,
               content:
-                'Formatting numbers, currency, percentages, dates, and understanding relative vs absolute cell references.\n\n[Instructional content pending]',
+                'Formatting numbers, currency, percentages, dates, and understanding relative vs absolute cell references.',
               duration: 35,
             },
           ],
@@ -289,7 +289,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'addition-and-subtraction',
               lessonType: LessonType.TEXT,
               content:
-                'Writing formulas with addition (+) and subtraction (-) operators and managing operator precedence.\n\n[Instructional content pending]',
+                'Writing formulas with addition (+) and subtraction (-) operators and managing operator precedence.',
               duration: 25,
             },
             {
@@ -297,7 +297,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'multiplication-and-division',
               lessonType: LessonType.TEXT,
               content:
-                'Applying multiplication (*) and division (/) operators across columns and row totals.\n\n[Instructional content pending]',
+                'Applying multiplication (*) and division (/) operators across columns and row totals.',
               duration: 25,
             },
             {
@@ -305,7 +305,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'percentages',
               lessonType: LessonType.TEXT,
               content:
-                'Calculating shares, proportion of total, percentage changes, and formatting percentages accurately.\n\n[Instructional content pending]',
+                'Calculating shares, proportion of total, percentage changes, and formatting percentages accurately.',
               duration: 30,
             },
           ],
@@ -319,7 +319,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'sum-and-average',
               lessonType: LessonType.TEXT,
               content:
-                'Syntax and practical application of the SUM and AVERAGE functions on numerical columns.\n\n[Instructional content pending]',
+                'Syntax and practical application of the SUM and AVERAGE functions on numerical columns.',
               duration: 25,
             },
             {
@@ -327,7 +327,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'count-and-counta',
               lessonType: LessonType.TEXT,
               content:
-                'Distinguishing COUNT (numeric cells) from COUNTA (non-empty cells) when assessing completeness.\n\n[Instructional content pending]',
+                'Distinguishing COUNT (numeric cells) from COUNTA (non-empty cells) when assessing completeness.',
               duration: 25,
             },
             {
@@ -335,7 +335,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'min-and-max',
               lessonType: LessonType.TEXT,
               content:
-                'Using MIN and MAX to evaluate ranges, identify boundary values, and inspect data spreads.\n\n[Instructional content pending]',
+                'Using MIN and MAX to evaluate ranges, identify boundary values, and inspect data spreads.',
               duration: 25,
             },
             {
@@ -343,7 +343,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'countif-and-sumif',
               lessonType: LessonType.TEXT,
               content:
-                'Conditional counting and aggregation based on defined criteria and text filters.\n\n[Instructional content pending]',
+                'Conditional counting and aggregation based on defined criteria and text filters.',
               duration: 35,
             },
           ],
@@ -357,7 +357,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'if-and-ifs',
               lessonType: LessonType.TEXT,
               content:
-                'Writing single-condition IF statements and multi-condition IFS evaluations to categorize records.\n\n[Instructional content pending]',
+                'Writing single-condition IF statements and multi-condition IFS evaluations to categorize records.',
               duration: 35,
             },
             {
@@ -365,7 +365,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'and-and-or',
               lessonType: LessonType.TEXT,
               content:
-                'Combining logical tests with AND and OR for complex rule evaluation.\n\n[Instructional content pending]',
+                'Combining logical tests with AND and OR for complex rule evaluation.',
               duration: 30,
             },
             {
@@ -373,7 +373,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'concat',
               lessonType: LessonType.TEXT,
               content:
-                'Joining strings, combining first and last names, and creating compound identifiers.\n\n[Instructional content pending]',
+                'Joining strings, combining first and last names, and creating compound identifiers.',
               duration: 25,
             },
             {
@@ -381,7 +381,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'left-right-and-mid',
               lessonType: LessonType.TEXT,
               content:
-                'Extracting substrings, codes, prefixes, and fixed-width segments from raw data fields.\n\n[Instructional content pending]',
+                'Extracting substrings, codes, prefixes, and fixed-width segments from raw data fields.',
               duration: 30,
             },
             {
@@ -389,7 +389,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'trim-function',
               lessonType: LessonType.TEXT,
               content:
-                'Removing leading, trailing, and unnecessary internal spaces from entered text.\n\n[Instructional content pending]',
+                'Removing leading, trailing, and unnecessary internal spaces from entered text.',
               duration: 25,
             },
           ],
@@ -403,7 +403,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-2-practical-lab',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Practical Lab Instructions:\nUsing the Student Performance Dataset, calculate the following metrics using Excel formulas:\n• Average score\n• Highest score\n• Lowest score\n• Total number of students\n• Overall pass rate\n• Assign performance categories using IF/IFS\n\nResource: Student Performance Dataset\nSTATUS: Resource pending',
+                'Practical Lab Instructions:\nUsing the Student Performance Dataset, calculate the following metrics using Excel formulas:\n• Average score\n• Highest score\n• Lowest score\n• Total number of students\n• Overall pass rate\n• Assign performance categories using IF/IFS\n\nResource: Student Performance Dataset',
               duration: 60,
             },
             {
@@ -411,7 +411,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-2-assignment',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Assignment Instructions:\nBuild a Personal Budget & Expense Tracker spreadsheet in Excel. Incorporate formulas for income, expenses, category totals, percentage of budget spent, and savings rates.\n\n[Instructional content pending]',
+                'Assignment Instructions:\nBuild a Personal Budget & Expense Tracker spreadsheet in Excel. Incorporate formulas for income, expenses, category totals, percentage of budget spent, and savings rates.',
               duration: 75,
             },
           ],
@@ -437,7 +437,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'missing-values',
               lessonType: LessonType.TEXT,
               content:
-                'Identifying incomplete records, null entries, blanks, and understanding their impact on analytical calculations.\n\n[Instructional content pending]',
+                'Identifying incomplete records, null entries, blanks, and understanding their impact on analytical calculations.',
               duration: 30,
             },
             {
@@ -445,7 +445,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'duplicates',
               lessonType: LessonType.TEXT,
               content:
-                'Distinguishing full row duplicates from duplicate entity keys, and understanding inflation of aggregate counts.\n\n[Instructional content pending]',
+                'Distinguishing full row duplicates from duplicate entity keys, and understanding inflation of aggregate counts.',
               duration: 30,
             },
             {
@@ -453,7 +453,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'inconsistent-spelling-and-categories',
               lessonType: LessonType.TEXT,
               content:
-                'Spotting case variations, typos, and fragmented categorical labels that split reporting groups.\n\n[Instructional content pending]',
+                'Spotting case variations, typos, and fragmented categorical labels that split reporting groups.',
               duration: 30,
             },
             {
@@ -461,7 +461,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'incorrect-formats-and-invalid-values',
               lessonType: LessonType.TEXT,
               content:
-                'Detecting text stored as numbers, corrupted dates, out-of-range figures, and non-standard identifiers.\n\n[Instructional content pending]',
+                'Detecting text stored as numbers, corrupted dates, out-of-range figures, and non-standard identifiers.',
               duration: 30,
             },
             {
@@ -469,7 +469,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'outliers-in-raw-data',
               lessonType: LessonType.TEXT,
               content:
-                'Observing extreme values during initial data inspection and assessing whether they reflect data errors or authentic events.\n\n[Instructional content pending]',
+                'Observing extreme values during initial data inspection and assessing whether they reflect data errors or authentic events.',
               duration: 30,
             },
           ],
@@ -483,7 +483,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'remove-duplicates',
               lessonType: LessonType.TEXT,
               content:
-                'Using the Remove Duplicates feature safely while preserving raw data integrity.\n\n[Instructional content pending]',
+                'Using the Remove Duplicates feature safely while preserving raw data integrity.',
               duration: 25,
             },
             {
@@ -491,7 +491,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'sorting-and-filtering',
               lessonType: LessonType.TEXT,
               content:
-                'Applying multi-level sorting and custom filters to inspect distributions and isolate erroneous records.\n\n[Instructional content pending]',
+                'Applying multi-level sorting and custom filters to inspect distributions and isolate erroneous records.',
               duration: 30,
             },
             {
@@ -499,7 +499,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'find-and-replace',
               lessonType: LessonType.TEXT,
               content:
-                'Standardizing labels, replacing obsolete codes, and avoiding unintended global substitutions.\n\n[Instructional content pending]',
+                'Standardizing labels, replacing obsolete codes, and avoiding unintended global substitutions.',
               duration: 25,
             },
             {
@@ -507,7 +507,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'text-to-columns',
               lessonType: LessonType.TEXT,
               content:
-                'Splitting delimited strings (commas, spaces, tabs) and fixed-width fields into distinct columns.\n\n[Instructional content pending]',
+                'Splitting delimited strings (commas, spaces, tabs) and fixed-width fields into distinct columns.',
               duration: 30,
             },
             {
@@ -515,7 +515,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'flash-fill',
               lessonType: LessonType.TEXT,
               content:
-                'Leveraging Excel pattern recognition to extract names, formats, and clean substrings efficiently.\n\n[Instructional content pending]',
+                'Leveraging Excel pattern recognition to extract names, formats, and clean substrings efficiently.',
               duration: 25,
             },
           ],
@@ -529,7 +529,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'trim-cleaning',
               lessonType: LessonType.TEXT,
               content:
-                'Applying TRIM to sanitize irregular whitespace across text columns.\n\n[Instructional content pending]',
+                'Applying TRIM to sanitize irregular whitespace across text columns.',
               duration: 25,
             },
             {
@@ -537,7 +537,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'clean-function',
               lessonType: LessonType.TEXT,
               content:
-                'Stripping non-printable characters from imported web and database records.\n\n[Instructional content pending]',
+                'Stripping non-printable characters from imported web and database records.',
               duration: 25,
             },
             {
@@ -545,7 +545,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'proper-upper-lower',
               lessonType: LessonType.TEXT,
               content:
-                'Standardizing capitalization across names, states, and text categories.\n\n[Instructional content pending]',
+                'Standardizing capitalization across names, states, and text categories.',
               duration: 25,
             },
             {
@@ -553,7 +553,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'text-cleaning-functions',
               lessonType: LessonType.TEXT,
               content:
-                'Combining SUBSTITUTE, REPLACE, and LEN to clean complex string patterns.\n\n[Instructional content pending]',
+                'Combining SUBSTITUTE, REPLACE, and LEN to clean complex string patterns.',
               duration: 30,
             },
             {
@@ -561,7 +561,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'date-cleaning-functions',
               lessonType: LessonType.TEXT,
               content:
-                'Using DATE, YEAR, MONTH, DAY, and DATEVALUE to fix inconsistent date formats.\n\n[Instructional content pending]',
+                'Using DATE, YEAR, MONTH, DAY, and DATEVALUE to fix inconsistent date formats.',
               duration: 30,
             },
           ],
@@ -575,7 +575,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'validation-rules',
               lessonType: LessonType.TEXT,
               content:
-                'Setting constraints for whole numbers, decimal ranges, date boundaries, and text length.\n\n[Instructional content pending]',
+                'Setting constraints for whole numbers, decimal ranges, date boundaries, and text length.',
               duration: 30,
             },
             {
@@ -583,7 +583,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'dropdown-lists',
               lessonType: LessonType.TEXT,
               content:
-                'Creating in-cell dropdown lists from static ranges and named reference lists.\n\n[Instructional content pending]',
+                'Creating in-cell dropdown lists from static ranges and named reference lists.',
               duration: 25,
             },
             {
@@ -591,7 +591,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'error-prevention',
               lessonType: LessonType.TEXT,
               content:
-                'Configuring input messages and error alerts (Stop, Warning, Information) to guide accurate entry.\n\n[Instructional content pending]',
+                'Configuring input messages and error alerts (Stop, Warning, Information) to guide accurate entry.',
               duration: 25,
             },
             {
@@ -599,7 +599,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'consistency-checks',
               lessonType: LessonType.TEXT,
               content:
-                'Cross-field verification rules and circle invalid data audits.\n\n[Instructional content pending]',
+                'Cross-field verification rules and circle invalid data audits.',
               duration: 25,
             },
           ],
@@ -613,7 +613,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-3-practical-lab',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Practical Lab Instructions:\nStudents receive an intentionally messy dataset.\n\nRequired 5-step workflow:\nInspect → Identify Problems → Clean → Validate → Document\n\nResource: Intentionally Messy Dataset\nSTATUS: Resource pending',
+                'Practical Lab Instructions:\nStudents receive an intentionally messy dataset.\n\nRequired 5-step workflow:\nInspect → Identify Problems → Clean → Validate → Document\n\nResource: Intentionally Messy Dataset',
               duration: 60,
             },
             {
@@ -621,7 +621,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-3-deliverable',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Deliverable Instructions:\nSubmit your final Clean Dataset along with a Data Quality Report.\nCleaning is not simply fixing cells: you must document:\n• What was changed\n• Why it was changed\n\nResource: Clean Dataset + Data Quality Report Template\nSTATUS: Resource pending',
+                'Deliverable Instructions:\nSubmit your final Clean Dataset along with a Data Quality Report.\nCleaning is not simply fixing cells: you must document:\n• What was changed\n• Why it was changed\n\nResource: Clean Dataset + Data Quality Report Template',
               duration: 60,
             },
           ],
@@ -648,7 +648,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'data-definition-and-scope',
               lessonType: LessonType.TEXT,
               content:
-                'Understanding data as the foundational record level (e.g. timestamps, attendance logs, patient records).\n\n[Instructional content pending]',
+                'Understanding data as the foundational record level (e.g. timestamps, attendance logs, patient records).',
               duration: 25,
             },
             {
@@ -656,7 +656,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'information-structuring',
               lessonType: LessonType.TEXT,
               content:
-                'Structuring data into aggregate metrics (e.g. 32% of patients waited more than two hours).\n\n[Instructional content pending]',
+                'Structuring data into aggregate metrics (e.g. 32% of patients waited more than two hours).',
               duration: 25,
             },
             {
@@ -664,7 +664,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'making-observations',
               lessonType: LessonType.TEXT,
               content:
-                'Documenting objective patterns in information without speculation (e.g. waiting times are highest on Monday mornings).\n\n[Instructional content pending]',
+                'Documenting objective patterns in information without speculation (e.g. waiting times are highest on Monday mornings).',
               duration: 25,
             },
             {
@@ -672,7 +672,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'interpreting-patterns-and-hypotheses',
               lessonType: LessonType.TEXT,
               content:
-                'Formulating hypotheses to explain observed patterns (e.g. Monday morning staffing may be insufficient relative to surge volume).\n\n[Instructional content pending]',
+                'Formulating hypotheses to explain observed patterns (e.g. Monday morning staffing may be insufficient relative to surge volume).',
               duration: 30,
             },
             {
@@ -680,7 +680,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'translating-insights-to-action',
               lessonType: LessonType.TEXT,
               content:
-                'Translating interpretation into practical management actions (e.g. management should evaluate Monday staffing levels and adjust shift scheduling).\n\n[Instructional content pending]',
+                'Translating interpretation into practical management actions (e.g. management should evaluate Monday staffing levels and adjust shift scheduling).',
               duration: 30,
             },
           ],
@@ -694,7 +694,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'knowing-your-audience',
               lessonType: LessonType.TEXT,
               content:
-                'Tailoring technical depth, terminology, and visual complexity to technical vs executive stakeholders.\n\n[Instructional content pending]',
+                'Tailoring technical depth, terminology, and visual complexity to technical vs executive stakeholders.',
               duration: 30,
             },
             {
@@ -702,7 +702,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'identifying-the-key-message',
               lessonType: LessonType.TEXT,
               content:
-                'Distilling analysis down to the core takeaway that drives action.\n\n[Instructional content pending]',
+                'Distilling analysis down to the core takeaway that drives action.',
               duration: 25,
             },
             {
@@ -710,7 +710,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'context-and-evidence',
               lessonType: LessonType.TEXT,
               content:
-                'Supporting claims with benchmark data, historical trends, and sample boundaries.\n\n[Instructional content pending]',
+                'Supporting claims with benchmark data, historical trends, and sample boundaries.',
               duration: 30,
             },
             {
@@ -718,7 +718,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'story-recommendations',
               lessonType: LessonType.TEXT,
               content:
-                'Structuring recommendations with clear trade-offs, next steps, and expected impact.\n\n[Instructional content pending]',
+                'Structuring recommendations with clear trade-offs, next steps, and expected impact.',
               duration: 25,
             },
             {
@@ -726,7 +726,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'executive-communication',
               lessonType: LessonType.TEXT,
               content:
-                'Techniques for concise briefing: bottom-line first, executive summaries, and clear visuals.\n\n[Instructional content pending]',
+                'Techniques for concise briefing: bottom-line first, executive summaries, and clear visuals.',
               duration: 30,
             },
           ],
@@ -740,7 +740,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'choosing-the-appropriate-chart',
               lessonType: LessonType.TEXT,
               content:
-                'Matching chart types to the analytical question: comparison, trend, composition, or relationship.\n\n[Instructional content pending]',
+                'Matching chart types to the analytical question: comparison, trend, composition, or relationship.',
               duration: 30,
             },
             {
@@ -748,7 +748,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'chart-titles-and-labels',
               lessonType: LessonType.TEXT,
               content:
-                'Writing takeaway titles and clear axis labels that immediately convey the finding.\n\n[Instructional content pending]',
+                'Writing takeaway titles and clear axis labels that immediately convey the finding.',
               duration: 25,
             },
             {
@@ -756,7 +756,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'scale-and-context',
               lessonType: LessonType.TEXT,
               content:
-                'Setting baseline scales, maintaining proportionality, and avoiding distorted perspectives.\n\n[Instructional content pending]',
+                'Setting baseline scales, maintaining proportionality, and avoiding distorted perspectives.',
               duration: 25,
             },
             {
@@ -764,7 +764,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'avoiding-unnecessary-decoration',
               lessonType: LessonType.TEXT,
               content:
-                'Eliminating chart junk, unnecessary 3D effects, and decorative noise to maximize data ink.\n\n[Instructional content pending]',
+                'Eliminating chart junk, unnecessary 3D effects, and decorative noise to maximize data ink.',
               duration: 25,
             },
             {
@@ -772,7 +772,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'misleading-visualizations',
               lessonType: LessonType.TEXT,
               content:
-                'Deconstructing real-world misleading charts: truncated y-axes, uneven binning, and 3D pie distortions.\n\n[Instructional content pending]',
+                'Deconstructing real-world misleading charts: truncated y-axes, uneven binning, and 3D pie distortions.',
               duration: 30,
             },
           ],
@@ -786,7 +786,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'privacy-and-confidentiality',
               lessonType: LessonType.TEXT,
               content:
-                'Protecting personally identifiable information (PII) and maintaining confidentiality in reporting.\n\n[Instructional content pending]',
+                'Protecting personally identifiable information (PII) and maintaining confidentiality in reporting.',
               duration: 30,
             },
             {
@@ -794,7 +794,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'consent-and-data-rights',
               lessonType: LessonType.TEXT,
               content:
-                'Informed consent, purpose limitation, and user rights regarding data collection.\n\n[Instructional content pending]',
+                'Informed consent, purpose limitation, and user rights regarding data collection.',
               duration: 25,
             },
             {
@@ -802,7 +802,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'bias-in-data-collection',
               lessonType: LessonType.TEXT,
               content:
-                'How sampling bias, measurement bias, and historical bias distort datasets and downstream findings.\n\n[Instructional content pending]',
+                'How sampling bias, measurement bias, and historical bias distort datasets and downstream findings.',
               duration: 30,
             },
             {
@@ -810,7 +810,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'data-ownership',
               lessonType: LessonType.TEXT,
               content:
-                'Understanding legal and ethical ownership: subjects, collectors, aggregators, and institutions.\n\n[Instructional content pending]',
+                'Understanding legal and ethical ownership: subjects, collectors, aggregators, and institutions.',
               duration: 25,
             },
             {
@@ -818,7 +818,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'responsible-data-use',
               lessonType: LessonType.TEXT,
               content:
-                'Recognizing how poor data practices cause societal, organizational, and individual harm.\n\n[Instructional content pending]',
+                'Recognizing how poor data practices cause societal, organizational, and individual harm.',
               duration: 30,
             },
             {
@@ -826,7 +826,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'algorithmic-bias-and-data-misuse',
               lessonType: LessonType.TEXT,
               content:
-                'Case studies on automated decision-making and how skewed training data perpetuates disparity.\n\n[Instructional content pending]',
+                'Case studies on automated decision-making and how skewed training data perpetuates disparity.',
               duration: 30,
             },
           ],
@@ -840,7 +840,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-4-practical-lab',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Practical Lab Instructions:\nStudents receive intentionally misleading charts.\nTasks:\n1. Identify the problem.\n2. Explain why the visual display is misleading.\n3. Redesign it using sound visualization principles.\n4. Explain the concrete improvement.\n\nResource: Misleading Charts Case Pack\nSTATUS: Resource pending',
+                'Practical Lab Instructions:\nStudents receive intentionally misleading charts.\nTasks:\n1. Identify the problem.\n2. Explain why the visual display is misleading.\n3. Redesign it using sound visualization principles.\n4. Explain the concrete improvement.\n\nResource: Misleading Charts Case Pack',
               duration: 60,
             },
             {
@@ -848,7 +848,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-4-deliverable',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Deliverable Instructions:\nSubmit your comprehensive Chart Critique & Redesign document.\n\nResource: Chart Critique Template\nSTATUS: Resource pending',
+                'Deliverable Instructions:\nSubmit your comprehensive Chart Critique & Redesign document.\n\nResource: Chart Critique Template',
               duration: 45,
             },
           ],
@@ -874,7 +874,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'why-statistics-matters',
               lessonType: LessonType.TEXT,
               content:
-                'Understanding statistics as the language of variation, uncertainty, and evidence.\n\n[Instructional content pending]',
+                'Understanding statistics as the language of variation, uncertainty, and evidence.',
               duration: 25,
             },
             {
@@ -882,7 +882,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'descriptive-statistics',
               lessonType: LessonType.TEXT,
               content:
-                'Summarizing, organizing, and describing characteristics of an observed dataset.\n\n[Instructional content pending]',
+                'Summarizing, organizing, and describing characteristics of an observed dataset.',
               duration: 30,
             },
             {
@@ -890,7 +890,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'inferential-statistics-intro',
               lessonType: LessonType.TEXT,
               content:
-                'Conceptual introduction to drawing inferences and generalizations from samples to broader populations.\n\n[Instructional content pending]',
+                'Conceptual introduction to drawing inferences and generalizations from samples to broader populations.',
               duration: 30,
             },
             {
@@ -898,7 +898,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'population-and-sample',
               lessonType: LessonType.TEXT,
               content:
-                'Defining target populations, sampling frames, representativeness, and sampling error.\n\n[Instructional content pending]',
+                'Defining target populations, sampling frames, representativeness, and sampling error.',
               duration: 25,
             },
             {
@@ -906,7 +906,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'variable-and-observation',
               lessonType: LessonType.TEXT,
               content:
-                'Understanding data tables as matrices of observations (rows) and variables (columns).\n\n[Instructional content pending]',
+                'Understanding data tables as matrices of observations (rows) and variables (columns).',
               duration: 25,
             },
           ],
@@ -920,7 +920,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'nominal-scale',
               lessonType: LessonType.TEXT,
               content:
-                'Nominal scale: labels and categories without intrinsic order (e.g. department, blood type, marital status).\n\n[Instructional content pending]',
+                'Nominal scale: labels and categories without intrinsic order (e.g. department, blood type, marital status).',
               duration: 25,
             },
             {
@@ -928,7 +928,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'ordinal-scale',
               lessonType: LessonType.TEXT,
               content:
-                'Ordinal scale: ranked categories with meaningful order but unequal intervals (e.g. satisfaction ratings, education levels).\n\n[Instructional content pending]',
+                'Ordinal scale: ranked categories with meaningful order but unequal intervals (e.g. satisfaction ratings, education levels).',
               duration: 25,
             },
             {
@@ -936,7 +936,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'interval-scale',
               lessonType: LessonType.TEXT,
               content:
-                'Interval scale: numerical scale with equal intervals but no true zero (e.g. Celsius temperature, calendar year).\n\n[Instructional content pending]',
+                'Interval scale: numerical scale with equal intervals but no true zero (e.g. Celsius temperature, calendar year).',
               duration: 25,
             },
             {
@@ -944,7 +944,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'ratio-scale',
               lessonType: LessonType.TEXT,
               content:
-                'Ratio scale: numerical measurements with equal intervals and an absolute zero point (e.g. salary, weight, height, age).\n\n[Instructional content pending]',
+                'Ratio scale: numerical measurements with equal intervals and an absolute zero point (e.g. salary, weight, height, age).',
               duration: 25,
             },
           ],
@@ -958,7 +958,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'mean-calculation-and-meaning',
               lessonType: LessonType.TEXT,
               content:
-                'Mathematical calculation of the arithmetic mean and its sensitivity to extreme values.\n\n[Instructional content pending]',
+                'Mathematical calculation of the arithmetic mean and its sensitivity to extreme values.',
               duration: 30,
             },
             {
@@ -966,7 +966,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'median-calculation-and-meaning',
               lessonType: LessonType.TEXT,
               content:
-                'Determining the middle value of ordered records and why median provides robust summaries for skewed data.\n\n[Instructional content pending]',
+                'Determining the middle value of ordered records and why median provides robust summaries for skewed data.',
               duration: 30,
             },
             {
@@ -974,7 +974,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'mode-calculation-and-meaning',
               lessonType: LessonType.TEXT,
               content:
-                'Identifying the most frequently occurring value in categorical and discrete distributions.\n\n[Instructional content pending]',
+                'Identifying the most frequently occurring value in categorical and discrete distributions.',
               duration: 25,
             },
             {
@@ -982,7 +982,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'choosing-central-tendency-measure',
               lessonType: LessonType.TEXT,
               content:
-                'Crucial objective: The mean is not automatically the best summary. When should you use each measure based on distribution shape and measurement scale?\n\n[Instructional content pending]',
+                'Crucial objective: The mean is not automatically the best summary. When should you use each measure based on distribution shape and measurement scale?',
               duration: 35,
             },
           ],
@@ -996,7 +996,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'range-metric',
               lessonType: LessonType.TEXT,
               content:
-                'Calculating simple range (Max - Min) and understanding its vulnerability to outliers.\n\n[Instructional content pending]',
+                'Calculating simple range (Max - Min) and understanding its vulnerability to outliers.',
               duration: 25,
             },
             {
@@ -1004,7 +1004,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'variance-concept',
               lessonType: LessonType.TEXT,
               content:
-                'Conceptual understanding of variance as average squared deviations around the mean.\n\n[Instructional content pending]',
+                'Conceptual understanding of variance as average squared deviations around the mean.',
               duration: 30,
             },
             {
@@ -1012,7 +1012,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'standard-deviation-concept',
               lessonType: LessonType.TEXT,
               content:
-                'Standard deviation in the original unit of measurement and interpreting spread.\n\n[Instructional content pending]',
+                'Standard deviation in the original unit of measurement and interpreting spread.',
               duration: 35,
             },
             {
@@ -1020,7 +1020,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'interquartile-range-concept',
               lessonType: LessonType.TEXT,
               content:
-                'Conceptual introduction to percentiles, quartiles (Q1, Q3), and the interquartile range (IQR) as a robust dispersion measure.\n\n[Instructional content pending]',
+                'Conceptual introduction to percentiles, quartiles (Q1, Q3), and the interquartile range (IQR) as a robust dispersion measure.',
               duration: 30,
             },
           ],
@@ -1034,7 +1034,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'what-is-an-outlier',
               lessonType: LessonType.TEXT,
               content:
-                'Defining outliers as data points that differ significantly from other observations in the distribution.\n\n[Instructional content pending]',
+                'Defining outliers as data points that differ significantly from other observations in the distribution.',
               duration: 25,
             },
             {
@@ -1042,7 +1042,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'why-outliers-matter',
               lessonType: LessonType.TEXT,
               content:
-                'Assessing how extreme values distort the mean, inflate standard deviation, and alter model results.\n\n[Instructional content pending]',
+                'Assessing how extreme values distort the mean, inflate standard deviation, and alter model results.',
               duration: 25,
             },
             {
@@ -1050,7 +1050,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'outlier-vs-error',
               lessonType: LessonType.TEXT,
               content:
-                'Differentiating data entry/measurement mistakes from authentic rare real-world phenomena.\n\n[Instructional content pending]',
+                'Differentiating data entry/measurement mistakes from authentic rare real-world phenomena.',
               duration: 30,
             },
             {
@@ -1058,7 +1058,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'outlier-treatment-and-judgment',
               lessonType: LessonType.TEXT,
               content:
-                'Emphasizing analytical judgment: why automatically removing outliers can conceal critical insights.\n\n[Instructional content pending]',
+                'Emphasizing analytical judgment: why automatically removing outliers can conceal critical insights.',
               duration: 30,
             },
           ],
@@ -1072,7 +1072,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-5-practical',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Practical Instructions:\nCalculate central tendency and variability metrics first manually on sample subsets, and then using Excel formulas (AVERAGE, MEDIAN, MODE, STDEV.S, VAR.S).\n\nResource: Descriptive Statistics Dataset\nSTATUS: Resource pending',
+                'Practical Instructions:\nCalculate central tendency and variability metrics first manually on sample subsets, and then using Excel formulas (AVERAGE, MEDIAN, MODE, STDEV.S, VAR.S).\n\nResource: Descriptive Statistics Dataset',
               duration: 60,
             },
             {
@@ -1080,7 +1080,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-5-assignment',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Assignment Instructions:\nSubmit your Descriptive Statistics Report interpreting mean, median, standard deviation, and outlier analysis for the assigned scenario.\n\n[Instructional content pending]',
+                'Assignment Instructions:\nSubmit your Descriptive Statistics Report interpreting mean, median, standard deviation, and outlier analysis for the assigned scenario.',
               duration: 60,
             },
           ],
@@ -1106,7 +1106,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'frequency-concepts',
               lessonType: LessonType.TEXT,
               content:
-                'Constructing frequency tables and grouping data into intervals.\n\n[Instructional content pending]',
+                'Constructing frequency tables and grouping data into intervals.',
               duration: 25,
             },
             {
@@ -1114,7 +1114,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'distribution-patterns',
               lessonType: LessonType.TEXT,
               content:
-                'Understanding the shape, spread, and center of empirical distributions.\n\n[Instructional content pending]',
+                'Understanding the shape, spread, and center of empirical distributions.',
               duration: 30,
             },
             {
@@ -1122,7 +1122,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'normal-distribution',
               lessonType: LessonType.TEXT,
               content:
-                'Properties of the symmetrical bell curve and the empirical rule (68-95-99.7).\n\n[Instructional content pending]',
+                'Properties of the symmetrical bell curve and the empirical rule (68-95-99.7).',
               duration: 35,
             },
             {
@@ -1130,7 +1130,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'skewness-and-symmetry',
               lessonType: LessonType.TEXT,
               content:
-                'Recognizing positive (right-skewed) and negative (left-skewed) distributions and their impact on mean vs median.\n\n[Instructional content pending]',
+                'Recognizing positive (right-skewed) and negative (left-skewed) distributions and their impact on mean vs median.',
               duration: 30,
             },
             {
@@ -1138,7 +1138,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'outliers-and-distribution',
               lessonType: LessonType.TEXT,
               content:
-                'Visualizing outlier positions in boxplots and long-tailed distributions.\n\n[Instructional content pending]',
+                'Visualizing outlier positions in boxplots and long-tailed distributions.',
               duration: 25,
             },
           ],
@@ -1152,7 +1152,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'what-is-correlation',
               lessonType: LessonType.TEXT,
               content:
-                'Defining correlation as the statistical measure of linear association between two variables.\n\n[Instructional content pending]',
+                'Defining correlation as the statistical measure of linear association between two variables.',
               duration: 30,
             },
             {
@@ -1160,7 +1160,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'positive-correlation',
               lessonType: LessonType.TEXT,
               content:
-                'Understanding positive relationships where variables increase or decrease together.\n\n[Instructional content pending]',
+                'Understanding positive relationships where variables increase or decrease together.',
               duration: 25,
             },
             {
@@ -1168,7 +1168,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'negative-correlation',
               lessonType: LessonType.TEXT,
               content:
-                'Understanding inverse relationships where an increase in one variable corresponds to a decrease in another.\n\n[Instructional content pending]',
+                'Understanding inverse relationships where an increase in one variable corresponds to a decrease in another.',
               duration: 25,
             },
             {
@@ -1176,7 +1176,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'no-correlation',
               lessonType: LessonType.TEXT,
               content:
-                'Identifying scatter plots with random distributions indicating independence.\n\n[Instructional content pending]',
+                'Identifying scatter plots with random distributions indicating independence.',
               duration: 25,
             },
             {
@@ -1184,7 +1184,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'strength-of-relationship',
               lessonType: LessonType.TEXT,
               content:
-                'Interpreting correlation coefficient r from -1.0 to +1.0 conceptually.\n\n[Instructional content pending]',
+                'Interpreting correlation coefficient r from -1.0 to +1.0 conceptually.',
               duration: 30,
             },
           ],
@@ -1198,7 +1198,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'understanding-correlation-depth',
               lessonType: LessonType.TEXT,
               content:
-                'Reviewing observed numerical associations between variables.\n\n[Instructional content pending]',
+                'Reviewing observed numerical associations between variables.',
               duration: 25,
             },
             {
@@ -1206,7 +1206,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'understanding-causation',
               lessonType: LessonType.TEXT,
               content:
-                'Defining causality: establishing that change in one variable directly produces change in another.\n\n[Instructional content pending]',
+                'Defining causality: establishing that change in one variable directly produces change in another.',
               duration: 30,
             },
             {
@@ -1214,7 +1214,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'correlation-does-not-equal-causation',
               lessonType: LessonType.TEXT,
               content:
-                'Major conceptual lesson with real-world examples: confounding variables, spurious correlations, and reverse causality.\n\n[Instructional content pending]',
+                'Major conceptual lesson with real-world examples: confounding variables, spurious correlations, and reverse causality.',
               duration: 40,
             },
           ],
@@ -1228,7 +1228,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'probability-as-likelihood',
               lessonType: LessonType.TEXT,
               content:
-                'Expressing likelihood on a scale from 0 (impossible) to 1 (certain).\n\n[Instructional content pending]',
+                'Expressing likelihood on a scale from 0 (impossible) to 1 (certain).',
               duration: 25,
             },
             {
@@ -1236,7 +1236,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'simple-probability',
               lessonType: LessonType.TEXT,
               content:
-                'Calculating basic probabilities as favorable outcomes over total possible outcomes.\n\n[Instructional content pending]',
+                'Calculating basic probabilities as favorable outcomes over total possible outcomes.',
               duration: 25,
             },
             {
@@ -1244,7 +1244,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'independent-events',
               lessonType: LessonType.TEXT,
               content:
-                'Understanding occurrences where the outcome of one event does not influence another.\n\n[Instructional content pending]',
+                'Understanding occurrences where the outcome of one event does not influence another.',
               duration: 25,
             },
             {
@@ -1252,7 +1252,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'dependent-events',
               lessonType: LessonType.TEXT,
               content:
-                'Recognizing conditional scenarios where previous outcomes alter subsequent probabilities.\n\n[Instructional content pending]',
+                'Recognizing conditional scenarios where previous outcomes alter subsequent probabilities.',
               duration: 30,
             },
           ],
@@ -1266,7 +1266,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'question-and-hypothesis',
               lessonType: LessonType.TEXT,
               content:
-                'Transforming general business or health inquiries into testable hypothesis statements.\n\n[Instructional content pending]',
+                'Transforming general business or health inquiries into testable hypothesis statements.',
               duration: 25,
             },
             {
@@ -1274,7 +1274,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'evaluating-evidence',
               lessonType: LessonType.TEXT,
               content:
-                'Gathering appropriate sample evidence and establishing criteria to evaluate claims.\n\n[Instructional content pending]',
+                'Gathering appropriate sample evidence and establishing criteria to evaluate claims.',
               duration: 25,
             },
             {
@@ -1282,7 +1282,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'null-and-alternative-hypotheses',
               lessonType: LessonType.TEXT,
               content:
-                'Framing the null hypothesis (status quo/no difference) against the alternative hypothesis (effect/change).\n\n[Instructional content pending]',
+                'Framing the null hypothesis (status quo/no difference) against the alternative hypothesis (effect/change).',
               duration: 30,
             },
             {
@@ -1290,7 +1290,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'statistical-significance-concept',
               lessonType: LessonType.TEXT,
               content:
-                'Introductory and conceptual: understanding significance as assessing whether an observation is unlikely to have occurred purely by chance.\n\n[Instructional content pending]',
+                'Introductory and conceptual: understanding significance as assessing whether an observation is unlikely to have occurred purely by chance.',
               duration: 30,
             },
           ],
@@ -1304,7 +1304,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-6-practical',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Practical Instructions:\nUse Excel scatter plots and the CORREL function to evaluate relationships between candidate variables.\n\nResource: Bivariate Practice Dataset\nSTATUS: Resource pending',
+                'Practical Instructions:\nUse Excel scatter plots and the CORREL function to evaluate relationships between candidate variables.\n\nResource: Bivariate Practice Dataset',
               duration: 60,
             },
             {
@@ -1312,7 +1312,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-6-assessment',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Mid-Course Assessment Instructions:\nWeight: 10% of overall course grade.\nComponents:\n1. Theory: Data literacy foundations, variable classification, and statistical concepts.\n2. Excel Practical: Data cleaning, formula execution, and summary reporting.\n\n[Instructional content pending]',
+                'Mid-Course Assessment Instructions:\nWeight: 10% of overall course grade.\nComponents:\n1. Theory: Data literacy foundations, variable classification, and statistical concepts.\n2. Excel Practical: Data cleaning, formula execution, and summary reporting.',
               duration: 90,
             },
           ],
@@ -1339,7 +1339,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'visualization-and-analytical-questions',
               lessonType: LessonType.TEXT,
               content:
-                'Core principle: Chart choice depends on the analytical question you are answering.\n\n[Instructional content pending]',
+                'Core principle: Chart choice depends on the analytical question you are answering.',
               duration: 25,
             },
             {
@@ -1347,7 +1347,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'comparison-bar-column-charts',
               lessonType: LessonType.TEXT,
               content:
-                'Recommended chart: Bar / Column charts for comparing values across discrete categories.\n\n[Instructional content pending]',
+                'Recommended chart: Bar / Column charts for comparing values across discrete categories.',
               duration: 25,
             },
             {
@@ -1355,7 +1355,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'trend-line-charts',
               lessonType: LessonType.TEXT,
               content:
-                'Recommended chart: Line charts for evaluating change over continuous temporal intervals.\n\n[Instructional content pending]',
+                'Recommended chart: Line charts for evaluating change over continuous temporal intervals.',
               duration: 25,
             },
             {
@@ -1363,7 +1363,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'relationship-scatter-plots',
               lessonType: LessonType.TEXT,
               content:
-                'Recommended chart: Scatter plots for inspecting correlation between two continuous variables.\n\n[Instructional content pending]',
+                'Recommended chart: Scatter plots for inspecting correlation between two continuous variables.',
               duration: 25,
             },
             {
@@ -1371,7 +1371,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'composition-stacked-charts',
               lessonType: LessonType.TEXT,
               content:
-                'Using stacked bar/column charts where part-to-whole relationships are appropriate.\n\n[Instructional content pending]',
+                'Using stacked bar/column charts where part-to-whole relationships are appropriate.',
               duration: 25,
             },
             {
@@ -1379,7 +1379,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'distribution-histograms',
               lessonType: LessonType.TEXT,
               content:
-                'Recommended chart: Histograms for visualizing continuous frequency distributions.\n\n[Instructional content pending]',
+                'Recommended chart: Histograms for visualizing continuous frequency distributions.',
               duration: 25,
             },
           ],
@@ -1393,7 +1393,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'building-column-charts',
               lessonType: LessonType.TEXT,
               content:
-                'Constructing and formatting vertical column charts in Excel.\n\n[Instructional content pending]',
+                'Constructing and formatting vertical column charts in Excel.',
               duration: 30,
             },
             {
@@ -1401,7 +1401,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'building-bar-charts',
               lessonType: LessonType.TEXT,
               content:
-                'Building horizontal bar charts, ideal for long category labels.\n\n[Instructional content pending]',
+                'Building horizontal bar charts, ideal for long category labels.',
               duration: 30,
             },
             {
@@ -1409,7 +1409,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'building-line-charts',
               lessonType: LessonType.TEXT,
               content:
-                'Creating single and multi-series line charts with appropriate time intervals.\n\n[Instructional content pending]',
+                'Creating single and multi-series line charts with appropriate time intervals.',
               duration: 30,
             },
             {
@@ -1417,7 +1417,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'building-scatter-plots',
               lessonType: LessonType.TEXT,
               content:
-                'Plotting bivariate pairs and adding linear trendlines in Excel.\n\n[Instructional content pending]',
+                'Plotting bivariate pairs and adding linear trendlines in Excel.',
               duration: 30,
             },
             {
@@ -1425,7 +1425,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'building-histograms',
               lessonType: LessonType.TEXT,
               content:
-                'Configuring bin widths, bin counts, and frequency distributions.\n\n[Instructional content pending]',
+                'Configuring bin widths, bin counts, and frequency distributions.',
               duration: 30,
             },
             {
@@ -1433,7 +1433,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'appropriate-chart-labeling',
               lessonType: LessonType.TEXT,
               content:
-                'Applying clear units, descriptive titles, direct labeling, and suppressing redundant legends.\n\n[Instructional content pending]',
+                'Applying clear units, descriptive titles, direct labeling, and suppressing redundant legends.',
               duration: 25,
             },
           ],
@@ -1447,7 +1447,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'creating-pivot-tables',
               lessonType: LessonType.TEXT,
               content:
-                'Creating PivotTables from structured tabular datasets.\n\n[Instructional content pending]',
+                'Creating PivotTables from structured tabular datasets.',
               duration: 30,
             },
             {
@@ -1455,7 +1455,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'pivot-table-grouping',
               lessonType: LessonType.TEXT,
               content:
-                'Grouping dates by months/quarters and numerical values into bins.\n\n[Instructional content pending]',
+                'Grouping dates by months/quarters and numerical values into bins.',
               duration: 30,
             },
             {
@@ -1463,7 +1463,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'pivot-table-aggregation',
               lessonType: LessonType.TEXT,
               content:
-                'Configuring Sum, Count, Average, Min, Max, and percentage of column totals.\n\n[Instructional content pending]',
+                'Configuring Sum, Count, Average, Min, Max, and percentage of column totals.',
               duration: 30,
             },
             {
@@ -1471,7 +1471,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'pivot-table-filtering',
               lessonType: LessonType.TEXT,
               content:
-                'Applying report filters, value filters, and top-10 rules.\n\n[Instructional content pending]',
+                'Applying report filters, value filters, and top-10 rules.',
               duration: 25,
             },
             {
@@ -1479,7 +1479,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'pivot-table-slicers',
               lessonType: LessonType.TEXT,
               content:
-                'Inserting visual interactive slicers for quick category filtering.\n\n[Instructional content pending]',
+                'Inserting visual interactive slicers for quick category filtering.',
               duration: 30,
             },
           ],
@@ -1493,7 +1493,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'connecting-pivot-charts',
               lessonType: LessonType.TEXT,
               content:
-                'Creating PivotCharts that automatically update when underlying PivotTables re-aggregate.\n\n[Instructional content pending]',
+                'Creating PivotCharts that automatically update when underlying PivotTables re-aggregate.',
               duration: 30,
             },
             {
@@ -1501,7 +1501,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'interactive-filtering',
               lessonType: LessonType.TEXT,
               content:
-                'Connecting a single slicer to multiple PivotTables and charts simultaneously.\n\n[Instructional content pending]',
+                'Connecting a single slicer to multiple PivotTables and charts simultaneously.',
               duration: 30,
             },
             {
@@ -1509,7 +1509,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'dashboard-structure-overview',
               lessonType: LessonType.TEXT,
               content:
-                'Planning the visual information hierarchy before placing charts.\n\n[Instructional content pending]',
+                'Planning the visual information hierarchy before placing charts.',
               duration: 25,
             },
           ],
@@ -1524,7 +1524,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'dashboard-layout-architecture',
               lessonType: LessonType.TEXT,
               content:
-                'Standard layout hierarchy:\n1. TITLE (Header & context)\n2. KPI CARDS (KPI 1 | KPI 2 | KPI 3 | KPI 4)\n3. MAIN VISUALS (Trend | Comparison)\n4. KEY INSIGHTS (Bullet commentary & takeaways)\n\n[Instructional content pending]',
+                'Standard layout hierarchy:\n1. TITLE (Header & context)\n2. KPI CARDS (KPI 1 | KPI 2 | KPI 3 | KPI 4)\n3. MAIN VISUALS (Trend | Comparison)\n4. KEY INSIGHTS (Bullet commentary & takeaways)',
               duration: 30,
             },
             {
@@ -1532,7 +1532,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'kpi-card-construction',
               lessonType: LessonType.TEXT,
               content:
-                'Designing high-impact single-metric KPI cards with comparison benchmarks.\n\n[Instructional content pending]',
+                'Designing high-impact single-metric KPI cards with comparison benchmarks.',
               duration: 30,
             },
             {
@@ -1540,7 +1540,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'connecting-filters-and-slicers',
               lessonType: LessonType.TEXT,
               content:
-                'Positioning slicers to allow user-driven exploration across all dashboard cards.\n\n[Instructional content pending]',
+                'Positioning slicers to allow user-driven exploration across all dashboard cards.',
               duration: 30,
             },
             {
@@ -1548,7 +1548,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'delivering-visual-insights',
               lessonType: LessonType.TEXT,
               content:
-                'Pairing analytical charts with clear insight callouts that summarize findings directly on the canvas.\n\n[Instructional content pending]',
+                'Pairing analytical charts with clear insight callouts that summarize findings directly on the canvas.',
               duration: 25,
             },
           ],
@@ -1562,7 +1562,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-7-practical',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Practical Instructions:\nBuild a complete interactive Excel dashboard from a real dataset using the taught structure (Title, 4 KPIs, Trend/Comparison charts, Slicers, and Key Insights).\n\nResource: Dashboard Dataset\nSTATUS: Resource pending',
+                'Practical Instructions:\nBuild a complete interactive Excel dashboard from a real dataset using the taught structure (Title, 4 KPIs, Trend/Comparison charts, Slicers, and Key Insights).\n\nResource: Dashboard Dataset',
               duration: 90,
             },
             {
@@ -1570,7 +1570,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'week-7-deliverable',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Deliverable Instructions:\nSubmit your completed Excel Mini Analytics Dashboard file.\n\nResource: Dashboard Evaluation Rubric\nSTATUS: Resource pending',
+                'Deliverable Instructions:\nSubmit your completed Excel Mini Analytics Dashboard file.\n\nResource: Dashboard Evaluation Rubric',
               duration: 60,
             },
           ],
@@ -1597,7 +1597,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'capstone-8-step-workflow',
               lessonType: LessonType.TEXT,
               content:
-                'Overview of the full 8-step progression:\n1. Understand: What problem are we solving?\n2. Ask: What questions should the data answer?\n3. Prepare: Clean and validate the dataset.\n4. Analyze: Calculate relevant metrics and statistics.\n5. Visualize: Create appropriate charts and dashboard.\n6. Interpret: Identify meaningful findings.\n7. Recommend: Translate findings into actionable recommendations.\n8. Present: Communicate the results clearly.\n\n[Instructional content pending]',
+                'Overview of the full 8-step progression:\n1. Understand: What problem are we solving?\n2. Ask: What questions should the data answer?\n3. Prepare: Clean and validate the dataset.\n4. Analyze: Calculate relevant metrics and statistics.\n5. Visualize: Create appropriate charts and dashboard.\n6. Interpret: Identify meaningful findings.\n7. Recommend: Translate findings into actionable recommendations.\n8. Present: Communicate the results clearly.',
               duration: 35,
             },
             {
@@ -1605,7 +1605,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'scoping-capstone-problem',
               lessonType: LessonType.TEXT,
               content:
-                'Defining problem scope, target stakeholder, success criteria, and dataset boundaries.\n\n[Instructional content pending]',
+                'Defining problem scope, target stakeholder, success criteria, and dataset boundaries.',
               duration: 30,
             },
             {
@@ -1613,7 +1613,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'capstone-execution-guidelines',
               lessonType: LessonType.TEXT,
               content:
-                'Standards for documentation, data cleaning logs, formula transparency, and quality control.\n\n[Instructional content pending]',
+                'Standards for documentation, data cleaning logs, formula transparency, and quality control.',
               duration: 25,
             },
           ],
@@ -1627,7 +1627,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'capstone-project-overview',
               lessonType: LessonType.TEXT,
               content:
-                'Overview of the Capstone Project (Weight: 45% of overall grade).\nRequired deliverables:\n1. Clean Dataset (Excel file)\n2. Analysis (Calculations and statistical summary)\n3. Dashboard (Interactive Excel dashboard)\n4. Insight Report (Maximum 2 pages)\n5. Presentation (5–10 minute presentation)\n\nResource: Capstone Dataset\nSTATUS: Resource pending',
+                'Overview of the Capstone Project (Weight: 45% of overall grade).\nRequired deliverables:\n1. Clean Dataset (Excel file)\n2. Analysis (Calculations and statistical summary)\n3. Dashboard (Interactive Excel dashboard)\n4. Insight Report (Maximum 2 pages)\n5. Presentation (5–10 minute presentation)\n\nResource: Capstone Dataset',
               duration: 30,
             },
             {
@@ -1635,7 +1635,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'capstone-project-submission',
               lessonType: LessonType.ASSIGNMENT,
               content:
-                'Submission portal for all 5 Capstone artifacts:\n1. Clean Dataset (.xlsx)\n2. Analytical Calculations (.xlsx)\n3. Interactive Dashboard (.xlsx)\n4. 2-Page Insight Report (.pdf / .docx)\n5. Slide Deck / Presentation Recording (.pdf / .pptx / link)\n\n[Instructional content pending]',
+                'Submission portal for all 5 Capstone artifacts:\n1. Clean Dataset (.xlsx)\n2. Analytical Calculations (.xlsx)\n3. Interactive Dashboard (.xlsx)\n4. 2-Page Insight Report (.pdf / .docx)\n5. Slide Deck / Presentation Recording (.pdf / .pptx / link)',
               duration: 120,
             },
           ],
@@ -1649,7 +1649,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'structuring-a-presentation',
               lessonType: LessonType.TEXT,
               content:
-                'Setting up the context, stating the problem, showing the evidence, and closing with recommendations.\n\n[Instructional content pending]',
+                'Setting up the context, stating the problem, showing the evidence, and closing with recommendations.',
               duration: 30,
             },
             {
@@ -1657,7 +1657,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'explaining-charts',
               lessonType: LessonType.TEXT,
               content:
-                'Guiding audience attention: stating what the axes show before interpreting the trend.\n\n[Instructional content pending]',
+                'Guiding audience attention: stating what the axes show before interpreting the trend.',
               duration: 25,
             },
             {
@@ -1665,7 +1665,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'speaking-to-non-technical-audiences',
               lessonType: LessonType.TEXT,
               content:
-                'Translating statistical terms into business and clinical language without losing accuracy.\n\n[Instructional content pending]',
+                'Translating statistical terms into business and clinical language without losing accuracy.',
               duration: 30,
             },
             {
@@ -1673,7 +1673,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'defending-analytical-decisions',
               lessonType: LessonType.TEXT,
               content:
-                'Handling questions about sample size, outlier exclusions, assumptions, and alternative interpretations.\n\n[Instructional content pending]',
+                'Handling questions about sample size, outlier exclusions, assumptions, and alternative interpretations.',
               duration: 30,
             },
           ],
@@ -1687,7 +1687,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'documenting-analytical-projects',
               lessonType: LessonType.TEXT,
               content:
-                'Core case study documentation structure:\n• Problem\n• Dataset\n• Methodology\n• Analysis\n• Findings\n• Recommendations\n• Tools\n\n[Instructional content pending]',
+                'Core case study documentation structure:\n• Problem\n• Dataset\n• Methodology\n• Analysis\n• Findings\n• Recommendations\n• Tools',
               duration: 30,
             },
             {
@@ -1695,7 +1695,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'creating-a-beginner-data-portfolio',
               lessonType: LessonType.TEXT,
               content:
-                'Hosting projects on GitHub, Notion, or personal websites to showcase practical capability to employers.\n\n[Instructional content pending]',
+                'Hosting projects on GitHub, Notion, or personal websites to showcase practical capability to employers.',
               duration: 30,
             },
           ],
@@ -1709,7 +1709,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'basic-professional-positioning',
               lessonType: LessonType.TEXT,
               content:
-                'Crafting a headline, showcasing project artifacts, writing about learning journeys, and engaging with data communities.\n\n[Instructional content pending]',
+                'Crafting a headline, showcasing project artifacts, writing about learning journeys, and engaging with data communities.',
               duration: 30,
             },
           ],
@@ -1723,7 +1723,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'overview-of-major-data-careers',
               lessonType: LessonType.TEXT,
               content:
-                'Introducing roles, responsibilities, and skill profiles for:\n• Data Analyst\n• Business Analyst\n• Business Intelligence Analyst\n• Public Health Analyst\n• Research Analyst\n• Data Scientist\n• Data Engineer\n\n[Instructional content pending]',
+                'Introducing roles, responsibilities, and skill profiles for:\n• Data Analyst\n• Business Analyst\n• Business Intelligence Analyst\n• Public Health Analyst\n• Research Analyst\n• Data Scientist\n• Data Engineer',
               duration: 35,
             },
             {
@@ -1731,7 +1731,7 @@ export const dataLiteracyCourse: SeedCourse = {
               slug: 'next-steps-learning-journey',
               lessonType: LessonType.TEXT,
               content:
-                'Transitioning from Data Literacy into specialized tracks: Data Analytics, SQL, Python for Data Science, or Healthcare Analytics.\n\n[Instructional content pending]',
+                'Transitioning from Data Literacy into specialized tracks: Data Analytics, SQL, Python for Data Science, or Healthcare Analytics.',
               duration: 25,
             },
           ],

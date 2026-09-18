@@ -313,23 +313,45 @@ export async function deleteLessonAction(formData: FormData) {
 
 export async function createResourceAction(courseId: string, lessonId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
   await requireCourse(courseId);
+  const isDownloadableRaw = formData.get('isDownloadable');
+  const isActiveRaw = formData.get('isActive');
+
   const parsed = resourceSchema.safeParse({
     name: formData.get('name'),
+    description: formData.get('description'),
+    resourceType: formData.get('resourceType') || 'FILE',
+    sourceType: formData.get('sourceType') || 'EXTERNAL',
     fileUrl: formData.get('fileUrl'),
     fileType: formData.get('fileType'),
     fileSize: formData.get('fileSize') || undefined,
+    sortOrder: formData.get('sortOrder') || undefined,
+    isDownloadable: isDownloadableRaw !== null ? isDownloadableRaw === 'true' || isDownloadableRaw === 'on' : true,
+    isActive: isActiveRaw !== null ? isActiveRaw === 'true' || isActiveRaw === 'on' : true,
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
   try {
     await requireLesson(courseId, lessonId);
+
+    let sortOrder = parsed.data.sortOrder ?? 0;
+    if (!formData.get('sortOrder')) {
+      const count = await db.lessonResource.count({ where: { lessonId } });
+      sortOrder = count;
+    }
+
     await db.lessonResource.create({
       data: {
         lessonId,
         name: parsed.data.name,
+        description: parsed.data.description || null,
+        resourceType: parsed.data.resourceType,
+        sourceType: parsed.data.sourceType,
         fileUrl: parsed.data.fileUrl,
         fileType: parsed.data.fileType.toLowerCase(),
         fileSize: parsed.data.fileSize === '' ? null : parsed.data.fileSize,
+        sortOrder,
+        isDownloadable: parsed.data.isDownloadable ?? true,
+        isActive: parsed.data.isActive ?? true,
       },
     });
     refresh(courseId);
@@ -346,11 +368,20 @@ export async function updateResourceAction(
   formData: FormData
 ): Promise<CurriculumFormState> {
   await requireCourse(courseId);
+  const isDownloadableRaw = formData.get('isDownloadable');
+  const isActiveRaw = formData.get('isActive');
+
   const parsed = resourceSchema.safeParse({
     name: formData.get('name'),
+    description: formData.get('description'),
+    resourceType: formData.get('resourceType') || 'FILE',
+    sourceType: formData.get('sourceType') || 'EXTERNAL',
     fileUrl: formData.get('fileUrl'),
     fileType: formData.get('fileType'),
     fileSize: formData.get('fileSize') || undefined,
+    sortOrder: formData.get('sortOrder') || undefined,
+    isDownloadable: isDownloadableRaw !== null ? isDownloadableRaw === 'true' || isDownloadableRaw === 'on' : true,
+    isActive: isActiveRaw !== null ? isActiveRaw === 'true' || isActiveRaw === 'on' : true,
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
@@ -364,9 +395,15 @@ export async function updateResourceAction(
       where: { id: resourceId },
       data: {
         name: parsed.data.name,
+        description: parsed.data.description || null,
+        resourceType: parsed.data.resourceType,
+        sourceType: parsed.data.sourceType,
         fileUrl: parsed.data.fileUrl,
         fileType: parsed.data.fileType.toLowerCase(),
         fileSize: parsed.data.fileSize === '' ? null : parsed.data.fileSize,
+        sortOrder: parsed.data.sortOrder ?? resource.sortOrder,
+        isDownloadable: parsed.data.isDownloadable ?? true,
+        isActive: parsed.data.isActive ?? true,
       },
     });
     refresh(courseId);
@@ -383,6 +420,34 @@ export async function deleteResourceAction(formData: FormData) {
   const resource = await db.lessonResource.findFirst({ where: { id: resourceId, lesson: { module: { week: { courseId } } } } });
   if (!resource) throw new Error('Resource not found.');
   await db.lessonResource.delete({ where: { id: resourceId } });
+  refresh(courseId);
+}
+
+export async function moveResourceAction(formData: FormData) {
+  const courseId = String(formData.get('courseId') ?? '');
+  const resourceId = String(formData.get('resourceId') ?? '');
+  const parsed = reorderSchema.parse({ direction: formData.get('direction') });
+  await requireCourse(courseId);
+  const resource = await db.lessonResource.findFirst({
+    where: { id: resourceId, lesson: { module: { week: { courseId } } } },
+    select: { lessonId: true },
+  });
+  if (!resource) throw new Error('Resource not found.');
+  const resources = await db.lessonResource.findMany({
+    where: { lessonId: resource.lessonId },
+    orderBy: { sortOrder: 'asc' },
+  });
+  const pair = await moveItem(resources, resourceId, parsed.direction);
+  if (pair) {
+    await db.$transaction(
+      pair.map((item, index) =>
+        db.lessonResource.update({
+          where: { id: item.id },
+          data: { sortOrder: pair[1 - index].sortOrder },
+        })
+      )
+    );
+  }
   refresh(courseId);
 }
 

@@ -74,6 +74,20 @@ enum LessonResourceType {
   VIDEO
 }
 
+enum ResourceType {
+  VIDEO
+  DOCUMENT
+  FILE
+  LINK
+}
+
+enum ResourceSource {
+  YOUTUBE
+  GOOGLE_DRIVE
+  UPLOAD
+  EXTERNAL
+}
+
 model Admin {
   id           String    @id @default(cuid())
   name         String
@@ -380,18 +394,27 @@ model LessonProgress {
 }
 
 model LessonResource {
-  id        String   @id @default(cuid())
-  lessonId  String
-  name      String
-  fileUrl   String
-  fileType  String
-  fileSize  Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String         @id @default(cuid())
+  lessonId       String
+  name           String
+  description    String?
+  resourceType   ResourceType   @default(FILE)
+  sourceType     ResourceSource @default(EXTERNAL)
+  fileUrl        String
+  fileType       String
+  fileSize       Int?
+  sortOrder      Int            @default(0)
+  isDownloadable Boolean        @default(true)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@index([lessonId])
+  @@index([resourceType])
+  @@index([sortOrder])
+  @@index([isActive])
 }
 
 model ModuleSummary {
