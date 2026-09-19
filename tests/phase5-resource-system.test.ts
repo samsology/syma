@@ -47,11 +47,42 @@ test('Phase 5.1: YouTube URL parser extracts IDs and timestamps across valid for
   assert.equal(withSeconds?.videoId, 'dQw4w9WgXcQ');
   assert.equal(withSeconds?.startSeconds, 120);
 
-  // Secure embed URL generation
+  // YouTube live stream URL
+  const liveStream = parseYouTubeId('https://www.youtube.com/live/dQw4w9WgXcQ');
+  assert.ok(liveStream);
+  assert.equal(liveStream?.videoId, 'dQw4w9WgXcQ');
+
+  // YouTube playlist URL
+  const playlistOnly = parseYouTubeId('https://www.youtube.com/playlist?list=PLMtHAcoMj2Pk');
+  assert.ok(playlistOnly);
+  assert.equal(playlistOnly?.playlistId, 'PLMtHAcoMj2Pk');
+  assert.equal(playlistOnly?.videoId, undefined);
+
+  // YouTube video with playlist
+  const videoWithList = parseYouTubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLMtHAcoMj2Pk');
+  assert.ok(videoWithList);
+  assert.equal(videoWithList?.videoId, 'dQw4w9WgXcQ');
+  assert.equal(videoWithList?.playlistId, 'PLMtHAcoMj2Pk');
+
+  // Secure embed URL generation (single video)
   const embedUrl = buildYouTubeEmbedUrl('dQw4w9WgXcQ', 90);
   assert.equal(
     embedUrl,
     'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&playsinline=1&start=90'
+  );
+
+  // Secure embed URL generation (playlist only)
+  const playlistEmbedUrl = buildYouTubeEmbedUrl(undefined, undefined, 'PLMtHAcoMj2Pk');
+  assert.equal(
+    playlistEmbedUrl,
+    'https://www.youtube-nocookie.com/embed/videoseries?list=PLMtHAcoMj2Pk&rel=0&modestbranding=1&playsinline=1'
+  );
+
+  // Secure embed URL generation (video with playlist)
+  const videoListEmbed = buildYouTubeEmbedUrl('dQw4w9WgXcQ', undefined, 'PLMtHAcoMj2Pk');
+  assert.equal(
+    videoListEmbed,
+    'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&playsinline=1&list=PLMtHAcoMj2Pk'
   );
 
   // Invalid formats rejected
@@ -235,4 +266,99 @@ test('Phase 5.6: Lesson completion, module progression, and weekly quiz calculat
   assert.equal(moduleProg.quizPassed, true);
   assert.equal(moduleProg.summaryComplete, true);
   assert.equal(moduleProg.lessonsComplete, false);
+});
+
+// ---------------------------------------------------------------------------
+// 7. Resource Behavior Matrix (In-Portal vs Download vs External)
+// ---------------------------------------------------------------------------
+test('Phase 5.7: Resource Behavior Matrix enforces Video/PPTX/PDF in-portal, Dataset as download, and Link as external', () => {
+  // 1. YouTube Video -> In-Portal Viewing
+  const ytDesc = getResourceEmbedDescriptor({
+    title: 'Lecture Video',
+    fileUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    resourceType: 'VIDEO',
+    sourceType: 'YOUTUBE',
+  });
+  assert.equal(ytDesc.kind, 'youtube');
+  assert.equal(ytDesc.isEmbeddable, true);
+  assert.equal(ytDesc.requiresExternalFallback, false);
+
+  // YouTube Playlist -> In-Portal Viewing (not external redirect!)
+  const playlistDesc = getResourceEmbedDescriptor({
+    title: 'Course Playlist',
+    fileUrl: 'https://www.youtube.com/playlist?list=PLMtHAcoMj2Pk',
+    resourceType: 'VIDEO',
+    sourceType: 'YOUTUBE',
+  });
+  assert.equal(playlistDesc.kind, 'youtube');
+  assert.equal(playlistDesc.isEmbeddable, true);
+  assert.equal(playlistDesc.requiresExternalFallback, false);
+  assert.ok(playlistDesc.embedUrl?.includes('videoseries?list=PLMtHAcoMj2Pk'));
+
+  // 2. PPTX / Slides -> In-Portal Viewing (Google Slides embed preserved)
+  const pptxDesc = getResourceEmbedDescriptor({
+    title: 'Data Fundamentals Slide Deck',
+    fileUrl: 'https://docs.google.com/presentation/d/160u4Mu2tQ8QfXOJT2LpqmSt3c5vD57EM/edit',
+    resourceType: 'DOCUMENT',
+    sourceType: 'GOOGLE_DRIVE',
+    fileType: 'pptx',
+  });
+  assert.equal(pptxDesc.kind, 'google_slide');
+  assert.equal(pptxDesc.isEmbeddable, true);
+  assert.equal(pptxDesc.requiresExternalFallback, false);
+  assert.ok(pptxDesc.embedUrl?.includes('/presentation/d/160u4Mu2tQ8QfXOJT2LpqmSt3c5vD57EM/embed'));
+
+  // 3. PDF Document -> In-Portal Viewing where supported
+  const pdfDesc = getResourceEmbedDescriptor({
+    title: 'Study Guide',
+    fileUrl: '/assets/docs/lesson_notes.pdf',
+    resourceType: 'DOCUMENT',
+    sourceType: 'UPLOAD',
+    fileType: 'pdf',
+  });
+  assert.equal(pdfDesc.kind, 'pdf');
+  assert.equal(pdfDesc.isEmbeddable, true);
+
+  // 4. Dataset / File -> Direct Download Action (NEVER embeddable!)
+  const csvDataset = getResourceEmbedDescriptor({
+    title: 'Practice Dataset',
+    fileUrl: '/assets/datasets/customer_churn.csv',
+    resourceType: 'FILE',
+    sourceType: 'UPLOAD',
+    fileType: 'csv',
+  });
+  assert.equal(csvDataset.kind, 'download_file');
+  assert.equal(csvDataset.isEmbeddable, false);
+
+  const excelDataset = getResourceEmbedDescriptor({
+    title: 'Financial Model Dataset',
+    fileUrl: 'https://example.com/data/sales_q3.xlsx',
+    resourceType: 'FILE',
+    sourceType: 'UPLOAD',
+    fileType: 'xlsx',
+  });
+  assert.equal(excelDataset.kind, 'download_file');
+  assert.equal(excelDataset.isEmbeddable, false);
+
+  const zipDataset = getResourceEmbedDescriptor({
+    title: 'Raw Images Dataset',
+    fileUrl: 'https://example.com/data/images.zip',
+    resourceType: 'FILE',
+    sourceType: 'UPLOAD',
+    fileType: 'zip',
+  });
+  assert.equal(zipDataset.kind, 'download_file');
+  assert.equal(zipDataset.isEmbeddable, false);
+
+  // 5. External Link -> External Resource
+  const linkDesc = getResourceEmbedDescriptor({
+    title: 'Official Documentation',
+    fileUrl: 'https://developer.mozilla.org/en-US/docs/Web',
+    resourceType: 'LINK',
+    sourceType: 'EXTERNAL',
+    fileType: 'link',
+  });
+  assert.equal(linkDesc.kind, 'external_link');
+  assert.equal(linkDesc.isEmbeddable, false);
+  assert.equal(linkDesc.requiresExternalFallback, true);
 });

@@ -31,29 +31,7 @@ export function ResourceStage({
   resources,
 }: ResourceStageProps) {
   // Determine initial active media
-  const initialActive = primaryVideoUrl
-    ? {
-        id: 'primary-video',
-        title: `${lessonTitle} (Lecture Video)`,
-        fileUrl: primaryVideoUrl,
-        resourceType: 'VIDEO' as const,
-        sourceType: (primaryVideoUrl.includes('youtube') || primaryVideoUrl.includes('youtu.be')
-          ? 'YOUTUBE'
-          : 'EXTERNAL') as any,
-        description: 'Official lecture walkthrough and explanation.',
-      }
-    : primarySlideUrl && primaryResourceType === 'SLIDE'
-    ? {
-        id: 'primary-slide',
-        title: `${lessonTitle} (Slide Deck)`,
-        fileUrl: primarySlideUrl,
-        resourceType: 'DOCUMENT' as const,
-        sourceType: 'GOOGLE_DRIVE' as any,
-        description: 'Full presentation deck for this lesson.',
-      }
-    : null;
-
-  const [activeMedia, setActiveMedia] = useState<{
+  let computedInitialActive: {
     id: string;
     title: string;
     fileUrl: string;
@@ -63,7 +41,69 @@ export function ResourceStage({
     fileSize?: number | null;
     description?: string | null;
     isDownloadable?: boolean;
-  } | null>(initialActive);
+  } | null = null;
+
+  if (primaryVideoUrl) {
+    computedInitialActive = {
+      id: 'primary-video',
+      title: `${lessonTitle} (Lecture Video)`,
+      fileUrl: primaryVideoUrl,
+      resourceType: 'VIDEO',
+      sourceType:
+        primaryVideoUrl.includes('youtube') || primaryVideoUrl.includes('youtu.be')
+          ? 'YOUTUBE'
+          : 'EXTERNAL',
+      description: 'Official lecture walkthrough and explanation.',
+    };
+  } else if (primarySlideUrl && primaryResourceType === 'SLIDE') {
+    computedInitialActive = {
+      id: 'primary-slide',
+      title: `${lessonTitle} (Slide Deck)`,
+      fileUrl: primarySlideUrl,
+      resourceType: 'DOCUMENT',
+      sourceType: 'GOOGLE_DRIVE',
+      description: 'Full presentation deck for this lesson.',
+    };
+  } else if (resources && resources.length > 0) {
+    // If no primary video or slide is specified on the lesson record, find the first
+    // in-portal viewable resource (Video or Slide/Doc). Never auto-activate Datasets or Links.
+    const viewableResources = resources.filter((r) => {
+      const desc = getResourceEmbedDescriptor({
+        title: r.name,
+        fileUrl: r.fileUrl,
+        resourceType: r.resourceType,
+        sourceType: r.sourceType,
+        fileType: r.fileType,
+      });
+      return desc.isEmbeddable;
+    });
+
+    if (viewableResources.length > 0) {
+      // Prioritize by primaryResourceType if set
+      let chosen = viewableResources[0];
+      if (primaryResourceType === 'SLIDE') {
+        const slideItem = viewableResources.find((r) => r.resourceType === 'DOCUMENT');
+        if (slideItem) chosen = slideItem;
+      } else {
+        const videoItem = viewableResources.find((r) => r.resourceType === 'VIDEO');
+        if (videoItem) chosen = videoItem;
+      }
+
+      computedInitialActive = {
+        id: chosen.id,
+        title: chosen.name,
+        fileUrl: chosen.fileUrl,
+        resourceType: chosen.resourceType,
+        sourceType: chosen.sourceType,
+        fileType: chosen.fileType,
+        fileSize: chosen.fileSize,
+        description: chosen.description,
+        isDownloadable: chosen.isDownloadable,
+      };
+    }
+  }
+
+  const [activeMedia, setActiveMedia] = useState(computedInitialActive);
 
   return (
     <div className="space-y-6">
@@ -138,6 +178,16 @@ export function ResourceStage({
 
               const isCurrentlyActive = activeMedia?.id === resource.id;
 
+              const isDataset =
+                resource.resourceType === 'FILE' ||
+                descriptor.kind === 'download_file' ||
+                ['csv', 'xlsx', 'xls', 'zip', 'pbix', 'ipynb', 'parquet', 'tsv', 'dataset'].includes(
+                  resource.fileType?.toLowerCase() || ''
+                ) ||
+                /dataset|data/i.test(resource.name);
+
+              const isVideo = resource.resourceType === 'VIDEO' || descriptor.kind === 'youtube';
+
               return (
                 <div
                   key={resource.id}
@@ -145,12 +195,12 @@ export function ResourceStage({
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 rounded-lg bg-slate-100 p-2 text-slate-700">
-                      {resource.resourceType === 'VIDEO' || descriptor.kind === 'youtube' ? (
+                      {isVideo ? (
                         <Video className="h-4 w-4 text-sky-600" />
                       ) : resource.resourceType === 'DOCUMENT' ||
                         descriptor.kind === 'google_slide' ? (
                         <Presentation className="h-4 w-4 text-indigo-600" />
-                      ) : descriptor.kind === 'download_file' ? (
+                      ) : descriptor.kind === 'download_file' || isDataset ? (
                         <FileText className="h-4 w-4 text-emerald-600" />
                       ) : (
                         <ExternalLink className="h-4 w-4 text-slate-600" />
@@ -162,7 +212,7 @@ export function ResourceStage({
                         <p className="font-bold text-slate-900 text-sm">{resource.name}</p>
                         {resource.resourceType && (
                           <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                            {resource.resourceType}
+                            {isDataset && resource.resourceType === 'FILE' ? 'DATASET' : resource.resourceType}
                           </span>
                         )}
                       </div>
@@ -208,7 +258,7 @@ export function ResourceStage({
                             : 'bg-primary text-white hover:bg-secondary'
                         }`}
                       >
-                        {resource.resourceType === 'VIDEO' ? (
+                        {isVideo ? (
                           <Play className="h-3.5 w-3.5 fill-current" />
                         ) : (
                           <Eye className="h-3.5 w-3.5" />
@@ -216,21 +266,21 @@ export function ResourceStage({
                         <span>
                           {isCurrentlyActive
                             ? 'Viewing in Portal'
-                            : resource.resourceType === 'VIDEO'
+                            : isVideo
                             ? 'Watch in Portal'
                             : 'View in Portal'}
                         </span>
                       </button>
-                    ) : descriptor.kind === 'download_file' ? (
+                    ) : descriptor.kind === 'download_file' || isDataset ? (
                       <a
                         href={resource.fileUrl}
                         download
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition shadow-2xs"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        <span>Download</span>
+                        <span>{isDataset ? 'Download Dataset' : 'Download File'}</span>
                       </a>
                     ) : (
                       <a

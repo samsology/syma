@@ -20,59 +20,88 @@ export const metadata = {
 export default async function AdminDashboardPage() {
   const admin = await requireAdmin();
 
+  // Consolidate queries to prevent connection pool exhaustion and reduce roundtrips
   const [
-    totalCourses,
-    publishedCourses,
-    draftCourses,
-    archivedCourses,
-    totalWeeks,
-    totalModules,
-    totalLessons,
-    totalStudents,
-    activeEnrollments,
-    completedEnrollments,
-    totalRevenue,
-    paidOrders,
-    pendingOrders,
-    failedPayments,
+    courseStatusGroups,
+    enrollmentStatusGroups,
+    orderStatusGroups,
+    counts,
     recentCourses,
     recentEnrollments,
   ] = await Promise.all([
-    db.course.count(),
-    db.course.count({ where: { status: 'PUBLISHED' } }),
-    db.course.count({ where: { status: 'DRAFT' } }),
-    db.course.count({ where: { status: 'ARCHIVED' } }),
-    db.courseWeek.count(),
-    db.courseModule.count(),
-    db.lesson.count(),
-    db.student.count(),
-    db.enrollment.count({ where: { status: 'ACTIVE' } }),
-    db.enrollment.count({ where: { status: 'COMPLETED' } }),
-    db.order.aggregate({ where: { status: 'PAID' }, _sum: { amountMinor: true } }),
-    db.order.count({ where: { status: 'PAID' } }),
-    db.order.count({ where: { status: 'PENDING' } }),
-    db.payment.count({ where: { status: 'FAILED' } }),
-    db.course.findMany({
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        updatedAt: true,
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-      take: 5,
-    }),
-    db.enrollment.findMany({
-      orderBy: { enrolledAt: 'desc' },
-      take: 5,
-      include: {
-        student: { select: { firstName: true, lastName: true } },
-        course: { select: { title: true } },
-      },
-    }),
+    db.course
+      .groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      })
+      .catch(() => []),
+    db.enrollment
+      .groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      })
+      .catch(() => []),
+    db.order
+      .groupBy({
+        by: ['status'],
+        _count: { _all: true },
+        _sum: { amountMinor: true },
+      })
+      .catch(() => []),
+    Promise.all([
+      db.courseWeek.count().catch(() => 0),
+      db.courseModule.count().catch(() => 0),
+      db.lesson.count().catch(() => 0),
+      db.student.count().catch(() => 0),
+      db.payment.count({ where: { status: 'FAILED' } }).catch(() => 0),
+    ]),
+    db.course
+      .findMany({
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          updatedAt: true,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+        take: 5,
+      })
+      .catch(() => []),
+    db.enrollment
+      .findMany({
+        orderBy: { enrolledAt: 'desc' },
+        take: 5,
+        include: {
+          student: { select: { firstName: true, lastName: true } },
+          course: { select: { title: true } },
+        },
+      })
+      .catch(() => []),
   ]);
+
+  const [totalWeeks, totalModules, totalLessons, totalStudents, failedPayments] = counts;
+
+  // Derive course counts
+  const publishedCourses =
+    courseStatusGroups.find((g) => g.status === 'PUBLISHED')?._count._all ?? 0;
+  const draftCourses = courseStatusGroups.find((g) => g.status === 'DRAFT')?._count._all ?? 0;
+  const archivedCourses =
+    courseStatusGroups.find((g) => g.status === 'ARCHIVED')?._count._all ?? 0;
+  const totalCourses = courseStatusGroups.reduce((acc, g) => acc + g._count._all, 0);
+
+  // Derive enrollment counts
+  const activeEnrollments =
+    enrollmentStatusGroups.find((g) => g.status === 'ACTIVE')?._count._all ?? 0;
+  const completedEnrollments =
+    enrollmentStatusGroups.find((g) => g.status === 'COMPLETED')?._count._all ?? 0;
+
+  // Derive order counts & revenue
+  const paidGroup = orderStatusGroups.find((g) => g.status === 'PAID');
+  const paidOrders = paidGroup?._count._all ?? 0;
+  const totalRevenueMinor = paidGroup?._sum.amountMinor ?? 0;
+  const pendingOrders = orderStatusGroups.find((g) => g.status === 'PENDING')?._count._all ?? 0;
 
   return (
     <div className="space-y-8">
@@ -94,7 +123,7 @@ export default async function AdminDashboardPage() {
         <StatsCard label="Completed" value={completedEnrollments} icon={CheckCircle2} />
         <StatsCard
           label="Revenue (USD)"
-          value={(totalRevenue._sum.amountMinor ?? 0) / 100}
+          value={totalRevenueMinor / 100}
           icon={Banknote}
         />
         <StatsCard label="Paid Orders" value={paidOrders} icon={CheckCircle2} />

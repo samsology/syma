@@ -11,25 +11,48 @@ const APPROVED_EMBED_DOMAINS = [
   'drive.google.com',
 ];
 
+export interface YouTubeParseResult {
+  videoId?: string;
+  playlistId?: string;
+  startSeconds?: number;
+}
+
 /**
- * Extracts and validates an 11-character YouTube video ID.
+ * Extracts and validates YouTube video IDs, playlist IDs, and timestamps.
+ * Supports standard watch, short URLs, embeds, shorts, live streams, and playlists.
  */
-export function parseYouTubeId(rawUrl: string): { videoId: string; startSeconds?: number } | null {
+export function parseYouTubeId(rawUrl: string): YouTubeParseResult | null {
   if (!rawUrl || typeof rawUrl !== 'string') return null;
   const trimmed = rawUrl.trim();
 
+  // Handle direct 11-char video ID input
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return { videoId: trimmed };
+  }
+
+  // Handle direct playlist ID input (e.g. PL..., OLAK..., etc.)
+  if (/^PL[a-zA-Z0-9_-]+$/.test(trimmed)) {
+    return { playlistId: trimmed };
+  }
+
   let url: URL;
   try {
-    url = new URL(trimmed.startsWith('//') ? `https:${trimmed}` : trimmed);
+    const candidate = trimmed.startsWith('//')
+      ? `https:${trimmed}`
+      : !trimmed.startsWith('http://') && !trimmed.startsWith('https://')
+      ? `https://${trimmed}`
+      : trimmed;
+    url = new URL(candidate);
   } catch {
     return null;
   }
 
   const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
-  let videoId: string | null = null;
+  let videoId: string | undefined;
+  let playlistId: string | undefined;
   let startSeconds: number | undefined;
 
-  // Check timestamp in query
+  // Check timestamp in query (t or start parameter)
   const tParam = url.searchParams.get('t') || url.searchParams.get('start');
   if (tParam) {
     const matchSeconds = tParam.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/i);
@@ -45,9 +68,15 @@ export function parseYouTubeId(rawUrl: string): { videoId: string; startSeconds?
     }
   }
 
+  // Check playlist parameter
+  const listParam = url.searchParams.get('list');
+  if (listParam && /^[a-zA-Z0-9_-]+$/.test(listParam)) {
+    playlistId = listParam;
+  }
+
   if (hostname === 'youtu.be') {
-    const pathname = url.pathname.replace(/^\/+/, '');
-    if (/^[a-zA-Z0-9_-]{11}$/.test(pathname)) {
+    const pathname = url.pathname.replace(/^\/+/, '').split('/')[0];
+    if (pathname && /^[a-zA-Z0-9_-]{11}$/.test(pathname)) {
       videoId = pathname;
     }
   } else if (
@@ -61,12 +90,20 @@ export function parseYouTubeId(rawUrl: string): { videoId: string; startSeconds?
         videoId = v;
       }
     } else if (url.pathname.startsWith('/embed/')) {
-      const id = url.pathname.replace(/^\/embed\//, '').split('/')[0];
-      if (id && /^[a-zA-Z0-9_-]{11}$/.test(id)) {
-        videoId = id;
+      const parts = url.pathname.replace(/^\/embed\//, '').split('/');
+      const first = parts[0];
+      if (first === 'videoseries') {
+        // videoseries embed; playlistId extracted from query
+      } else if (first && /^[a-zA-Z0-9_-]{11}$/.test(first)) {
+        videoId = first;
       }
     } else if (url.pathname.startsWith('/shorts/')) {
       const id = url.pathname.replace(/^\/shorts\//, '').split('/')[0];
+      if (id && /^[a-zA-Z0-9_-]{11}$/.test(id)) {
+        videoId = id;
+      }
+    } else if (url.pathname.startsWith('/live/')) {
+      const id = url.pathname.replace(/^\/live\//, '').split('/')[0];
       if (id && /^[a-zA-Z0-9_-]{11}$/.test(id)) {
         videoId = id;
       }
@@ -75,26 +112,50 @@ export function parseYouTubeId(rawUrl: string): { videoId: string; startSeconds?
       if (id && /^[a-zA-Z0-9_-]{11}$/.test(id)) {
         videoId = id;
       }
+    } else if (url.pathname === '/playlist') {
+      // Playlist only URL; listParam extracted above
     }
   }
 
-  if (!videoId) return null;
-  return { videoId, startSeconds };
+  if (!videoId && !playlistId) return null;
+  return { videoId, playlistId, startSeconds };
 }
 
 /**
  * Builds a secure youtube-nocookie embed URL with safe parameters.
+ * Supports single videos, videos with playlists, and standalone playlist embed decks.
  */
-export function buildYouTubeEmbedUrl(videoId: string, startSeconds?: number): string {
-  const params = new URLSearchParams({
-    rel: '0',
-    modestbranding: '1',
-    playsinline: '1',
-  });
-  if (startSeconds && startSeconds > 0) {
-    params.set('start', String(startSeconds));
+export function buildYouTubeEmbedUrl(
+  videoId?: string | null,
+  startSeconds?: number,
+  playlistId?: string | null
+): string {
+  if (videoId) {
+    const params = new URLSearchParams({
+      rel: '0',
+      modestbranding: '1',
+      playsinline: '1',
+    });
+    if (startSeconds && startSeconds > 0) {
+      params.set('start', String(startSeconds));
+    }
+    if (playlistId) {
+      params.set('list', playlistId);
+    }
+    return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
   }
-  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+
+  if (playlistId) {
+    const params = new URLSearchParams({
+      list: playlistId,
+      rel: '0',
+      modestbranding: '1',
+      playsinline: '1',
+    });
+    return `https://www.youtube-nocookie.com/embed/videoseries?${params.toString()}`;
+  }
+
+  return '';
 }
 
 /**
@@ -208,10 +269,10 @@ export function getResourceEmbedDescriptor(params: {
   // 1. YouTube Detection
   const ytParsed = parseYouTubeId(url);
   if (ytParsed || sourceType === 'YOUTUBE') {
-    if (ytParsed) {
+    if (ytParsed && (ytParsed.videoId || ytParsed.playlistId)) {
       return {
         kind: 'youtube',
-        embedUrl: buildYouTubeEmbedUrl(ytParsed.videoId, ytParsed.startSeconds),
+        embedUrl: buildYouTubeEmbedUrl(ytParsed.videoId, ytParsed.startSeconds, ytParsed.playlistId),
         originalUrl: url,
         title,
         isEmbeddable: true,
@@ -293,7 +354,7 @@ export function getResourceEmbedDescriptor(params: {
   // 5. Downloadable Dataset / File
   const isFile =
     resourceType === 'FILE' ||
-    /\.(csv|xlsx|xls|zip|pbix|ipynb|json|sql|docx|txt)(\?.*)?$/i.test(url);
+    /\.(csv|xlsx|xls|zip|pbix|ipynb|json|sql|parquet|tsv|docx|txt)(\?.*)?$/i.test(url);
   if (isFile) {
     return {
       kind: 'download_file',
@@ -346,7 +407,7 @@ export function inferResourceMetaFromUrl(url: string): {
     return { resourceType: 'DOCUMENT', sourceType: 'UPLOAD', suggestedFileType: 'pdf' };
   }
 
-  if (/\.(csv|xlsx|xls|zip|pbix|ipynb|json|sql|docx|txt)(\?.*)?$/i.test(trimmed)) {
+  if (/\.(csv|xlsx|xls|zip|pbix|ipynb|json|sql|parquet|tsv|docx|txt)(\?.*)?$/i.test(trimmed)) {
     const extMatch = trimmed.match(/\.([a-zA-Z0-9]+)(?:\?.*)?$/);
     return {
       resourceType: 'FILE',

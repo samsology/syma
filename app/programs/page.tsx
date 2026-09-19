@@ -12,26 +12,28 @@ export const metadata: Metadata = {
 export default async function ProgramsPage() {
   const student = await getCurrentStudent();
   const [courses, enrolledCourseIds] = await Promise.all([
-    db.course.findMany({
-      where: { status: 'PUBLISHED' },
-      orderBy: { sortOrder: 'asc' },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        shortDescription: true,
-        description: true,
-        category: true,
-        level: true,
-        duration: true,
-        priceMinor: true,
-        currency: true,
-        benefits: true,
-        cta: true,
-        sortOrder: true,
-        thumbnailUrl: true,
-      },
-    }),
+    db.course
+      .findMany({
+        where: { status: 'PUBLISHED' },
+        orderBy: { sortOrder: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          shortDescription: true,
+          description: true,
+          category: true,
+          level: true,
+          duration: true,
+          priceMinor: true,
+          currency: true,
+          benefits: true,
+          cta: true,
+          sortOrder: true,
+          thumbnailUrl: true,
+        },
+      })
+      .catch(() => []),
     student
       ? db.enrollment
           .findMany({
@@ -42,6 +44,7 @@ export default async function ProgramsPage() {
             select: { courseId: true },
           })
           .then((enrollments) => enrollments.map((enrollment) => enrollment.courseId))
+          .catch(() => [])
       : Promise.resolve([]),
   ]);
 

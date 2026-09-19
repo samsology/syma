@@ -56,15 +56,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const course = await db.course.findFirst({
-    where: { slug, status: 'PUBLISHED' },
-    select: {
-      title: true,
-      shortDescription: true,
-      description: true,
-      category: true,
-    },
-  });
+  const course = await db.course
+    .findFirst({
+      where: { slug, status: 'PUBLISHED' },
+      select: {
+        title: true,
+        shortDescription: true,
+        description: true,
+        category: true,
+      },
+    })
+    .catch(() => null);
 
   const title = course?.title || official?.title || 'Course Details';
   const description =
@@ -89,24 +91,26 @@ export default async function CourseDetailPage({ params }: Props) {
     notFound();
   }
 
-  const course = await db.course.findFirst({
-    where: { slug, status: 'PUBLISHED' },
-    include: {
-      weeks: {
-        orderBy: { weekNumber: 'asc' },
-        include: {
-          modules: {
-            orderBy: { sortOrder: 'asc' },
-            include: {
-              lessons: {
-                orderBy: { sortOrder: 'asc' },
+  const course = await db.course
+    .findFirst({
+      where: { slug, status: 'PUBLISHED' },
+      include: {
+        weeks: {
+          orderBy: { weekNumber: 'asc' },
+          include: {
+            modules: {
+              orderBy: { sortOrder: 'asc' },
+              include: {
+                lessons: {
+                  orderBy: { sortOrder: 'asc' },
+                },
               },
             },
           },
         },
       },
-    },
-  });
+    })
+    .catch(() => null);
 
   const title = course?.title || official?.title || '';
   const description = course?.description || official?.description || '';

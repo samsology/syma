@@ -30,6 +30,28 @@ import type { ResourceType, ResourceSource } from '@/lib/resources/types';
 
 const initialState: CurriculumFormState = {};
 
+export type ConceptualResourceType = 'VIDEO' | 'SLIDES' | 'DOCUMENT' | 'DATASET' | 'LINK';
+
+export function getConceptualType(
+  resourceType?: ResourceType,
+  fileType?: string,
+  sourceType?: ResourceSource,
+  url?: string
+): ConceptualResourceType {
+  if (resourceType === 'VIDEO') return 'VIDEO';
+  if (resourceType === 'FILE') return 'DATASET';
+  if (resourceType === 'LINK') return 'LINK';
+  if (resourceType === 'DOCUMENT') {
+    const ft = (fileType || '').toLowerCase();
+    const u = (url || '').toLowerCase();
+    if (ft === 'pptx' || ft === 'ppt' || u.includes('presentation') || sourceType === 'GOOGLE_DRIVE') {
+      return 'SLIDES';
+    }
+    return 'DOCUMENT';
+  }
+  return 'DATASET';
+}
+
 function formatBytes(bytes?: number | null) {
   if (!bytes || bytes <= 0) return null;
   if (bytes < 1024) return `${bytes} B`;
@@ -107,6 +129,14 @@ function ResourceEditRow({
     initialState
   );
 
+  const [conceptualType, setConceptualType] = useState<ConceptualResourceType>(
+    getConceptualType(
+      resource.resourceType as ResourceType,
+      resource.fileType,
+      resource.sourceType as ResourceSource,
+      resource.fileUrl
+    )
+  );
   const [resourceType, setResourceType] = useState<ResourceType>(
     (resource.resourceType as ResourceType) || 'FILE'
   );
@@ -118,14 +148,45 @@ function ResourceEditRow({
   const [name, setName] = useState(resource.name);
   const [showPreview, setShowPreview] = useState(false);
 
+  const handleConceptualChange = (type: ConceptualResourceType) => {
+    setConceptualType(type);
+    if (type === 'VIDEO') {
+      setResourceType('VIDEO');
+      if (fileUrl.includes('youtube') || fileUrl.includes('youtu.be') || !fileUrl) {
+        setSourceType('YOUTUBE');
+        setFileType('youtube');
+      } else {
+        setSourceType('UPLOAD');
+        setFileType('mp4');
+      }
+    } else if (type === 'SLIDES') {
+      setResourceType('DOCUMENT');
+      setSourceType('GOOGLE_DRIVE');
+      setFileType('pptx');
+    } else if (type === 'DOCUMENT') {
+      setResourceType('DOCUMENT');
+      setSourceType('UPLOAD');
+      setFileType('pdf');
+    } else if (type === 'DATASET') {
+      setResourceType('FILE');
+      setSourceType('UPLOAD');
+      setFileType('csv');
+    } else if (type === 'LINK') {
+      setResourceType('LINK');
+      setSourceType('EXTERNAL');
+      setFileType('link');
+    }
+  };
+
   const handleUrlChange = (newUrl: string) => {
     setFileUrl(newUrl);
-    if (!resourceType || resourceType === 'FILE') {
-      const inferred = inferResourceMetaFromUrl(newUrl);
-      setResourceType(inferred.resourceType);
-      setSourceType(inferred.sourceType);
-      setFileType(inferred.suggestedFileType);
-    }
+    const inferred = inferResourceMetaFromUrl(newUrl);
+    setResourceType(inferred.resourceType);
+    setSourceType(inferred.sourceType);
+    setFileType(inferred.suggestedFileType);
+    setConceptualType(
+      getConceptualType(inferred.resourceType, inferred.suggestedFileType, inferred.sourceType, newUrl)
+    );
   };
 
   return (
@@ -163,14 +224,14 @@ function ResourceEditRow({
           </label>
           <div className="grid grid-cols-2 gap-2">
             <select
-              name="resourceType"
-              value={resourceType}
-              onChange={(e) => setResourceType(e.target.value as ResourceType)}
+              value={conceptualType}
+              onChange={(e) => handleConceptualChange(e.target.value as ConceptualResourceType)}
               className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-medium"
             >
               <option value="VIDEO">🎥 Video</option>
-              <option value="DOCUMENT">📄 Document / Slides</option>
-              <option value="FILE">📁 Downloadable File</option>
+              <option value="SLIDES">📊 Slides / PPTX</option>
+              <option value="DOCUMENT">📄 PDF / Document</option>
+              <option value="DATASET">📁 Dataset / File</option>
               <option value="LINK">🔗 External Link</option>
             </select>
 
@@ -185,6 +246,21 @@ function ResourceEditRow({
               <option value="UPLOAD">Hosted / File Path</option>
               <option value="EXTERNAL">External URL</option>
             </select>
+          </div>
+          <input type="hidden" name="resourceType" value={resourceType} />
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
+            <span>Student Experience:</span>
+            <span className="font-bold text-primary">
+              {conceptualType === 'VIDEO'
+                ? 'In-Portal Learning Viewer (Video)'
+                : conceptualType === 'SLIDES'
+                ? 'In-Portal Learning Viewer (Slides)'
+                : conceptualType === 'DOCUMENT'
+                ? 'In-Portal Learning Viewer (Document / PDF)'
+                : conceptualType === 'DATASET'
+                ? 'Direct Download Action'
+                : 'External Resource'}
+            </span>
           </div>
         </div>
       </div>
@@ -337,9 +413,11 @@ export function ResourceManager({
   const [previewingResource, setPreviewingResource] = useState<LessonResource | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newUrl, setNewUrl] = useState('');
+  const [newConceptualType, setNewConceptualType] = useState<ConceptualResourceType>('VIDEO');
   const [newResourceType, setNewResourceType] = useState<ResourceType>('VIDEO');
   const [newSourceType, setNewSourceType] = useState<ResourceSource>('YOUTUBE');
   const [newFileType, setNewFileType] = useState('youtube');
+  const [newIsDownloadable, setNewIsDownloadable] = useState(false);
   const [showAddPreview, setShowAddPreview] = useState(false);
 
   const [state, formAction, pending] = useActionState(
@@ -347,12 +425,55 @@ export function ResourceManager({
     initialState
   );
 
+  const handleNewConceptualChange = (type: ConceptualResourceType) => {
+    setNewConceptualType(type);
+    if (type === 'VIDEO') {
+      setNewResourceType('VIDEO');
+      if (newUrl.includes('youtube') || newUrl.includes('youtu.be') || !newUrl) {
+        setNewSourceType('YOUTUBE');
+        setNewFileType('youtube');
+      } else {
+        setNewSourceType('UPLOAD');
+        setNewFileType('mp4');
+      }
+      setNewIsDownloadable(false);
+    } else if (type === 'SLIDES') {
+      setNewResourceType('DOCUMENT');
+      setNewSourceType('GOOGLE_DRIVE');
+      setNewFileType('pptx');
+      setNewIsDownloadable(true);
+    } else if (type === 'DOCUMENT') {
+      setNewResourceType('DOCUMENT');
+      setNewSourceType('UPLOAD');
+      setNewFileType('pdf');
+      setNewIsDownloadable(true);
+    } else if (type === 'DATASET') {
+      setNewResourceType('FILE');
+      setNewSourceType('UPLOAD');
+      setNewFileType('csv');
+      setNewIsDownloadable(true);
+    } else if (type === 'LINK') {
+      setNewResourceType('LINK');
+      setNewSourceType('EXTERNAL');
+      setNewFileType('link');
+      setNewIsDownloadable(false);
+    }
+  };
+
   const handleNewUrlChange = (url: string) => {
     setNewUrl(url);
     const inferred = inferResourceMetaFromUrl(url);
     setNewResourceType(inferred.resourceType);
     setNewSourceType(inferred.sourceType);
     setNewFileType(inferred.suggestedFileType);
+    const conceptual = getConceptualType(
+      inferred.resourceType,
+      inferred.suggestedFileType,
+      inferred.sourceType,
+      url
+    );
+    setNewConceptualType(conceptual);
+    setNewIsDownloadable(conceptual === 'DATASET' || conceptual === 'DOCUMENT');
   };
 
   return (
@@ -541,18 +662,18 @@ export function ResourceManager({
 
           <div>
             <label className="block text-xs font-bold uppercase text-slate-500 mb-1">
-              Type &amp; Source
+              Resource Type
             </label>
             <div className="grid grid-cols-2 gap-2">
               <select
-                name="resourceType"
-                value={newResourceType}
-                onChange={(e) => setNewResourceType(e.target.value as ResourceType)}
+                value={newConceptualType}
+                onChange={(e) => handleNewConceptualChange(e.target.value as ConceptualResourceType)}
                 className="rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-medium"
               >
                 <option value="VIDEO">🎥 Video</option>
-                <option value="DOCUMENT">📄 Document / Slides</option>
-                <option value="FILE">📁 File / Dataset</option>
+                <option value="SLIDES">📊 Slides / PPTX</option>
+                <option value="DOCUMENT">📄 PDF / Document</option>
+                <option value="DATASET">📁 Dataset / File</option>
                 <option value="LINK">🔗 External Link</option>
               </select>
 
@@ -567,6 +688,21 @@ export function ResourceManager({
                 <option value="UPLOAD">Hosted / File Path</option>
                 <option value="EXTERNAL">External URL</option>
               </select>
+            </div>
+            <input type="hidden" name="resourceType" value={newResourceType} />
+            <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+              <span>Student Experience:</span>
+              <span className="font-bold text-primary">
+                {newConceptualType === 'VIDEO'
+                  ? 'In-Portal Learning Viewer (Video Player)'
+                  : newConceptualType === 'SLIDES'
+                  ? 'In-Portal Viewer (Slides / Presentation)'
+                  : newConceptualType === 'DOCUMENT'
+                  ? 'In-Portal Viewer (Document / PDF)'
+                  : newConceptualType === 'DATASET'
+                  ? 'Direct Download Action (Dataset / File)'
+                  : 'External Resource (Opens Link)'}
+              </span>
             </div>
           </div>
         </div>
@@ -648,7 +784,8 @@ export function ResourceManager({
               <input
                 type="checkbox"
                 name="isDownloadable"
-                defaultChecked
+                checked={newIsDownloadable}
+                onChange={(e) => setNewIsDownloadable(e.target.checked)}
                 className="h-3.5 w-3.5 rounded text-primary"
               />
               <span>Allow Download</span>
