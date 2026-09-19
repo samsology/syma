@@ -4,6 +4,9 @@ import { ArrowLeft } from 'lucide-react';
 import { db } from '@/lib/db';
 import { CurriculumBuilder } from '@/components/admin/curriculum/CurriculumBuilder';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 type CurriculumPageProps = {
   params: Promise<{ id: string }>;
 };

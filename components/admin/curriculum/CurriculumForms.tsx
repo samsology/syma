@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { CourseModule, CourseWeek, Lesson } from '@prisma/client';
 import { ExternalLink, Video, Presentation } from 'lucide-react';
 import type { CurriculumFormState } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
@@ -24,7 +25,15 @@ export function WeekForm({
   defaultWeekNumber?: number;
   onDone?: () => void;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+      onDone?.();
+    }
+  }, [state.success, router, onDone]);
 
   return (
     <form action={formAction} className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -94,7 +103,15 @@ export function ModuleForm({
   module?: CourseModule;
   onDone?: () => void;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+      onDone?.();
+    }
+  }, [state.success, router, onDone]);
 
   return (
     <form action={formAction} className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
@@ -146,6 +163,7 @@ export function InlineLessonForm({
   action: (state: CurriculumFormState, formData: FormData) => Promise<CurriculumFormState>;
   onDone?: () => void;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
@@ -154,6 +172,18 @@ export function InlineLessonForm({
   const [resourceType, setResourceType] = useState<'SLIDE' | 'VIDEO'>('VIDEO');
   const [slideUrl, setSlideUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+
+  useEffect(() => {
+    if (state.success) {
+      setTitle('');
+      setSlug('');
+      setSlugTouched(false);
+      setSlideUrl('');
+      setVideoUrl('');
+      router.refresh();
+      onDone?.();
+    }
+  }, [state.success, router, onDone]);
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);
@@ -164,7 +194,24 @@ export function InlineLessonForm({
 
   return (
     <form action={formAction} className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-      {state.formError && <p className="text-sm font-semibold text-error">{state.formError}</p>}
+      {state.formError && (
+        <div className="rounded-lg bg-red-50 p-3 text-sm font-semibold text-error border border-red-200">
+          {state.formError}
+        </div>
+      )}
+      {state.fieldErrors && Object.keys(state.fieldErrors).length > 0 && (
+        <div className="rounded-lg bg-amber-50 p-3 text-xs font-medium text-amber-900 border border-amber-200 space-y-1">
+          <p className="font-bold">Please check the following:</p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {Object.entries(state.fieldErrors).map(([field, msgs]) =>
+              msgs?.map((msg, i) => (
+                <li key={`${field}-${i}`}>{msg}</li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="lesson-title-new" className="block text-xs font-bold uppercase text-slate-500">
@@ -177,6 +224,7 @@ export function InlineLessonForm({
             onChange={(event) => handleTitleChange(event.target.value)}
             placeholder="e.g. Statistical Significance in Clinical Trials"
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            required
           />
           <FieldError errors={state.fieldErrors?.title} />
         </div>
@@ -211,16 +259,18 @@ export function InlineLessonForm({
             <option value="VIDEO">Video</option>
             <option value="ASSIGNMENT">Assignment</option>
           </select>
+          <FieldError errors={state.fieldErrors?.lessonType} />
         </div>
         <div>
           <label className="block text-xs font-bold uppercase text-slate-500">Duration (Minutes)</label>
           <input
             name="duration"
             type="number"
-            min={1}
+            min={0}
             placeholder="45"
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
+          <FieldError errors={state.fieldErrors?.duration} />
         </div>
         <div>
           <label className="block text-xs font-bold uppercase text-slate-500">Status</label>
@@ -229,6 +279,7 @@ export function InlineLessonForm({
             <option value="PUBLISHED">Published</option>
             <option value="ARCHIVED">Archived</option>
           </select>
+          <FieldError errors={state.fieldErrors?.status} />
         </div>
       </div>
 

@@ -1,8 +1,20 @@
 import { PrismaClient, CourseStatus, LessonType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { courses } from './seed-data/courses';
 
-const prisma = new PrismaClient();
+const dbUrl = process.env.DATABASE_URL;
+const prisma = new PrismaClient(
+  dbUrl ? { datasources: { db: { url: dbUrl } } } : undefined
+);
+
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token.trim()).digest('hex');
+}
+
+function createSessionToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
 
 async function seedAdmin() {
   const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
@@ -36,13 +48,16 @@ async function seedAdmin() {
 }
 
 async function seedCourses(instructorId?: string) {
-  const activeSlugs = courses.map((c) => c.slug);
+  // Narrow production to single course (Introduction to Data Literacy); add more slugs to scale later
+  const targetCourseSlugs = ['introduction-to-data-literacy'];
+  const activeCourses = courses.filter((c) => targetCourseSlugs.includes(c.slug));
+
   await prisma.course.updateMany({
-    where: { slug: { notIn: activeSlugs } },
+    where: { slug: { notIn: targetCourseSlugs } },
     data: { status: CourseStatus.ARCHIVED },
   });
 
-  for (const [courseIndex, course] of courses.entries()) {
+  for (const [courseIndex, course] of activeCourses.entries()) {
     const courseStatus = course.status ?? CourseStatus.PUBLISHED;
     const upsertedCourse = await prisma.course.upsert({
       where: { slug: course.slug },
@@ -212,237 +227,158 @@ async function seedCourses(instructorId?: string) {
 
 async function seedStudentsAndEnrollments() {
   const passwordHash = await bcrypt.hash('studentpassword123', 12);
-  const studentSeeds = [
-    {
+
+  const student = await prisma.student.upsert({
+    where: { email: 'maya.student@example.test' },
+    update: {
+      firstName: 'Maya',
+      lastName: 'Okafor',
+      phone: '+234 800 000 0101',
+      passwordHash,
+      status: 'ACTIVE',
+      lastLoginAt: new Date(),
+    },
+    create: {
       firstName: 'Maya',
       lastName: 'Okafor',
       email: 'maya.student@example.test',
       phone: '+234 800 000 0101',
+      passwordHash,
+      status: 'ACTIVE',
+      lastLoginAt: new Date(),
     },
-    {
-      firstName: 'Tunde',
-      lastName: 'Adebayo',
-      email: 'tunde.student@example.test',
-      phone: '+234 800 000 0102',
-    },
-    {
-      firstName: 'Amina',
-      lastName: 'Bello',
-      email: 'amina.student@example.test',
-      phone: '+234 800 000 0103',
-    },
-  ];
-
-  const students = await Promise.all(
-    studentSeeds.map((student) =>
-      prisma.student.upsert({
-        where: { email: student.email },
-        update: {
-          firstName: student.firstName,
-          lastName: student.lastName,
-          phone: student.phone,
-          passwordHash,
-          status: 'ACTIVE',
-        },
-        create: {
-          ...student,
-          passwordHash,
-          status: 'ACTIVE',
-        },
-      })
-    )
-  );
-
-  const publishedCourses = await prisma.course.findMany({
-    where: { status: CourseStatus.PUBLISHED },
-    orderBy: { createdAt: 'asc' },
-    take: 2,
   });
 
-  if (publishedCourses.length === 0) return;
+  // Complete application record
+  const existingApp = await prisma.studentApplication.findFirst({
+    where: { email: 'maya.student@example.test' },
+  });
 
-  const enrollmentSeeds = [
-    { student: students[0], course: publishedCourses[0], status: 'ACTIVE' as const },
-    { student: students[1], course: publishedCourses[0], status: 'ACTIVE' as const },
-    {
-      student: students[2],
-      course: publishedCourses[1] ?? publishedCourses[0],
-      status: 'COMPLETED' as const,
+  if (existingApp) {
+    await prisma.studentApplication.update({
+      where: { id: existingApp.id },
+      data: {
+        fullName: 'Maya Okafor',
+        phone: '+234 800 000 0101',
+        program: 'Introduction to Data Literacy',
+        experience: 'Beginner',
+        motivation: 'Building foundational data literacy for career development',
+        status: 'REGISTERED',
+        studentId: student.id,
+        registrationTokenUsedAt: new Date(),
+      },
+    });
+  } else {
+    await prisma.studentApplication.create({
+      data: {
+        fullName: 'Maya Okafor',
+        email: 'maya.student@example.test',
+        phone: '+234 800 000 0101',
+        program: 'Introduction to Data Literacy',
+        experience: 'Beginner',
+        motivation: 'Building foundational data literacy for career development',
+        status: 'REGISTERED',
+        studentId: student.id,
+        registrationTokenUsedAt: new Date(),
+      },
+    });
+  }
+
+  // Active student session for login
+  const token = createSessionToken();
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  await prisma.studentSession.deleteMany({
+    where: { studentId: student.id },
+  });
+
+  await prisma.studentSession.create({
+    data: {
+      studentId: student.id,
+      tokenHash,
+      expiresAt,
     },
-  ];
+  });
 
-  await Promise.all(
-    enrollmentSeeds.map((seed) =>
-      prisma.enrollment.upsert({
-        where: {
-          studentId_courseId: {
-            studentId: seed.student.id,
-            courseId: seed.course.id,
-          },
-        },
-        update: {
-          status: seed.status,
-          source: 'MANUAL',
-          startedAt: new Date(),
-          completedAt: seed.status === 'COMPLETED' ? new Date() : null,
-        },
-        create: {
-          studentId: seed.student.id,
-          courseId: seed.course.id,
-          status: seed.status,
-          source: 'MANUAL',
-          startedAt: new Date(),
-          completedAt: seed.status === 'COMPLETED' ? new Date() : null,
-        },
-      })
-    )
-  );
+  return student;
 }
 
-async function seedOrdersAndPayments() {
-  const [students, courseList] = await Promise.all([
-    prisma.student.findMany({ orderBy: { createdAt: 'asc' }, take: 3 }),
-    prisma.course.findMany({ orderBy: { sortOrder: 'asc' }, take: 3 }),
-  ]);
+async function seedOrdersAndPayments(student?: { id: string }) {
+  const course = await prisma.course.findFirst({
+    where: { slug: 'introduction-to-data-literacy' },
+  });
+  const maya = student ?? (await prisma.student.findUnique({ where: { email: 'maya.student@example.test' } }));
 
-  if (students.length < 3 || courseList.length < 2) return;
+  if (!course || !maya) return;
 
-  const orderSeeds = [
-    {
-      student: students[0],
-      course: courseList[0],
-      status: 'PAID' as const,
-      paymentStatus: 'SUCCESS' as const,
-      suffix: 'PAID',
+  const orderNumber = 'SYM-DL101-MAYA';
+  const order = await prisma.order.upsert({
+    where: { orderNumber },
+    update: {
+      studentId: maya.id,
+      courseId: course.id,
+      amountMinor: course.priceMinor,
+      currency: course.currency,
+      status: 'PAID',
+      paidAt: new Date(),
     },
-    {
-      student: students[1],
-      course: courseList[1],
-      status: 'FAILED' as const,
-      paymentStatus: 'FAILED' as const,
-      suffix: 'FAILED',
+    create: {
+      orderNumber,
+      studentId: maya.id,
+      courseId: course.id,
+      amountMinor: course.priceMinor,
+      currency: course.currency,
+      status: 'PAID',
+      paidAt: new Date(),
     },
-    {
-      student: students[2],
-      course: courseList[1],
-      status: 'PENDING' as const,
-      paymentStatus: 'PENDING' as const,
-      suffix: 'PENDING',
-    },
-    {
-      student: students[0],
-      course: courseList[1],
-      status: 'CANCELLED' as const,
-      paymentStatus: 'CANCELLED' as const,
-      suffix: 'CANCELLED',
-    },
-    {
-      student: students[1],
-      course: courseList[0],
-      status: 'REFUNDED' as const,
-      paymentStatus: 'REFUNDED' as const,
-      suffix: 'REFUNDED',
-    },
-  ];
+  });
 
-  for (const seed of orderSeeds) {
-    const orderNumber = `SYM-DEV-${seed.suffix}`;
-    const order = await prisma.order.upsert({
-      where: { orderNumber },
-      update: {
-        studentId: seed.student.id,
-        courseId: seed.course.id,
-        status: seed.status,
-        paidAt: seed.status === 'PAID' || seed.status === 'REFUNDED' ? new Date() : null,
-      },
-      create: {
-        orderNumber,
-        studentId: seed.student.id,
-        courseId: seed.course.id,
-        amountMinor: seed.course.priceMinor,
-        currency: seed.course.currency,
-        status: seed.status,
-        paidAt: seed.status === 'PAID' || seed.status === 'REFUNDED' ? new Date() : null,
-      },
-    });
-
-    await prisma.payment.upsert({
-      where: {
-        provider_providerReference: {
-          provider: 'PAYSTACK',
-          providerReference: `DEV-${seed.suffix}`,
-        },
-      },
-      update: {
-        orderId: order.id,
-        status: seed.paymentStatus,
-        paidAt:
-          seed.paymentStatus === 'SUCCESS' || seed.paymentStatus === 'REFUNDED' ? new Date() : null,
-      },
-      create: {
-        orderId: order.id,
+  await prisma.payment.upsert({
+    where: {
+      provider_providerReference: {
         provider: 'PAYSTACK',
-        providerReference: `DEV-${seed.suffix}`,
-        amountMinor: order.amountMinor,
-        currency: order.currency,
-        status: seed.paymentStatus,
-        paidAt:
-          seed.paymentStatus === 'SUCCESS' || seed.paymentStatus === 'REFUNDED' ? new Date() : null,
+        providerReference: 'PAYSTACK-DL101-MAYA',
       },
-    });
+    },
+    update: {
+      orderId: order.id,
+      status: 'SUCCESS',
+      paidAt: new Date(),
+    },
+    create: {
+      orderId: order.id,
+      provider: 'PAYSTACK',
+      providerReference: 'PAYSTACK-DL101-MAYA',
+      amountMinor: order.amountMinor,
+      currency: order.currency,
+      status: 'SUCCESS',
+      paidAt: new Date(),
+    },
+  });
 
-    if (seed.status === 'PAID') {
-      const existingOrderByEnrollment = await prisma.enrollment.findUnique({
-        where: { orderId: order.id },
-      });
-
-      if (existingOrderByEnrollment) {
-        if (
-          existingOrderByEnrollment.studentId === seed.student.id &&
-          existingOrderByEnrollment.courseId === seed.course.id
-        ) {
-          await prisma.enrollment.update({
-            where: { id: existingOrderByEnrollment.id },
-            data: {
-              status: 'ACTIVE',
-              source: 'PAYMENT',
-              startedAt: existingOrderByEnrollment.startedAt ?? new Date(),
-            },
-          });
-        } else {
-          await prisma.enrollment.update({
-            where: { id: existingOrderByEnrollment.id },
-            data: { orderId: null },
-          });
-          await prisma.enrollment.upsert({
-            where: { studentId_courseId: { studentId: seed.student.id, courseId: seed.course.id } },
-            update: { status: 'ACTIVE', source: 'PAYMENT', orderId: order.id, startedAt: new Date() },
-            create: {
-              studentId: seed.student.id,
-              courseId: seed.course.id,
-              status: 'ACTIVE',
-              source: 'PAYMENT',
-              orderId: order.id,
-              startedAt: new Date(),
-            },
-          });
-        }
-      } else {
-        await prisma.enrollment.upsert({
-          where: { studentId_courseId: { studentId: seed.student.id, courseId: seed.course.id } },
-          update: { status: 'ACTIVE', source: 'PAYMENT', orderId: order.id, startedAt: new Date() },
-          create: {
-            studentId: seed.student.id,
-            courseId: seed.course.id,
-            status: 'ACTIVE',
-            source: 'PAYMENT',
-            orderId: order.id,
-            startedAt: new Date(),
-          },
-        });
-      }
-    }
-  }
+  await prisma.enrollment.upsert({
+    where: {
+      studentId_courseId: {
+        studentId: maya.id,
+        courseId: course.id,
+      },
+    },
+    update: {
+      status: 'ACTIVE',
+      source: 'PAYMENT',
+      orderId: order.id,
+      startedAt: new Date(),
+    },
+    create: {
+      studentId: maya.id,
+      courseId: course.id,
+      status: 'ACTIVE',
+      source: 'PAYMENT',
+      orderId: order.id,
+      startedAt: new Date(),
+    },
+  });
 }
 
 async function main() {

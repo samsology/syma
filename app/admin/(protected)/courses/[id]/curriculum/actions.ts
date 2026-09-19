@@ -16,6 +16,7 @@ import { quizSchema } from '@/lib/validation/quiz';
 import { assignmentSchema } from '@/lib/validation/assignment';
 
 export type CurriculumFormState = {
+  success?: boolean;
   fieldErrors?: Record<string, string[] | undefined>;
   formError?: string;
 };
@@ -23,7 +24,16 @@ export type CurriculumFormState = {
 function refresh(courseId: string) {
   revalidatePath(`/admin/courses/${courseId}`);
   revalidatePath(`/admin/courses/${courseId}/curriculum`);
+  revalidatePath(`/admin/courses/${courseId}/curriculum`, 'page');
   revalidatePath('/admin/dashboard');
+}
+
+function sanitizeUrl(val: unknown): string {
+  if (!val || typeof val !== 'string') return '';
+  const trimmed = val.trim();
+  if (!trimmed) return '';
+  if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
 }
 
 async function requireCourse(courseId: string) {
@@ -77,7 +87,7 @@ export async function createWeekAction(courseId: string, _state: CurriculumFormS
       },
     });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { fieldErrors: { weekNumber: ['A week with this number already exists.'] } };
@@ -106,7 +116,7 @@ export async function updateWeekAction(courseId: string, weekId: string, _state:
       },
     });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { fieldErrors: { weekNumber: ['A week with this number already exists.'] } };
@@ -152,7 +162,7 @@ export async function createModuleAction(courseId: string, weekId: string, _stat
       data: { weekId, title: parsed.data.title, description: parsed.data.description, sortOrder: (maxSort._max.sortOrder ?? 0) + 1 },
     });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to save module.' };
   }
@@ -167,7 +177,7 @@ export async function updateModuleAction(courseId: string, moduleId: string, _st
     await requireModule(courseId, moduleId);
     await db.courseModule.update({ where: { id: moduleId }, data: { title: parsed.data.title, description: parsed.data.description } });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to update module.' };
   }
@@ -200,41 +210,57 @@ export async function deleteModuleAction(formData: FormData) {
 
 export async function createLessonAction(courseId: string, moduleId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
   await requireCourse(courseId);
+  const rawTitle = String(formData.get('title') ?? '').trim();
+  const rawSlug = String(formData.get('slug') ?? '').trim();
+  const rawContent = String(formData.get('content') ?? '').trim();
+  const rawDuration = formData.get('duration');
+
+  const baseSlug = slugifyCourseTitle(rawSlug || rawTitle || 'lesson') || 'lesson';
+
   const parsed = lessonSchema.safeParse({
-    title: formData.get('title'),
-    slug: String(formData.get('slug') || slugifyCourseTitle(String(formData.get('title') ?? ''))).toLowerCase(),
-    lessonType: formData.get('lessonType'),
+    title: rawTitle,
+    slug: baseSlug,
+    lessonType: formData.get('lessonType') || 'TEXT',
     resourceType: formData.get('resourceType') || 'VIDEO',
-    slideUrl: formData.get('slideUrl') || '',
-    content: formData.get('content') || 'Lesson content',
-    videoUrl: formData.get('videoUrl'),
-    duration: formData.get('duration') || undefined,
-    isPreview: formData.get('isPreview') === 'on',
-    status: formData.get('status'),
+    slideUrl: sanitizeUrl(formData.get('slideUrl')),
+    content: rawContent || 'Lesson content',
+    videoUrl: sanitizeUrl(formData.get('videoUrl')),
+    duration: rawDuration === '' || rawDuration === null ? undefined : rawDuration,
+    isPreview: formData.get('isPreview') === 'on' || formData.get('isPreview') === 'true',
+    status: formData.get('status') || 'DRAFT',
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
   try {
     await requireModule(courseId, moduleId);
+
+    // Auto-disambiguate slug if already exists in module
+    let finalSlug = parsed.data.slug;
+    let counter = 1;
+    while (await db.lesson.findUnique({ where: { moduleId_slug: { moduleId, slug: finalSlug } } })) {
+      counter++;
+      finalSlug = `${baseSlug}-${counter}`;
+    }
+
     const maxSort = await db.lesson.aggregate({ where: { moduleId }, _max: { sortOrder: true } });
     await db.lesson.create({
       data: {
         moduleId,
         title: parsed.data.title,
-        slug: parsed.data.slug,
+        slug: finalSlug,
         lessonType: parsed.data.lessonType,
         resourceType: parsed.data.resourceType,
         slideUrl: parsed.data.slideUrl || null,
         content: parsed.data.content,
         videoUrl: parsed.data.videoUrl || null,
-        duration: parsed.data.duration === '' ? null : parsed.data.duration,
+        duration: typeof parsed.data.duration === 'number' ? parsed.data.duration : null,
         isPreview: parsed.data.isPreview,
         status: parsed.data.status,
         sortOrder: (maxSort._max.sortOrder ?? 0) + 1,
       },
     });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { fieldErrors: { slug: ['A lesson with this slug already exists in this module.'] } };
@@ -245,17 +271,22 @@ export async function createLessonAction(courseId: string, moduleId: string, _st
 
 export async function updateLessonAction(courseId: string, lessonId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
   await requireCourse(courseId);
+  const rawTitle = String(formData.get('title') ?? '').trim();
+  const rawSlug = String(formData.get('slug') ?? '').trim();
+  const rawContent = String(formData.get('content') ?? '').trim();
+  const rawDuration = formData.get('duration');
+
   const parsed = lessonSchema.safeParse({
-    title: formData.get('title'),
-    slug: String(formData.get('slug') ?? '').toLowerCase(),
-    lessonType: formData.get('lessonType'),
+    title: rawTitle,
+    slug: rawSlug.toLowerCase(),
+    lessonType: formData.get('lessonType') || 'TEXT',
     resourceType: formData.get('resourceType') || 'VIDEO',
-    slideUrl: formData.get('slideUrl') || '',
-    content: formData.get('content'),
-    videoUrl: formData.get('videoUrl'),
-    duration: formData.get('duration') || undefined,
-    isPreview: formData.get('isPreview') === 'on',
-    status: formData.get('status'),
+    slideUrl: sanitizeUrl(formData.get('slideUrl')),
+    content: rawContent || 'Lesson content',
+    videoUrl: sanitizeUrl(formData.get('videoUrl')),
+    duration: rawDuration === '' || rawDuration === null ? undefined : rawDuration,
+    isPreview: formData.get('isPreview') === 'on' || formData.get('isPreview') === 'true',
+    status: formData.get('status') || 'DRAFT',
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
@@ -271,7 +302,7 @@ export async function updateLessonAction(courseId: string, lessonId: string, _st
         slideUrl: parsed.data.slideUrl || null,
         content: parsed.data.content,
         videoUrl: parsed.data.videoUrl || null,
-        duration: parsed.data.duration === '' ? null : parsed.data.duration,
+        duration: typeof parsed.data.duration === 'number' ? parsed.data.duration : null,
         isPreview: parsed.data.isPreview,
         status: parsed.data.status,
       },
@@ -355,7 +386,7 @@ export async function createResourceAction(courseId: string, lessonId: string, _
       },
     });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to save resource.' };
   }
@@ -407,7 +438,7 @@ export async function updateResourceAction(
       },
     });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to update resource.' };
   }
@@ -528,7 +559,7 @@ export async function upsertModuleSummaryAction(courseId: string, moduleId: stri
       },
     });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to save module summary.' };
   }
@@ -581,7 +612,7 @@ export async function upsertModuleQuizAction(courseId: string, moduleId: string,
       },
     });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to save module quiz.' };
   }
@@ -640,7 +671,7 @@ export async function upsertWeeklyAssignmentAction(courseId: string, weekId: str
       },
     });
     refresh(courseId);
-    return {};
+    return { success: true };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to save weekly assignment.' };
   }

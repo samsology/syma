@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { ModuleSummary, ModuleQuiz, WeeklyAssignment } from '@prisma/client';
 import { ExternalLink, Presentation, Video, Award, BookOpen } from 'lucide-react';
 import type { CurriculumFormState } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
@@ -21,9 +22,17 @@ export function ModuleSummaryForm({
   summary?: ModuleSummary | null;
   onDone?: () => void;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
   const [resourceType, setResourceType] = useState<'SLIDE' | 'VIDEO'>(summary?.resourceType ?? 'SLIDE');
   const [resourceUrl, setResourceUrl] = useState(summary?.resourceUrl ?? '');
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+      onDone?.();
+    }
+  }, [state.success, router, onDone]);
 
   return (
     <form action={formAction} className="space-y-4 rounded-xl border-2 border-indigo-200 bg-indigo-50/40 p-5 shadow-xs">
@@ -159,7 +168,15 @@ export function ModuleQuizForm({
   quiz?: ModuleQuiz | null;
   onDone?: () => void;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+      onDone?.();
+    }
+  }, [state.success, router, onDone]);
 
   return (
     <form action={formAction} className="space-y-4 rounded-xl border-2 border-amber-200 bg-amber-50/40 p-5 shadow-xs">
@@ -279,8 +296,16 @@ export function WeeklyAssignmentForm({
   assignment?: WeeklyAssignment | null;
   onDone?: () => void;
 }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
   const [datasetUrl, setDatasetUrl] = useState(assignment?.datasetUrl ?? '');
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+      onDone?.();
+    }
+  }, [state.success, router, onDone]);
 
   return (
     <form action={formAction} className="space-y-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/40 p-5 shadow-xs">
