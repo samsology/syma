@@ -175,11 +175,6 @@ export function InlineLessonForm({
 
   useEffect(() => {
     if (state.success) {
-      setTitle('');
-      setSlug('');
-      setSlugTouched(false);
-      setSlideUrl('');
-      setVideoUrl('');
       router.refresh();
       onDone?.();
     }

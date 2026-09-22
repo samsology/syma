@@ -36,6 +36,6 @@ export function hashRegistrationToken(token: string): string {
  * Returns the canonical registration continuation URL for an applicant.
  */
 export function getContinuationUrl(rawToken: string): string {
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechsolutions.com').replace(/\/$/, '');
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechs.com').replace(/\/$/, '');
   return `${baseUrl}/continue-registration/${encodeURIComponent(rawToken.trim())}`;
 }

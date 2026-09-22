@@ -4,13 +4,10 @@ import { useActionState, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
-  Download,
   Edit2,
   ExternalLink,
   Eye,
-  EyeOff,
   FileText,
-  Play,
   Presentation,
   Trash2,
   Video,

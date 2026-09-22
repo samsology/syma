@@ -24,7 +24,14 @@ export default async function CurriculumPage({ params }: CurriculumPageProps) {
             orderBy: { sortOrder: 'asc' },
             include: {
               summary: true,
-              quiz: true,
+              quiz: {
+                include: {
+                  questions: {
+                    include: { options: { orderBy: { order: 'asc' } } },
+                    orderBy: { order: 'asc' },
+                  },
+                },
+              },
               lessons: {
                 orderBy: { sortOrder: 'asc' },
                 include: {

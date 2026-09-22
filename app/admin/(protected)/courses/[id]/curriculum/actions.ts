@@ -12,11 +12,12 @@ import { moduleSchema } from '@/lib/validation/module';
 import { resourceSchema } from '@/lib/validation/resource';
 import { weekSchema } from '@/lib/validation/week';
 import { summarySchema } from '@/lib/validation/summary';
-import { quizSchema } from '@/lib/validation/quiz';
+import { quizSchema, quizQuestionSchema } from '@/lib/validation/quiz';
 import { assignmentSchema } from '@/lib/validation/assignment';
 
 export type CurriculumFormState = {
   success?: boolean;
+  quizId?: string;
   fieldErrors?: Record<string, string[] | undefined>;
   formError?: string;
 };
@@ -66,7 +67,11 @@ async function requireLesson(courseId: string, lessonId: string) {
   return lesson;
 }
 
-export async function createWeekAction(courseId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function createWeekAction(
+  courseId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
   const parsed = weekSchema.safeParse({
     weekNumber: formData.get('weekNumber'),
@@ -96,7 +101,12 @@ export async function createWeekAction(courseId: string, _state: CurriculumFormS
   }
 }
 
-export async function updateWeekAction(courseId: string, weekId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function updateWeekAction(
+  courseId: string,
+  weekId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
   const parsed = weekSchema.safeParse({
     weekNumber: formData.get('weekNumber'),
@@ -150,16 +160,32 @@ export async function deleteWeekAction(formData: FormData) {
   refresh(courseId);
 }
 
-export async function createModuleAction(courseId: string, weekId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function createModuleAction(
+  courseId: string,
+  weekId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
-  const parsed = moduleSchema.safeParse({ title: formData.get('title'), description: formData.get('description') });
+  const parsed = moduleSchema.safeParse({
+    title: formData.get('title'),
+    description: formData.get('description'),
+  });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
   try {
     await requireWeek(courseId, weekId);
-    const maxSort = await db.courseModule.aggregate({ where: { weekId }, _max: { sortOrder: true } });
+    const maxSort = await db.courseModule.aggregate({
+      where: { weekId },
+      _max: { sortOrder: true },
+    });
     await db.courseModule.create({
-      data: { weekId, title: parsed.data.title, description: parsed.data.description, sortOrder: (maxSort._max.sortOrder ?? 0) + 1 },
+      data: {
+        weekId,
+        title: parsed.data.title,
+        description: parsed.data.description,
+        sortOrder: (maxSort._max.sortOrder ?? 0) + 1,
+      },
     });
     refresh(courseId);
     return { success: true };
@@ -168,14 +194,25 @@ export async function createModuleAction(courseId: string, weekId: string, _stat
   }
 }
 
-export async function updateModuleAction(courseId: string, moduleId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function updateModuleAction(
+  courseId: string,
+  moduleId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
-  const parsed = moduleSchema.safeParse({ title: formData.get('title'), description: formData.get('description') });
+  const parsed = moduleSchema.safeParse({
+    title: formData.get('title'),
+    description: formData.get('description'),
+  });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
   try {
     await requireModule(courseId, moduleId);
-    await db.courseModule.update({ where: { id: moduleId }, data: { title: parsed.data.title, description: parsed.data.description } });
+    await db.courseModule.update({
+      where: { id: moduleId },
+      data: { title: parsed.data.title, description: parsed.data.description },
+    });
     refresh(courseId);
     return { success: true };
   } catch (error) {
@@ -208,7 +245,12 @@ export async function deleteModuleAction(formData: FormData) {
   refresh(courseId);
 }
 
-export async function createLessonAction(courseId: string, moduleId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function createLessonAction(
+  courseId: string,
+  moduleId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
   const rawTitle = String(formData.get('title') ?? '').trim();
   const rawSlug = String(formData.get('slug') ?? '').trim();
@@ -237,7 +279,9 @@ export async function createLessonAction(courseId: string, moduleId: string, _st
     // Auto-disambiguate slug if already exists in module
     let finalSlug = parsed.data.slug;
     let counter = 1;
-    while (await db.lesson.findUnique({ where: { moduleId_slug: { moduleId, slug: finalSlug } } })) {
+    while (
+      await db.lesson.findUnique({ where: { moduleId_slug: { moduleId, slug: finalSlug } } })
+    ) {
       counter++;
       finalSlug = `${baseSlug}-${counter}`;
     }
@@ -269,7 +313,12 @@ export async function createLessonAction(courseId: string, moduleId: string, _st
   }
 }
 
-export async function updateLessonAction(courseId: string, lessonId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function updateLessonAction(
+  courseId: string,
+  lessonId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
   const rawTitle = String(formData.get('title') ?? '').trim();
   const rawSlug = String(formData.get('slug') ?? '').trim();
@@ -342,7 +391,12 @@ export async function deleteLessonAction(formData: FormData) {
   refresh(courseId);
 }
 
-export async function createResourceAction(courseId: string, lessonId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function createResourceAction(
+  courseId: string,
+  lessonId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
   const isDownloadableRaw = formData.get('isDownloadable');
   const isActiveRaw = formData.get('isActive');
@@ -356,7 +410,10 @@ export async function createResourceAction(courseId: string, lessonId: string, _
     fileType: formData.get('fileType'),
     fileSize: formData.get('fileSize') || undefined,
     sortOrder: formData.get('sortOrder') || undefined,
-    isDownloadable: isDownloadableRaw !== null ? isDownloadableRaw === 'true' || isDownloadableRaw === 'on' : true,
+    isDownloadable:
+      isDownloadableRaw !== null
+        ? isDownloadableRaw === 'true' || isDownloadableRaw === 'on'
+        : true,
     isActive: isActiveRaw !== null ? isActiveRaw === 'true' || isActiveRaw === 'on' : true,
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -411,7 +468,10 @@ export async function updateResourceAction(
     fileType: formData.get('fileType'),
     fileSize: formData.get('fileSize') || undefined,
     sortOrder: formData.get('sortOrder') || undefined,
-    isDownloadable: isDownloadableRaw !== null ? isDownloadableRaw === 'true' || isDownloadableRaw === 'on' : true,
+    isDownloadable:
+      isDownloadableRaw !== null
+        ? isDownloadableRaw === 'true' || isDownloadableRaw === 'on'
+        : true,
     isActive: isActiveRaw !== null ? isActiveRaw === 'true' || isActiveRaw === 'on' : true,
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -448,7 +508,9 @@ export async function deleteResourceAction(formData: FormData) {
   const courseId = String(formData.get('courseId') ?? '');
   const resourceId = String(formData.get('resourceId') ?? '');
   await requireCourse(courseId);
-  const resource = await db.lessonResource.findFirst({ where: { id: resourceId, lesson: { module: { week: { courseId } } } } });
+  const resource = await db.lessonResource.findFirst({
+    where: { id: resourceId, lesson: { module: { week: { courseId } } } },
+  });
   if (!resource) throw new Error('Resource not found.');
   await db.lessonResource.delete({ where: { id: resourceId } });
   refresh(courseId);
@@ -482,7 +544,11 @@ export async function moveResourceAction(formData: FormData) {
   refresh(courseId);
 }
 
-async function moveItem<T extends { id: string; sortOrder: number }>(items: T[], itemId: string, direction: 'up' | 'down') {
+async function moveItem<T extends { id: string; sortOrder: number }>(
+  items: T[],
+  itemId: string,
+  direction: 'up' | 'down'
+) {
   const index = items.findIndex((item) => item.id === itemId);
   const swapIndex = direction === 'up' ? index - 1 : index + 1;
   if (index < 0 || swapIndex < 0 || swapIndex >= items.length) return null;
@@ -494,9 +560,20 @@ export async function moveWeekAction(formData: FormData) {
   const weekId = String(formData.get('weekId') ?? '');
   const parsed = reorderSchema.parse({ direction: formData.get('direction') });
   await requireCourse(courseId);
-  const weeks = await db.courseWeek.findMany({ where: { courseId }, orderBy: { sortOrder: 'asc' } });
+  const weeks = await db.courseWeek.findMany({
+    where: { courseId },
+    orderBy: { sortOrder: 'asc' },
+  });
   const pair = await moveItem(weeks, weekId, parsed.direction);
-  if (pair) await db.$transaction(pair.map((week, index) => db.courseWeek.update({ where: { id: week.id }, data: { sortOrder: pair[1 - index].sortOrder } })));
+  if (pair)
+    await db.$transaction(
+      pair.map((week, index) =>
+        db.courseWeek.update({
+          where: { id: week.id },
+          data: { sortOrder: pair[1 - index].sortOrder },
+        })
+      )
+    );
   refresh(courseId);
 }
 
@@ -506,9 +583,20 @@ export async function moveModuleAction(formData: FormData) {
   const parsed = reorderSchema.parse({ direction: formData.get('direction') });
   await requireCourse(courseId);
   const courseModule = await requireModule(courseId, moduleId);
-  const modules = await db.courseModule.findMany({ where: { weekId: courseModule.weekId }, orderBy: { sortOrder: 'asc' } });
+  const modules = await db.courseModule.findMany({
+    where: { weekId: courseModule.weekId },
+    orderBy: { sortOrder: 'asc' },
+  });
   const pair = await moveItem(modules, moduleId, parsed.direction);
-  if (pair) await db.$transaction(pair.map((item, index) => db.courseModule.update({ where: { id: item.id }, data: { sortOrder: pair[1 - index].sortOrder } })));
+  if (pair)
+    await db.$transaction(
+      pair.map((item, index) =>
+        db.courseModule.update({
+          where: { id: item.id },
+          data: { sortOrder: pair[1 - index].sortOrder },
+        })
+      )
+    );
   refresh(courseId);
 }
 
@@ -518,13 +606,26 @@ export async function moveLessonAction(formData: FormData) {
   const parsed = reorderSchema.parse({ direction: formData.get('direction') });
   await requireCourse(courseId);
   const lesson = await requireLesson(courseId, lessonId);
-  const lessons = await db.lesson.findMany({ where: { moduleId: lesson.moduleId }, orderBy: { sortOrder: 'asc' } });
+  const lessons = await db.lesson.findMany({
+    where: { moduleId: lesson.moduleId },
+    orderBy: { sortOrder: 'asc' },
+  });
   const pair = await moveItem(lessons, lessonId, parsed.direction);
-  if (pair) await db.$transaction(pair.map((item, index) => db.lesson.update({ where: { id: item.id }, data: { sortOrder: pair[1 - index].sortOrder } })));
+  if (pair)
+    await db.$transaction(
+      pair.map((item, index) =>
+        db.lesson.update({ where: { id: item.id }, data: { sortOrder: pair[1 - index].sortOrder } })
+      )
+    );
   refresh(courseId);
 }
 
-export async function upsertModuleSummaryAction(courseId: string, moduleId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function upsertModuleSummaryAction(
+  courseId: string,
+  moduleId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
   const parsed = summarySchema.safeParse({
     title: formData.get('title'),
@@ -574,7 +675,12 @@ export async function deleteModuleSummaryAction(formData: FormData) {
   refresh(courseId);
 }
 
-export async function upsertModuleQuizAction(courseId: string, moduleId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function upsertModuleQuizAction(
+  courseId: string,
+  moduleId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
   const parsed = quizSchema.safeParse({
     title: formData.get('title'),
@@ -583,13 +689,20 @@ export async function upsertModuleQuizAction(courseId: string, moduleId: string,
     passingScore: formData.get('passingScore'),
     maxAttempts: formData.get('maxAttempts'),
     timeLimitMinutes: formData.get('timeLimitMinutes') || undefined,
+    randomizeQuestions:
+      formData.get('randomizeQuestions') === 'true' || formData.get('randomizeQuestions') === 'on',
+    randomizeOptions:
+      formData.get('randomizeOptions') === 'true' || formData.get('randomizeOptions') === 'on',
+    showResults: formData.get('showResults') !== 'false' && formData.get('showResults') !== null,
+    showExplanations:
+      formData.get('showExplanations') !== 'false' && formData.get('showExplanations') !== null,
     status: formData.get('status'),
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
   try {
     await requireModule(courseId, moduleId);
-    await db.moduleQuiz.upsert({
+    const savedQuiz = await db.moduleQuiz.upsert({
       where: { moduleId },
       create: {
         moduleId,
@@ -599,6 +712,10 @@ export async function upsertModuleQuizAction(courseId: string, moduleId: string,
         passingScore: parsed.data.passingScore,
         maxAttempts: parsed.data.maxAttempts,
         timeLimitMinutes: parsed.data.timeLimitMinutes === '' ? null : parsed.data.timeLimitMinutes,
+        randomizeQuestions: parsed.data.randomizeQuestions,
+        randomizeOptions: parsed.data.randomizeOptions,
+        showResults: parsed.data.showResults,
+        showExplanations: parsed.data.showExplanations,
         status: parsed.data.status,
       },
       update: {
@@ -608,11 +725,15 @@ export async function upsertModuleQuizAction(courseId: string, moduleId: string,
         passingScore: parsed.data.passingScore,
         maxAttempts: parsed.data.maxAttempts,
         timeLimitMinutes: parsed.data.timeLimitMinutes === '' ? null : parsed.data.timeLimitMinutes,
+        randomizeQuestions: parsed.data.randomizeQuestions,
+        randomizeOptions: parsed.data.randomizeOptions,
+        showResults: parsed.data.showResults,
+        showExplanations: parsed.data.showExplanations,
         status: parsed.data.status,
       },
     });
     refresh(courseId);
-    return { success: true };
+    return { success: true, quizId: savedQuiz.id };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to save module quiz.' };
   }
@@ -627,7 +748,139 @@ export async function deleteModuleQuizAction(formData: FormData) {
   refresh(courseId);
 }
 
-export async function upsertWeeklyAssignmentAction(courseId: string, weekId: string, _state: CurriculumFormState, formData: FormData): Promise<CurriculumFormState> {
+export async function saveQuizQuestionAction(
+  courseId: string,
+  quizId: string,
+  questionId: string | null,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
+  await requireCourse(courseId);
+
+  const questionText = String(formData.get('questionText') ?? '').trim();
+  const points = Number(formData.get('points') ?? 1);
+  const hint = String(formData.get('hint') ?? '').trim();
+  const explanation = String(formData.get('explanation') ?? '').trim();
+  const correctOptionIndex = Number(formData.get('correctOptionIndex') ?? 0);
+
+  const rawOptionsJson = formData.get('optionsJson');
+  let rawOptions: Array<{ id?: string; optionText: string; isCorrect: boolean; order: number }> =
+    [];
+
+  if (rawOptionsJson && typeof rawOptionsJson === 'string') {
+    try {
+      rawOptions = JSON.parse(rawOptionsJson);
+    } catch {
+      return { formError: 'Invalid options payload format.' };
+    }
+  } else {
+    let i = 0;
+    while (formData.has(`optionText_${i}`)) {
+      const text = String(formData.get(`optionText_${i}`) ?? '').trim();
+      const optId = formData.get(`optionId_${i}`)
+        ? String(formData.get(`optionId_${i}`))
+        : undefined;
+      rawOptions.push({
+        id: optId,
+        optionText: text,
+        isCorrect: i === correctOptionIndex,
+        order: i,
+      });
+      i++;
+    }
+  }
+
+  const parsed = quizQuestionSchema.safeParse({
+    id: questionId || undefined,
+    questionText,
+    points,
+    hint: hint || undefined,
+    explanation: explanation || undefined,
+    options: rawOptions,
+  });
+
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  try {
+    const quiz = await db.moduleQuiz.findFirst({
+      where: { id: quizId, module: { week: { courseId } } },
+    });
+    if (!quiz) return { formError: 'Quiz not found.' };
+
+    if (questionId) {
+      await db.$transaction(async (tx) => {
+        await tx.quizQuestion.update({
+          where: { id: questionId },
+          data: {
+            questionText: parsed.data.questionText,
+            points: parsed.data.points,
+            hint: parsed.data.hint || null,
+            explanation: parsed.data.explanation || null,
+          },
+        });
+
+        await tx.quizOption.deleteMany({ where: { questionId } });
+        await tx.quizOption.createMany({
+          data: parsed.data.options.map((opt, idx) => ({
+            questionId,
+            optionText: opt.optionText,
+            isCorrect: opt.isCorrect,
+            order: idx,
+          })),
+        });
+      });
+    } else {
+      const maxOrder = await db.quizQuestion.aggregate({
+        where: { quizId },
+        _max: { order: true },
+      });
+      const nextOrder = (maxOrder._max.order ?? -1) + 1;
+
+      await db.quizQuestion.create({
+        data: {
+          quizId,
+          questionText: parsed.data.questionText,
+          points: parsed.data.points,
+          hint: parsed.data.hint || null,
+          explanation: parsed.data.explanation || null,
+          order: nextOrder,
+          options: {
+            create: parsed.data.options.map((opt, idx) => ({
+              optionText: opt.optionText,
+              isCorrect: opt.isCorrect,
+              order: idx,
+            })),
+          },
+        },
+      });
+    }
+
+    refresh(courseId);
+    return { success: true };
+  } catch (error) {
+    return { formError: error instanceof Error ? error.message : 'Unable to save question.' };
+  }
+}
+
+export async function deleteQuizQuestionAction(courseId: string, questionId: string) {
+  await requireCourse(courseId);
+  const question = await db.quizQuestion.findFirst({
+    where: { id: questionId, quiz: { module: { week: { courseId } } } },
+  });
+  if (!question) throw new Error('Question not found.');
+
+  await db.quizQuestion.delete({ where: { id: questionId } });
+  refresh(courseId);
+}
+
+export async function upsertWeeklyAssignmentAction(
+  courseId: string,
+  weekId: string,
+  _state: CurriculumFormState,
+  formData: FormData
+): Promise<CurriculumFormState> {
   await requireCourse(courseId);
   const parsed = assignmentSchema.safeParse({
     title: formData.get('title'),
@@ -673,7 +926,9 @@ export async function upsertWeeklyAssignmentAction(courseId: string, weekId: str
     refresh(courseId);
     return { success: true };
   } catch (error) {
-    return { formError: error instanceof Error ? error.message : 'Unable to save weekly assignment.' };
+    return {
+      formError: error instanceof Error ? error.message : 'Unable to save weekly assignment.',
+    };
   }
 }
 
@@ -685,4 +940,3 @@ export async function deleteWeeklyAssignmentAction(formData: FormData) {
   await db.weeklyAssignment.deleteMany({ where: { weekId } });
   refresh(courseId);
 }
-

@@ -40,8 +40,8 @@ export function parseYouTubeId(rawUrl: string): YouTubeParseResult | null {
     const candidate = trimmed.startsWith('//')
       ? `https:${trimmed}`
       : !trimmed.startsWith('http://') && !trimmed.startsWith('https://')
-      ? `https://${trimmed}`
-      : trimmed;
+        ? `https://${trimmed}`
+        : trimmed;
     url = new URL(candidate);
   } catch {
     return null;
@@ -162,7 +162,9 @@ export function buildYouTubeEmbedUrl(
  * Parses Google Docs, Google Slides, Google Sheets, or Google Drive URLs and returns
  * the appropriate embed/preview URL.
  */
-export function parseGoogleDriveEmbedUrl(rawUrl: string): { embedUrl: string; kind: 'slide' | 'doc' | 'file' } | null {
+export function parseGoogleDriveEmbedUrl(
+  rawUrl: string
+): { embedUrl: string; kind: 'slide' | 'doc' | 'file' } | null {
   if (!rawUrl || typeof rawUrl !== 'string') return null;
   const trimmed = rawUrl.trim();
 
@@ -272,7 +274,11 @@ export function getResourceEmbedDescriptor(params: {
     if (ytParsed && (ytParsed.videoId || ytParsed.playlistId)) {
       return {
         kind: 'youtube',
-        embedUrl: buildYouTubeEmbedUrl(ytParsed.videoId, ytParsed.startSeconds, ytParsed.playlistId),
+        embedUrl: buildYouTubeEmbedUrl(
+          ytParsed.videoId,
+          ytParsed.startSeconds,
+          ytParsed.playlistId
+        ),
         originalUrl: url,
         title,
         isEmbeddable: true,
@@ -299,8 +305,8 @@ export function getResourceEmbedDescriptor(params: {
           googleDriveParsed.kind === 'slide'
             ? 'google_slide'
             : googleDriveParsed.kind === 'doc'
-            ? 'google_doc'
-            : 'google_drive_file',
+              ? 'google_doc'
+              : 'google_drive_file',
         embedUrl: googleDriveParsed.embedUrl,
         originalUrl: url,
         title,
@@ -417,4 +423,33 @@ export function inferResourceMetaFromUrl(url: string): {
   }
 
   return { resourceType: 'LINK', sourceType: 'EXTERNAL', suggestedFileType: 'link' };
+}
+
+export function canDownloadResource(params: {
+  title: string;
+  fileUrl: string;
+  resourceType?: ResourceType;
+  sourceType?: ResourceSource;
+  fileType?: string;
+  isDownloadable?: boolean;
+}): boolean {
+  if (!params.isDownloadable) return false;
+
+  const descriptor = getResourceEmbedDescriptor(params);
+  const fileType = params.fileType?.toLowerCase() || '';
+  const isSlideDeck =
+    descriptor.kind === 'google_slide' ||
+    ['ppt', 'pptx', 'presentation', 'slides'].includes(fileType);
+  const isVideo =
+    params.resourceType === 'VIDEO' ||
+    descriptor.kind === 'youtube' ||
+    descriptor.kind === 'html5_video';
+
+  if (isSlideDeck || isVideo) return false;
+  return (
+    descriptor.kind === 'download_file' ||
+    descriptor.kind === 'pdf' ||
+    descriptor.kind === 'google_doc' ||
+    descriptor.kind === 'google_drive_file'
+  );
 }

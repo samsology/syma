@@ -137,7 +137,7 @@ export default async function CourseDetailPage({ params }: Props) {
     provider: {
       '@type': 'Organization',
       name: 'Syma Tech Solutions',
-      sameAs: 'https://symatechsolutions.com',
+      sameAs: 'https://symatechs.com',
     },
     timeRequired: duration,
     offers: {

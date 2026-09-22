@@ -158,7 +158,7 @@ test('7. Lesson access, complete toggle, and progress calculation', () => {
 
 test('8. Admin Login validation and permissions isolation', () => {
   const adminLogin = adminLoginSchema.safeParse({
-    email: 'admin@symatechsolutions.com',
+    email: 'admin@symatechs.com',
     password: 'superSecretAdminPass123!',
   });
   assert.equal(adminLogin.success, true);

@@ -61,7 +61,7 @@ export function hashPasswordResetToken(token: string): string {
  * Returns the canonical password reset URL for a student.
  */
 export function getPasswordResetUrl(rawToken: string): string {
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechsolutions.com').replace(/\/$/, '');
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechs.com').replace(/\/$/, '');
   return `${baseUrl}/student/reset-password?token=${encodeURIComponent(rawToken.trim())}`;
 }
 

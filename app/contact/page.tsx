@@ -60,7 +60,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <strong className="block text-slate-900 font-bold mb-0.5">General Email</strong>
-                  <a href="mailto:symatechsolutions@gmail.com" className="hover:text-primary transition-colors font-semibold">symatechsolutions@gmail.com</a>
+                  <a href="mailto:symatechs@gmail.com" className="hover:text-primary transition-colors font-semibold">symatechs@gmail.com</a>
                 </div>
               </div>
             </div>

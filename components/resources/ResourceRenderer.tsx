@@ -13,6 +13,7 @@ import {
   Video,
 } from 'lucide-react';
 import {
+  canDownloadResource,
   getResourceEmbedDescriptor,
   isSafeEmbedUrl,
 } from '@/lib/resources/embed';
@@ -61,6 +62,14 @@ export function ResourceRenderer({
   });
 
   const formattedSize = formatBytes(fileSize);
+  const canDownload = canDownloadResource({
+    title,
+    fileUrl,
+    resourceType,
+    sourceType,
+    fileType,
+    isDownloadable,
+  });
 
   // Security check: only allow safe embed domains
   const isEmbedSafe = descriptor.embedUrl ? isSafeEmbedUrl(descriptor.embedUrl) : false;
@@ -73,7 +82,7 @@ export function ResourceRenderer({
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-slate-900 text-white/70">
               <div className="flex flex-col items-center gap-2">
-                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                <RefreshCw className="text-primary h-6 w-6 animate-spin" />
                 <span className="text-xs font-semibold">Loading video player...</span>
               </div>
             </div>
@@ -92,12 +101,12 @@ export function ResourceRenderer({
 
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded bg-red-100 px-2 py-0.5 font-bold uppercase text-red-700">
+            <span className="inline-flex items-center gap-1 rounded bg-red-100 px-2 py-0.5 font-bold text-red-700 uppercase">
               <Video className="h-3 w-3" /> YouTube Video
             </span>
             {description && <span className="text-slate-600">{description}</span>}
           </div>
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
             In-Portal Player
           </span>
         </div>
@@ -124,23 +133,15 @@ export function ResourceRenderer({
 
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded bg-sky-100 px-2 py-0.5 font-bold uppercase text-sky-800">
+            <span className="inline-flex items-center gap-1 rounded bg-sky-100 px-2 py-0.5 font-bold text-sky-800 uppercase">
               <Video className="h-3 w-3" /> Video Lecture
             </span>
             {formattedSize && <span>{formattedSize}</span>}
             {description && <span className="text-slate-600">· {description}</span>}
           </div>
-          {isDownloadable && (
-            <a
-              href={descriptor.originalUrl}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-            >
-              <Download className="h-3.5 w-3.5" /> Download Video
-            </a>
-          )}
+          <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+            In-Portal Player
+          </span>
         </div>
       </div>
     );
@@ -172,7 +173,7 @@ export function ResourceRenderer({
 
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded bg-indigo-100 px-2 py-0.5 font-bold uppercase text-indigo-800">
+            <span className="inline-flex items-center gap-1 rounded bg-indigo-100 px-2 py-0.5 font-bold text-indigo-800 uppercase">
               <Presentation className="h-3 w-3" /> Slide Presentation
             </span>
             {description && <span className="text-slate-600">{description}</span>}
@@ -201,11 +202,11 @@ export function ResourceRenderer({
   ) {
     return (
       <div className={`space-y-3 ${className}`}>
-        <div className="relative h-[480px] sm:h-[620px] w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="relative h-[480px] w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:h-[620px]">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-500">
               <div className="flex flex-col items-center gap-2">
-                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                <RefreshCw className="text-primary h-6 w-6 animate-spin" />
                 <span className="text-xs font-semibold">Rendering document inside portal...</span>
               </div>
             </div>
@@ -222,20 +223,20 @@ export function ResourceRenderer({
 
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 font-bold uppercase text-slate-700">
+            <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 font-bold text-slate-700 uppercase">
               <FileText className="h-3 w-3" /> Document
             </span>
             {formattedSize && <span>{formattedSize}</span>}
             {description && <span className="text-slate-600">· {description}</span>}
           </div>
           <div className="flex items-center gap-3">
-            {isDownloadable && (
+            {canDownload && (
               <a
                 href={descriptor.originalUrl}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                className="text-primary inline-flex items-center gap-1 font-semibold hover:underline"
               >
                 <Download className="h-3.5 w-3.5" /> Download
               </a>
@@ -274,26 +275,28 @@ export function ResourceRenderer({
     }
 
     return (
-      <div className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3 ${className}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div
+        className={`space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3.5">
-            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 shrink-0">
+            <div className="shrink-0 rounded-xl bg-emerald-50 p-3 text-emerald-600">
               <FolderOpen className="h-6 w-6 text-emerald-600" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded">
+                <span className="rounded bg-emerald-100/70 px-2 py-0.5 text-[10px] font-black tracking-wider text-emerald-700 uppercase">
                   {isDataset ? '📁 Practice Dataset' : '📁 Downloadable Resource'}
                 </span>
                 {fileType && (
-                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-600">
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 uppercase">
                     {fileType}
                   </span>
                 )}
               </div>
-              <h4 className="mt-1 font-bold text-slate-900 text-base">{title}</h4>
+              <h4 className="mt-1 text-base font-bold text-slate-900">{title}</h4>
               {fileName && fileName !== title && (
-                <p className="text-xs font-mono text-slate-500 mt-0.5">{fileName}</p>
+                <p className="mt-0.5 font-mono text-xs text-slate-500">{fileName}</p>
               )}
               {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
               {formattedSize && (
@@ -308,7 +311,7 @@ export function ResourceRenderer({
             download
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition shadow-xs shrink-0"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700"
           >
             <Download className="h-4 w-4" />
             <span>{isDataset ? 'Download Dataset' : 'Download File'}</span>
@@ -328,10 +331,12 @@ export function ResourceRenderer({
     }
 
     return (
-      <div className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3 ${className}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div
+        className={`space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-slate-100 p-2.5 text-slate-600 shrink-0">
+            <div className="shrink-0 rounded-lg bg-slate-100 p-2.5 text-slate-600">
               {hasError ? (
                 <AlertCircle className="h-6 w-6 text-amber-600" />
               ) : (
@@ -340,8 +345,8 @@ export function ResourceRenderer({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="font-bold text-slate-900 text-base">{title}</h4>
-                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600">
+                <h4 className="text-base font-bold text-slate-900">{title}</h4>
+                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 uppercase">
                   External
                 </span>
               </div>
@@ -360,7 +365,7 @@ export function ResourceRenderer({
             href={descriptor.originalUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition shrink-0"
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
           >
             <span>Open External Resource</span>
             <ExternalLink className="h-3.5 w-3.5 text-slate-500" />

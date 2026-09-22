@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { OFFICIAL_COURSES } from '@/lib/courses/catalog';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechsolutions.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechs.com';
 
   const staticRoutes = [
     '',

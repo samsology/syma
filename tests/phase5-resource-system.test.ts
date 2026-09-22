@@ -7,6 +7,7 @@ import {
   isSafeEmbedUrl,
   getResourceEmbedDescriptor,
   inferResourceMetaFromUrl,
+  canDownloadResource,
 } from '../lib/resources/embed';
 import {
   resourceSchema,
@@ -59,7 +60,9 @@ test('Phase 5.1: YouTube URL parser extracts IDs and timestamps across valid for
   assert.equal(playlistOnly?.videoId, undefined);
 
   // YouTube video with playlist
-  const videoWithList = parseYouTubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLMtHAcoMj2Pk');
+  const videoWithList = parseYouTubeId(
+    'https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLMtHAcoMj2Pk'
+  );
   assert.ok(videoWithList);
   assert.equal(videoWithList?.videoId, 'dQw4w9WgXcQ');
   assert.equal(videoWithList?.playlistId, 'PLMtHAcoMj2Pk');
@@ -115,9 +118,7 @@ test('Phase 5.2: Google Drive & Slides parser transforms URLs to in-portal embed
   assert.equal(driveFile?.embedUrl, 'https://drive.google.com/file/d/1AbC2DeF3GhI/preview');
 
   // Google Document preview
-  const docFile = parseGoogleDriveEmbedUrl(
-    'https://docs.google.com/document/d/1DocId123456/edit'
-  );
+  const docFile = parseGoogleDriveEmbedUrl('https://docs.google.com/document/d/1DocId123456/edit');
   assert.ok(docFile);
   assert.equal(docFile?.kind, 'doc');
   assert.equal(docFile?.embedUrl, 'https://docs.google.com/document/d/1DocId123456/preview');
@@ -219,7 +220,8 @@ test('Phase 5.5: inferResourceMetaFromUrl and getResourceEmbedDescriptor automat
 
   const slideDesc = getResourceEmbedDescriptor({
     title: 'Slide Deck',
-    fileUrl: 'https://docs.google.com/presentation/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit',
+    fileUrl:
+      'https://docs.google.com/presentation/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit',
   });
   assert.equal(slideDesc.kind, 'google_slide');
   assert.equal(slideDesc.isEmbeddable, true);
@@ -282,6 +284,16 @@ test('Phase 5.7: Resource Behavior Matrix enforces Video/PPTX/PDF in-portal, Dat
   assert.equal(ytDesc.kind, 'youtube');
   assert.equal(ytDesc.isEmbeddable, true);
   assert.equal(ytDesc.requiresExternalFallback, false);
+  assert.equal(
+    canDownloadResource({
+      title: 'Lecture Video',
+      fileUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      resourceType: 'VIDEO',
+      sourceType: 'YOUTUBE',
+      isDownloadable: true,
+    }),
+    false
+  );
 
   // YouTube Playlist -> In-Portal Viewing (not external redirect!)
   const playlistDesc = getResourceEmbedDescriptor({
@@ -307,6 +319,17 @@ test('Phase 5.7: Resource Behavior Matrix enforces Video/PPTX/PDF in-portal, Dat
   assert.equal(pptxDesc.isEmbeddable, true);
   assert.equal(pptxDesc.requiresExternalFallback, false);
   assert.ok(pptxDesc.embedUrl?.includes('/presentation/d/160u4Mu2tQ8QfXOJT2LpqmSt3c5vD57EM/embed'));
+  assert.equal(
+    canDownloadResource({
+      title: 'Data Fundamentals Slide Deck',
+      fileUrl: 'https://docs.google.com/presentation/d/160u4Mu2tQ8QfXOJT2LpqmSt3c5vD57EM/edit',
+      resourceType: 'DOCUMENT',
+      sourceType: 'GOOGLE_DRIVE',
+      fileType: 'pptx',
+      isDownloadable: true,
+    }),
+    false
+  );
 
   // 3. PDF Document -> In-Portal Viewing where supported
   const pdfDesc = getResourceEmbedDescriptor({
@@ -329,6 +352,17 @@ test('Phase 5.7: Resource Behavior Matrix enforces Video/PPTX/PDF in-portal, Dat
   });
   assert.equal(csvDataset.kind, 'download_file');
   assert.equal(csvDataset.isEmbeddable, false);
+  assert.equal(
+    canDownloadResource({
+      title: 'Practice Dataset',
+      fileUrl: '/assets/datasets/customer_churn.csv',
+      resourceType: 'FILE',
+      sourceType: 'UPLOAD',
+      fileType: 'csv',
+      isDownloadable: true,
+    }),
+    true
+  );
 
   const excelDataset = getResourceEmbedDescriptor({
     title: 'Financial Model Dataset',

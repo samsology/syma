@@ -6,12 +6,6 @@ import { getStudentLesson } from '@/lib/student-course/queries';
 import { setLessonProgressAction } from '@/app/student/progress-actions';
 import { ResourceStage } from '@/components/resources/ResourceStage';
 
-function formatFileSize(bytes?: number | null) {
-  if (!bytes || bytes <= 0) return null;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 type StudentLessonPageProps = {
   params: Promise<{ courseId: string; lessonId: string }>;

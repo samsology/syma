@@ -17,7 +17,7 @@ const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 function getEmailConfig() {
   const apiKey = process.env.BREVO_API_KEY?.trim();
-  const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || 'symatechsolutions@gmail.com';
+  const senderEmail = process.env.BREVO_SENDER_EMAIL?.trim() || 'symatechs@gmail.com';
   const senderName = process.env.BREVO_SENDER_NAME?.trim() || 'Syma Tech Solutions';
 
   if (!apiKey) {

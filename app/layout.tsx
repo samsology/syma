@@ -5,7 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechsolutions.com';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechs.com';
 
 export const metadata: Metadata = {
   title: {

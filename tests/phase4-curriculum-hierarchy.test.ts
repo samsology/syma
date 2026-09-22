@@ -5,6 +5,7 @@ import { summarySchema, summaryResourceTypeSchema } from '../lib/validation/summ
 import { quizSchema } from '../lib/validation/quiz';
 import { assignmentSchema } from '../lib/validation/assignment';
 import { calculateModuleProgress, summarizeLessonProgress } from '../lib/student-course/progress';
+import { getQuizQuestions, getPublicQuizQuestions, evaluateQuizSubmission } from '../lib/curriculum/quiz-engine';
 
 // ---------------------------------------------------------------------------
 // 1. Unified Lesson Delivery Formats (Slide vs Video)
@@ -188,3 +189,54 @@ test('Phase 4.6: Standard summarizeLessonProgress remains 100% backward compatib
   assert.equal(result.isComplete, false);
   assert.equal(result.nextLessonId, 'c');
 });
+
+// ---------------------------------------------------------------------------
+// 7. Assessment Integrity: Server-Side Quiz Scoring
+// ---------------------------------------------------------------------------
+test('Phase 4.7: Quiz engine evaluates student answers on the server and prevents score tampering', () => {
+  const quiz = {
+    title: 'Data Fundamentals Mastery',
+    passingScore: 75,
+    maxAttempts: 2,
+    instructions: null,
+  };
+
+  const questions = getQuizQuestions(quiz);
+  assert.ok(questions.length > 0);
+
+  // Verify public questions do not leak correctIndex
+  const publicQuestions = getPublicQuizQuestions(questions);
+  assert.equal(publicQuestions.length, questions.length);
+  for (const pq of publicQuestions) {
+    assert.equal('correctIndex' in pq, false);
+    assert.ok(pq.options.length > 1);
+  }
+
+  // Passing answers (all correct)
+  const perfectAnswers: Record<string, number> = {};
+  for (const q of questions) {
+    perfectAnswers[q.id] = q.correctIndex;
+  }
+  const perfectResult = evaluateQuizSubmission(questions, perfectAnswers, quiz.passingScore);
+  assert.equal(perfectResult.score, 100);
+  assert.equal(perfectResult.passed, true);
+  assert.equal(perfectResult.correctCount, questions.length);
+
+  // Failing answers (all wrong)
+  const wrongAnswers: Record<string, number> = {};
+  for (const q of questions) {
+    wrongAnswers[q.id] = (q.correctIndex + 1) % q.options.length;
+  }
+  const wrongResult = evaluateQuizSubmission(questions, wrongAnswers, quiz.passingScore);
+  assert.equal(wrongResult.score, 0);
+  assert.equal(wrongResult.passed, false);
+
+  // Partial score below threshold (1 of 4 = 25% < 75%)
+  const partialAnswers: Record<string, number> = {
+    [questions[0].id]: questions[0].correctIndex,
+  };
+  const partialResult = evaluateQuizSubmission(questions, partialAnswers, quiz.passingScore);
+  assert.equal(partialResult.score, 25);
+  assert.equal(partialResult.passed, false);
+});
+

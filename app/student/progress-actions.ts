@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { getStudentLesson } from '@/lib/student-course/queries';
+import { getQuizQuestions, evaluateQuizSubmission } from '@/lib/curriculum/quiz-engine';
 
 export async function setLessonProgressAction(formData: FormData) {
   const student = await requireStudent();
@@ -51,6 +52,20 @@ export async function setModuleSummaryProgressAction(formData: FormData) {
 
   if (!courseId || !moduleId || !moduleSummaryId) redirect('/student');
 
+  // Verify student is actively enrolled in this course
+  const enrollment = await db.enrollment.findUnique({
+    where: { studentId_courseId: { studentId: student.id, courseId } },
+  });
+  if (!enrollment || !['ACTIVE', 'COMPLETED'].includes(enrollment.status)) {
+    redirect(`/student/courses/${courseId}`);
+  }
+
+  // Verify module summary exists and belongs to this course & module
+  const summary = await db.moduleSummary.findFirst({
+    where: { id: moduleSummaryId, moduleId, module: { week: { courseId } } },
+  });
+  if (!summary) redirect(`/student/courses/${courseId}`);
+
   await db.moduleSummaryProgress.upsert({
     where: {
       studentId_moduleSummaryId: {
@@ -81,11 +96,27 @@ export async function recordQuizAttemptAction(formData: FormData) {
   const courseId = String(formData.get('courseId') ?? '');
   const moduleId = String(formData.get('moduleId') ?? '');
   const quizId = String(formData.get('quizId') ?? '');
-  const score = Number(formData.get('score') ?? 100);
 
   if (!courseId || !moduleId || !quizId) redirect('/student');
 
-  const quiz = await db.moduleQuiz.findUnique({ where: { id: quizId } });
+  // Verify student is actively enrolled in this course
+  const enrollment = await db.enrollment.findUnique({
+    where: { studentId_courseId: { studentId: student.id, courseId } },
+  });
+  if (!enrollment || !['ACTIVE', 'COMPLETED'].includes(enrollment.status)) {
+    redirect(`/student/courses/${courseId}`);
+  }
+
+  // Verify quiz exists and belongs to this module & course
+  const quiz = await db.moduleQuiz.findFirst({
+    where: { id: quizId, moduleId, status: 'PUBLISHED', module: { week: { courseId } } },
+    include: {
+      questions: {
+        include: { options: true },
+        orderBy: { order: 'asc' },
+      },
+    },
+  });
   if (!quiz) redirect(`/student/courses/${courseId}`);
 
   const previousAttempts = await db.quizAttempt.count({
@@ -96,18 +127,77 @@ export async function recordQuizAttemptAction(formData: FormData) {
     redirect(`/student/courses/${courseId}/modules/${moduleId}/quiz`);
   }
 
-  const passed = score >= quiz.passingScore;
+  // Handle relational questions if present
+  if (quiz.questions && quiz.questions.length > 0) {
+    const submittedAnswers: Record<string, string> = {};
+    for (const q of quiz.questions) {
+      const rawVal = formData.get(`question_${q.id}`);
+      if (rawVal !== null && rawVal !== '') {
+        submittedAnswers[q.id] = String(rawVal);
+      }
+    }
 
-  await db.quizAttempt.create({
-    data: {
-      studentId: student.id,
-      quizId,
-      attemptNumber: previousAttempts + 1,
-      score,
-      passed,
-      completedAt: new Date(),
-    },
-  });
+    const { gradeRelationalQuizSubmission } = await import('@/lib/curriculum/quiz-engine');
+    const result = gradeRelationalQuizSubmission(
+      quiz.questions,
+      submittedAnswers,
+      quiz.passingScore
+    );
+
+    await db.quizAttempt.create({
+      data: {
+        studentId: student.id,
+        quizId,
+        attemptNumber: previousAttempts + 1,
+        score: result.score,
+        percentage: result.percentage,
+        passed: result.passed,
+        startedAt: new Date(),
+        completedAt: new Date(),
+        submittedAt: new Date(),
+        answers: {
+          create: result.answers.map((ans) => ({
+            questionId: ans.questionId,
+            selectedOptionId: ans.selectedOptionId,
+            isCorrect: ans.isCorrect,
+            pointsAwarded: ans.pointsAwarded,
+          })),
+        },
+      },
+    });
+  } else {
+    // Server-side scoring for legacy topic banks / embedded JSON
+    const questions = getQuizQuestions(quiz);
+    const submittedAnswers: Record<string, number> = {};
+
+    for (const q of questions) {
+      const rawVal = formData.get(`question_${q.id}`);
+      if (rawVal !== null && rawVal !== '') {
+        submittedAnswers[q.id] = Number(rawVal);
+      }
+    }
+
+    // Purely server-evaluated score
+    const { score, passed } = evaluateQuizSubmission(
+      questions,
+      submittedAnswers,
+      quiz.passingScore
+    );
+
+    await db.quizAttempt.create({
+      data: {
+        studentId: student.id,
+        quizId,
+        attemptNumber: previousAttempts + 1,
+        score,
+        percentage: score,
+        passed,
+        startedAt: new Date(),
+        completedAt: new Date(),
+        submittedAt: new Date(),
+      },
+    });
+  }
 
   revalidatePath('/student');
   revalidatePath(`/student/courses/${courseId}`);
@@ -124,6 +214,20 @@ export async function submitWeeklyAssignmentAction(formData: FormData) {
   const fileUrl = String(formData.get('fileUrl') ?? '');
 
   if (!courseId || !weekId || !assignmentId) redirect('/student');
+
+  // Verify student is actively enrolled in this course
+  const enrollment = await db.enrollment.findUnique({
+    where: { studentId_courseId: { studentId: student.id, courseId } },
+  });
+  if (!enrollment || !['ACTIVE', 'COMPLETED'].includes(enrollment.status)) {
+    redirect(`/student/courses/${courseId}`);
+  }
+
+  // Verify assignment exists and belongs to this week & course
+  const assignment = await db.weeklyAssignment.findFirst({
+    where: { id: assignmentId, weekId, week: { courseId } },
+  });
+  if (!assignment) redirect(`/student/courses/${courseId}`);
 
   await db.assignmentSubmission.upsert({
     where: {
@@ -153,4 +257,3 @@ export async function submitWeeklyAssignmentAction(formData: FormData) {
   revalidatePath(`/student/courses/${courseId}/weeks/${weekId}/assignment`);
   redirect(`/student/courses/${courseId}/weeks/${weekId}/assignment`);
 }
-

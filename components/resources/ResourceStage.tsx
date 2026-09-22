@@ -1,19 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Download,
-  ExternalLink,
-  Eye,
-  FileText,
-  Play,
-  Presentation,
-  Video,
-  X,
-} from 'lucide-react';
-import type { LessonResource } from '@prisma/client';
+import { Download, ExternalLink, Eye, FileText, Play, Presentation, Video, X } from 'lucide-react';
+import type { LessonResource, ResourceType, ResourceSource } from '@prisma/client';
 import { ResourceRenderer } from './ResourceRenderer';
-import { getResourceEmbedDescriptor } from '@/lib/resources/embed';
+import { canDownloadResource, getResourceEmbedDescriptor } from '@/lib/resources/embed';
 
 interface ResourceStageProps {
   lessonTitle: string;
@@ -35,8 +26,8 @@ export function ResourceStage({
     id: string;
     title: string;
     fileUrl: string;
-    resourceType?: any;
-    sourceType?: any;
+    resourceType?: ResourceType;
+    sourceType?: ResourceSource;
     fileType?: string;
     fileSize?: number | null;
     description?: string | null;
@@ -111,11 +102,11 @@ export function ResourceStage({
       {activeMedia && (
         <section
           id="in-portal-resource-stage"
-          className="rounded-2xl border-2 border-primary/20 bg-slate-900/5 p-4 sm:p-6 shadow-sm transition"
+          className="border-primary/20 rounded-2xl border-2 bg-slate-900/5 p-4 shadow-sm transition sm:p-6"
         >
           <div className="mb-4 flex items-center justify-between border-b border-slate-200/80 pb-3">
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-white">
+              <span className="bg-primary flex h-7 w-7 items-center justify-center rounded-lg text-white">
                 {activeMedia.resourceType === 'VIDEO' ? (
                   <Video className="h-4 w-4" />
                 ) : activeMedia.resourceType === 'DOCUMENT' ? (
@@ -125,7 +116,7 @@ export function ResourceStage({
                 )}
               </span>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+                <span className="text-primary text-[10px] font-black tracking-wider uppercase">
                   In-Portal Learning Viewer
                 </span>
                 <h3 className="text-base font-bold text-slate-950">{activeMedia.title}</h3>
@@ -135,7 +126,7 @@ export function ResourceStage({
             <button
               type="button"
               onClick={() => setActiveMedia(null)}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
               title="Close viewer"
             >
               <X className="h-3.5 w-3.5" />
@@ -162,7 +153,8 @@ export function ResourceStage({
           <div className="border-b border-slate-100 pb-3">
             <h3 className="text-xl font-black text-slate-950">Lesson Resources &amp; Materials</h3>
             <p className="mt-1 text-xs text-slate-500">
-              Consume interactive presentations, video explainers, datasets, and guides directly within this lesson.
+              Consume interactive presentations, video explainers, datasets, and guides directly
+              within this lesson.
             </p>
           </div>
 
@@ -181,12 +173,30 @@ export function ResourceStage({
               const isDataset =
                 resource.resourceType === 'FILE' ||
                 descriptor.kind === 'download_file' ||
-                ['csv', 'xlsx', 'xls', 'zip', 'pbix', 'ipynb', 'parquet', 'tsv', 'dataset'].includes(
-                  resource.fileType?.toLowerCase() || ''
-                ) ||
+                [
+                  'csv',
+                  'xlsx',
+                  'xls',
+                  'zip',
+                  'pbix',
+                  'ipynb',
+                  'parquet',
+                  'tsv',
+                  'dataset',
+                ].includes(resource.fileType?.toLowerCase() || '') ||
                 /dataset|data/i.test(resource.name);
 
               const isVideo = resource.resourceType === 'VIDEO' || descriptor.kind === 'youtube';
+              const canDownloadInline =
+                descriptor.isEmbeddable &&
+                canDownloadResource({
+                  title: resource.name,
+                  fileUrl: resource.fileUrl,
+                  resourceType: resource.resourceType,
+                  sourceType: resource.sourceType,
+                  fileType: resource.fileType,
+                  isDownloadable: resource.isDownloadable,
+                });
 
               return (
                 <div
@@ -209,21 +219,24 @@ export function ResourceStage({
 
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-bold text-slate-900 text-sm">{resource.name}</p>
+                        <p className="text-sm font-bold text-slate-900">{resource.name}</p>
                         {resource.resourceType && (
-                          <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                            {isDataset && resource.resourceType === 'FILE' ? 'DATASET' : resource.resourceType}
+                          <span className="py-0.2 rounded bg-slate-100 px-1.5 text-[10px] font-black tracking-wider text-slate-600 uppercase">
+                            {isDataset && resource.resourceType === 'FILE'
+                              ? 'DATASET'
+                              : resource.resourceType}
                           </span>
                         )}
                       </div>
                       {resource.description && (
                         <p className="mt-0.5 text-xs text-slate-500">{resource.description}</p>
                       )}
-                      <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400 uppercase font-semibold">
+                      <div className="mt-1 flex items-center gap-2 text-[11px] font-semibold text-slate-400 uppercase">
                         <span>{resource.fileType}</span>
                         {resource.fileSize ? (
                           <span>
-                            · {resource.fileSize < 1024 * 1024
+                            ·{' '}
+                            {resource.fileSize < 1024 * 1024
                               ? `${(resource.fileSize / 1024).toFixed(1)} KB`
                               : `${(resource.fileSize / (1024 * 1024)).toFixed(1)} MB`}
                           </span>
@@ -232,7 +245,7 @@ export function ResourceStage({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                  <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
                     {descriptor.isEmbeddable ? (
                       <button
                         type="button"
@@ -255,7 +268,7 @@ export function ResourceStage({
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                           isCurrentlyActive
                             ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-primary text-white hover:bg-secondary'
+                            : 'bg-primary hover:bg-secondary text-white'
                         }`}
                       >
                         {isVideo ? (
@@ -267,8 +280,8 @@ export function ResourceStage({
                           {isCurrentlyActive
                             ? 'Viewing in Portal'
                             : isVideo
-                            ? 'Watch in Portal'
-                            : 'View in Portal'}
+                              ? 'Watch in Portal'
+                              : 'View in Portal'}
                         </span>
                       </button>
                     ) : descriptor.kind === 'download_file' || isDataset ? (
@@ -277,7 +290,7 @@ export function ResourceStage({
                         download
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition shadow-2xs"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs transition hover:bg-emerald-700"
                       >
                         <Download className="h-3.5 w-3.5" />
                         <span>{isDataset ? 'Download Dataset' : 'Download File'}</span>
@@ -287,20 +300,20 @@ export function ResourceStage({
                         href={resource.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
                       >
                         <span>Visit Link</span>
                         <ExternalLink className="h-3 w-3 text-slate-400" />
                       </a>
                     )}
 
-                    {descriptor.isEmbeddable && resource.isDownloadable && (
+                    {canDownloadInline && (
                       <a
                         href={resource.fileUrl}
                         download
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                         title="Download file directly"
                       >
                         <Download className="h-3.5 w-3.5" />
