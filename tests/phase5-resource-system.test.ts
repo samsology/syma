@@ -71,21 +71,21 @@ test('Phase 5.1: YouTube URL parser extracts IDs and timestamps across valid for
   const embedUrl = buildYouTubeEmbedUrl('dQw4w9WgXcQ', 90);
   assert.equal(
     embedUrl,
-    'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&playsinline=1&start=90'
+    'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&start=90'
   );
 
   // Secure embed URL generation (playlist only)
   const playlistEmbedUrl = buildYouTubeEmbedUrl(undefined, undefined, 'PLMtHAcoMj2Pk');
   assert.equal(
     playlistEmbedUrl,
-    'https://www.youtube-nocookie.com/embed/videoseries?list=PLMtHAcoMj2Pk&rel=0&modestbranding=1&playsinline=1'
+    'https://www.youtube-nocookie.com/embed/videoseries?list=PLMtHAcoMj2Pk&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3'
   );
 
   // Secure embed URL generation (video with playlist)
   const videoListEmbed = buildYouTubeEmbedUrl('dQw4w9WgXcQ', undefined, 'PLMtHAcoMj2Pk');
   assert.equal(
     videoListEmbed,
-    'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&playsinline=1&list=PLMtHAcoMj2Pk'
+    'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&list=PLMtHAcoMj2Pk'
   );
 
   // Invalid formats rejected

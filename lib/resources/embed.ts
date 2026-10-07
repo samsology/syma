@@ -135,6 +135,7 @@ export function buildYouTubeEmbedUrl(
       rel: '0',
       modestbranding: '1',
       playsinline: '1',
+      iv_load_policy: '3',
     });
     if (startSeconds && startSeconds > 0) {
       params.set('start', String(startSeconds));
@@ -151,6 +152,7 @@ export function buildYouTubeEmbedUrl(
       rel: '0',
       modestbranding: '1',
       playsinline: '1',
+      iv_load_policy: '3',
     });
     return `https://www.youtube-nocookie.com/embed/videoseries?${params.toString()}`;
   }

@@ -101,8 +101,8 @@ export function ResourceRenderer({
 
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded bg-red-100 px-2 py-0.5 font-bold text-red-700 uppercase">
-              <Video className="h-3 w-3" /> YouTube Video
+            <span className="inline-flex items-center gap-1 rounded bg-sky-100 px-2 py-0.5 font-bold text-sky-800 uppercase">
+              <Video className="h-3 w-3" /> Video Lecture
             </span>
             {description && <span className="text-slate-600">{description}</span>}
           </div>
