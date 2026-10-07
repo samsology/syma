@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { requireStudent } from '@/lib/auth/student-authorization';
+import { db } from '@/lib/db';
 import { getStudentLesson } from '@/lib/student-course/queries';
 import { setLessonProgressAction } from '@/app/student/progress-actions';
 import { ResourceStage } from '@/components/resources/ResourceStage';
-
 
 type StudentLessonPageProps = {
   params: Promise<{ courseId: string; lessonId: string }>;
@@ -18,6 +18,38 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
   if (!result) redirect(`/student/courses/${courseId}`);
 
   const { enrollment, lesson, previousLesson, nextLesson, isCompleted, progress } = result;
+
+  const [completedLessonProgress, completedSummaryProgress, passedAttempts, assignmentSubmissions] =
+    await Promise.all([
+      db.lessonProgress.findMany({
+        where: { studentId: student.id, isCompleted: true },
+        select: { lessonId: true },
+      }),
+      db.moduleSummaryProgress.findMany({
+        where: { studentId: student.id, isCompleted: true },
+        select: { moduleSummaryId: true },
+      }),
+      db.quizAttempt.findMany({
+        where: { studentId: student.id, passed: true },
+        select: { quizId: true },
+      }),
+      db.assignmentSubmission.findMany({
+        where: { studentId: student.id },
+        select: { assignmentId: true },
+      }),
+    ]);
+
+  const { isItemUnlocked } = await import('@/lib/student-course/drip-progression');
+  const unlocked = isItemUnlocked(enrollment.course, lessonId, {
+    completedLessonIds: completedLessonProgress.map((p: { lessonId: string }) => p.lessonId),
+    completedSummaryIds: completedSummaryProgress.map((p: { moduleSummaryId: string }) => p.moduleSummaryId),
+    passedQuizIds: passedAttempts.map((a: { quizId: string }) => a.quizId),
+    submittedAssignmentIds: assignmentSubmissions.map((a: { assignmentId: string }) => a.assignmentId),
+  });
+
+  if (!unlocked) {
+    redirect(`/student/courses/${courseId}`);
+  }
 
   return (
     <article className="space-y-6">

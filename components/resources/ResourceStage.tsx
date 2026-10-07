@@ -296,15 +296,9 @@ export function ResourceStage({
                         <span>{isDataset ? 'Download Dataset' : 'Download File'}</span>
                       </a>
                     ) : (
-                      <a
-                        href={resource.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-                      >
-                        <span>Visit Link</span>
-                        <ExternalLink className="h-3 w-3 text-slate-400" />
-                      </a>
+                      <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
+                        In-Portal Only
+                      </span>
                     )}
 
                     {canDownloadInline && (

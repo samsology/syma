@@ -433,23 +433,34 @@ export function canDownloadResource(params: {
   fileType?: string;
   isDownloadable?: boolean;
 }): boolean {
-  if (!params.isDownloadable) return false;
+  if (params.isDownloadable === false) return false;
 
   const descriptor = getResourceEmbedDescriptor(params);
   const fileType = params.fileType?.toLowerCase() || '';
-  const isSlideDeck =
-    descriptor.kind === 'google_slide' ||
-    ['ppt', 'pptx', 'presentation', 'slides'].includes(fileType);
+
+  // Never allow download for videos, slides, docs, or presentations
   const isVideo =
     params.resourceType === 'VIDEO' ||
     descriptor.kind === 'youtube' ||
     descriptor.kind === 'html5_video';
 
-  if (isSlideDeck || isVideo) return false;
-  return (
-    descriptor.kind === 'download_file' ||
-    descriptor.kind === 'pdf' ||
+  const isSlideOrDoc =
+    params.resourceType === 'DOCUMENT' ||
+    descriptor.kind === 'google_slide' ||
     descriptor.kind === 'google_doc' ||
-    descriptor.kind === 'google_drive_file'
-  );
+    descriptor.kind === 'pdf' ||
+    ['ppt', 'pptx', 'presentation', 'slides', 'doc', 'docx', 'pdf'].includes(fileType);
+
+  if (isVideo || isSlideOrDoc) return false;
+
+  // Only allow datasets / data files
+  const isDataset =
+    params.resourceType === 'FILE' ||
+    descriptor.kind === 'download_file' ||
+    ['csv', 'xlsx', 'xls', 'zip', 'pbix', 'ipynb', 'parquet', 'tsv', 'json', 'sql', 'dataset'].includes(
+      fileType
+    ) ||
+    /dataset|data/i.test(params.title);
+
+  return isDataset;
 }

@@ -11,7 +11,7 @@ type WeeklyAssignmentPageProps = {
 
 export default async function StudentWeeklyAssignmentPage({ params }: WeeklyAssignmentPageProps) {
   const [{ courseId, weekId }, student] = await Promise.all([params, requireStudent()]);
-  await requireEnrollment(student.id, courseId);
+  const enrollment = await requireEnrollment(student.id, courseId);
 
   const week = await db.courseWeek.findFirst({
     where: { id: weekId, courseId },
@@ -25,6 +25,38 @@ export default async function StudentWeeklyAssignmentPage({ params }: WeeklyAssi
   }
 
   const assignment = week.assignment;
+
+  const [completedLessonProgress, completedSummaryProgress, passedAttempts, assignmentSubmissions] =
+    await Promise.all([
+      db.lessonProgress.findMany({
+        where: { studentId: student.id, isCompleted: true },
+        select: { lessonId: true },
+      }),
+      db.moduleSummaryProgress.findMany({
+        where: { studentId: student.id, isCompleted: true },
+        select: { moduleSummaryId: true },
+      }),
+      db.quizAttempt.findMany({
+        where: { studentId: student.id, passed: true },
+        select: { quizId: true },
+      }),
+      db.assignmentSubmission.findMany({
+        where: { studentId: student.id },
+        select: { assignmentId: true },
+      }),
+    ]);
+
+  const { isItemUnlocked } = await import('@/lib/student-course/drip-progression');
+  const unlocked = isItemUnlocked(enrollment.course, assignment.id, {
+    completedLessonIds: completedLessonProgress.map((p) => p.lessonId),
+    completedSummaryIds: completedSummaryProgress.map((p) => p.moduleSummaryId),
+    passedQuizIds: passedAttempts.map((a) => a.quizId),
+    submittedAssignmentIds: assignmentSubmissions.map((a) => a.assignmentId),
+  });
+
+  if (!unlocked) {
+    redirect(`/student/courses/${courseId}`);
+  }
 
   const submission = await db.assignmentSubmission.findUnique({
     where: {

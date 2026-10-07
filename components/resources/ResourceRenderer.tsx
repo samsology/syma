@@ -178,14 +178,9 @@ export function ResourceRenderer({
             </span>
             {description && <span className="text-slate-600">{description}</span>}
           </div>
-          <a
-            href={descriptor.originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-semibold text-indigo-600 hover:underline"
-          >
-            <Maximize2 className="h-3 w-3" /> Open Full Screen in Google Slides
-          </a>
+          <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+            In-Portal Player
+          </span>
         </div>
       </div>
     );
@@ -238,17 +233,12 @@ export function ResourceRenderer({
                 rel="noopener noreferrer"
                 className="text-primary inline-flex items-center gap-1 font-semibold hover:underline"
               >
-                <Download className="h-3.5 w-3.5" /> Download
+                <Download className="h-3.5 w-3.5" /> Download Dataset
               </a>
             )}
-            <a
-              href={descriptor.originalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900"
-            >
-              Open External <ExternalLink className="h-3 w-3" />
-            </a>
+            <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+              In-Portal Viewer
+            </span>
           </div>
         </div>
       </div>
