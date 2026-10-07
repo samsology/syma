@@ -662,7 +662,8 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                                 {editingQuiz === module.id ? (
                                   <ModuleQuizForm
                                     courseId={course.id}
-                                    action={upsertModuleQuizAction.bind(null, course.id, module.id)}
+                                    moduleId={module.id}
+                                    action={upsertModuleQuizAction}
                                     quiz={module.quiz}
                                     questions={module.quiz?.questions ?? []}
                                     onDone={() => setEditingQuiz(null)}

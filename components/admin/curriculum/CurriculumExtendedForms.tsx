@@ -22,11 +22,15 @@ import {
   HelpCircle,
   Check,
   X,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import type { CurriculumFormState } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
 import {
   deleteQuizQuestionAction,
   saveQuizQuestionAction,
+  moveQuizQuestionAction,
+  upsertModuleQuizAction,
 } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
 
 const initialState: CurriculumFormState = {};
@@ -203,37 +207,41 @@ export type QuestionWithOptions = QuizQuestion & {
 
 export function ModuleQuizForm({
   courseId,
+  moduleId,
   action,
   quiz,
   questions = [],
   onDone,
 }: {
   courseId: string;
-  action: (state: CurriculumFormState, formData: FormData) => Promise<CurriculumFormState>;
+  moduleId?: string;
+  action?: (state: CurriculumFormState, formData: FormData) => Promise<CurriculumFormState>;
   quiz?: ModuleQuiz | null;
   questions?: QuestionWithOptions[];
   onDone?: () => void;
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const serverAction = action ?? upsertModuleQuizAction;
+  const [state, formAction, pending] = useActionState(serverAction, initialState);
   const [savedQuizId, setSavedQuizId] = useState<string | null>(null);
   const activeQuizId = savedQuizId ?? state.quizId ?? quiz?.id ?? null;
 
   useEffect(() => {
     if (state.quizId) {
       setSavedQuizId(state.quizId);
-      return;
     }
 
-    if (state.success && quiz?.id) {
+    if (state.success) {
       router.refresh();
     }
-  }, [state.quizId, state.success, quiz?.id, router]);
+  }, [state.quizId, state.success, router]);
 
   const handleDone = () => {
     router.refresh();
     onDone?.();
   };
+
+  const targetModuleId = moduleId ?? quiz?.moduleId ?? '';
 
   return (
     <div className="space-y-4">
@@ -241,17 +249,24 @@ export function ModuleQuizForm({
         action={formAction}
         className="space-y-4 rounded-xl border-2 border-amber-200 bg-amber-50/40 p-5 shadow-xs"
       >
+        <input type="hidden" name="courseId" value={courseId} />
+        <input type="hidden" name="moduleId" value={targetModuleId} />
+
         <div className="flex items-center gap-2 border-b border-amber-100 pb-3">
           <Award className="h-5 w-5 text-amber-600" />
           <h4 className="text-sm font-bold tracking-wider text-amber-900 uppercase">
-            {quiz ? 'Edit Module Quiz' : 'Add Module Quiz'}
+            {quiz || activeQuizId ? 'Edit Module Quiz' : 'Add Module Quiz'}
           </h4>
         </div>
 
-        {state.formError && <p className="text-error text-sm font-semibold">{state.formError}</p>}
+        {state.formError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+            {state.formError}
+          </div>
+        )}
         {state.success && (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-            Quiz saved. Add questions below, then publish when ready.
+            Quiz saved. You can now add questions below.
           </div>
         )}
 
@@ -266,6 +281,18 @@ export function ModuleQuizForm({
               required
             />
             <FieldError errors={state.fieldErrors?.title} />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-bold text-slate-600 uppercase">Quiz Description (Optional)</label>
+            <textarea
+              name="description"
+              defaultValue={quiz?.description ?? ''}
+              rows={2}
+              placeholder="Short overview or summary of what this quiz covers..."
+              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+            />
+            <FieldError errors={state.fieldErrors?.description} />
           </div>
 
           <div>
@@ -415,6 +442,28 @@ export function ModuleQuizForm({
             {pending ? 'Saving...' : 'Save Quiz'}
           </button>
         </div>
+
+        {!activeQuizId && (
+          <div className="space-y-3 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/40 p-6 text-center shadow-xs">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+              <HelpCircle className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <h5 className="text-sm font-bold text-amber-950">Quiz Questions &amp; Answer Choices</h5>
+              <p className="mx-auto max-w-md text-xs text-slate-600">
+                Save the quiz configuration above to start adding questions. Once saved, the question authoring builder will immediately unlock right here.
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-amber-700 disabled:opacity-60"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {pending ? 'Saving Quiz...' : 'Save Quiz to Add Questions'}
+            </button>
+          </div>
+        )}
       </form>
 
       {activeQuizId && (
@@ -427,14 +476,81 @@ export function ModuleQuizForm({
 export function QuizQuestionManager({
   courseId,
   quizId,
-  questions,
+  questions = [],
 }: {
   courseId: string;
   quizId: string;
   questions: QuestionWithOptions[];
 }) {
   const router = useRouter();
+  const [questionList, setQuestionList] = useState<QuestionWithOptions[]>(questions);
   const [editingQuestion, setEditingQuestion] = useState<QuestionWithOptions | 'new' | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setQuestionList(questions);
+  }, [questions]);
+
+  const handleQuestionSaved = (saved: QuestionWithOptions) => {
+    setQuestionList((prev) => {
+      const idx = prev.findIndex((q) => q.id === saved.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = saved;
+        return next;
+      }
+      return [...prev, saved];
+    });
+    setEditingQuestion(null);
+  };
+
+  const handleDelete = async (questionId: string) => {
+    if (!window.confirm('Delete this question and all its choices?')) return;
+    setDeletingId(questionId);
+    setActionError(null);
+    try {
+      await deleteQuizQuestionAction(courseId, questionId);
+      setQuestionList((prev) => prev.filter((q) => q.id !== questionId));
+      router.refresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to delete question.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleMove = async (questionId: string, direction: 'UP' | 'DOWN') => {
+    setReorderingId(questionId);
+    setActionError(null);
+    try {
+      const formData = new FormData();
+      formData.set('courseId', courseId);
+      formData.set('quizId', quizId);
+      formData.set('questionId', questionId);
+      formData.set('direction', direction.toLowerCase());
+
+      await moveQuizQuestionAction(formData);
+      // Optimistic swap
+      setQuestionList((prev) => {
+        const idx = prev.findIndex((q) => q.id === questionId);
+        if (idx === -1) return prev;
+        const targetIdx = direction === 'UP' ? idx - 1 : idx + 1;
+        if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+        const copy = [...prev];
+        const temp = copy[idx];
+        copy[idx] = copy[targetIdx];
+        copy[targetIdx] = temp;
+        return copy;
+      });
+      router.refresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to reorder question.');
+    } finally {
+      setReorderingId(null);
+    }
+  };
 
   return (
     <div className="mt-3 space-y-3 rounded-xl border border-amber-200 bg-amber-50/20 p-4">
@@ -442,13 +558,16 @@ export function QuizQuestionManager({
         <div className="flex items-center gap-2">
           <HelpCircle className="h-4 w-4 text-amber-600" />
           <h5 className="text-xs font-bold tracking-wider text-amber-950 uppercase">
-            Quiz Questions ({questions.length})
+            Quiz Questions ({questionList.length})
           </h5>
         </div>
         {editingQuestion === null && (
           <button
             type="button"
-            onClick={() => setEditingQuestion('new')}
+            onClick={() => {
+              setActionError(null);
+              setEditingQuestion('new');
+            }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-2xs transition hover:bg-amber-700"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -457,29 +576,40 @@ export function QuizQuestionManager({
         )}
       </div>
 
+      {actionError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs font-semibold text-red-600">
+          {actionError}
+        </div>
+      )}
+
       {editingQuestion !== null ? (
         <QuizQuestionEditor
           courseId={courseId}
           quizId={quizId}
           question={editingQuestion === 'new' ? null : editingQuestion}
+          onSaved={handleQuestionSaved}
           onDone={() => setEditingQuestion(null)}
         />
-      ) : questions.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-amber-200 bg-white/60 p-5 text-center">
-          <p className="text-xs font-semibold text-slate-600">
-            No relational questions created yet. Add questions with multiple-choice options below.
+      ) : questionList.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-amber-300 bg-white/70 p-6 text-center">
+          <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+            <HelpCircle className="h-4 w-4" />
+          </div>
+          <p className="text-sm font-semibold text-slate-800">No questions added yet</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Add questions with multiple-choice options to test student comprehension.
           </p>
           <button
             type="button"
             onClick={() => setEditingQuestion('new')}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 transition hover:bg-amber-100"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs transition hover:bg-amber-700"
           >
             <Plus className="h-3.5 w-3.5" /> Create First Question
           </button>
         </div>
       ) : (
         <div className="space-y-2.5">
-          {questions.map((q, idx) => (
+          {questionList.map((q, idx) => (
             <div
               key={q.id}
               className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs transition hover:border-amber-300"
@@ -502,6 +632,24 @@ export function QuizQuestionManager({
                 <div className="flex shrink-0 items-center gap-1">
                   <button
                     type="button"
+                    onClick={() => handleMove(q.id, 'UP')}
+                    disabled={idx === 0 || reorderingId !== null}
+                    className="rounded-md p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-30 disabled:hover:bg-transparent"
+                    title="Move up"
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMove(q.id, 'DOWN')}
+                    disabled={idx === questionList.length - 1 || reorderingId !== null}
+                    className="rounded-md p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-30 disabled:hover:bg-transparent"
+                    title="Move down"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setEditingQuestion(q)}
                     className="rounded-md p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                     title="Edit question"
@@ -510,13 +658,9 @@ export function QuizQuestionManager({
                   </button>
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (confirm('Delete this question and all its choices?')) {
-                        await deleteQuizQuestionAction(courseId, q.id);
-                        router.refresh();
-                      }
-                    }}
-                    className="rounded-md p-1.5 text-red-500 transition hover:bg-red-50 hover:text-red-700"
+                    onClick={() => handleDelete(q.id)}
+                    disabled={deletingId === q.id}
+                    className="rounded-md p-1.5 text-red-500 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
                     title="Delete question"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -561,11 +705,13 @@ export function QuizQuestionEditor({
   courseId,
   quizId,
   question,
+  onSaved,
   onDone,
 }: {
   courseId: string;
   quizId: string;
   question: QuestionWithOptions | null;
+  onSaved?: (saved: QuestionWithOptions) => void;
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -595,6 +741,7 @@ export function QuizQuestionEditor({
   };
 
   const handleAddOption = () => {
+    if (options.length >= 6) return;
     setOptions((prev) => [...prev, { optionText: '' }]);
   };
 
@@ -629,6 +776,12 @@ export function QuizQuestionEditor({
       return;
     }
 
+    if (optionsPayload.length < 2) {
+      setError('Quiz questions must provide at least 2 answer choices.');
+      setIsSubmitting(false);
+      return;
+    }
+
     formData.set('optionsJson', JSON.stringify(optionsPayload));
 
     try {
@@ -645,6 +798,9 @@ export function QuizQuestionEditor({
         const firstErr = Object.values(res.fieldErrors)[0]?.[0];
         setError(firstErr || 'Validation failed.');
       } else {
+        if (res.question && onSaved) {
+          onSaved(res.question);
+        }
         router.refresh();
         onDone();
       }

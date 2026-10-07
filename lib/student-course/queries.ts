@@ -68,10 +68,13 @@ export async function getStudentLesson(studentId: string, courseId: string, less
   const enrollment = await db.enrollment.findFirst({
     where: {
       studentId,
-      courseId,
+      OR: [
+        { courseId },
+        { course: { id: courseId } },
+        { course: { slug: courseId } },
+      ],
       status: { in: ['ACTIVE', 'COMPLETED'] },
       course: {
-        status: 'PUBLISHED',
         weeks: {
           some: {
             modules: {

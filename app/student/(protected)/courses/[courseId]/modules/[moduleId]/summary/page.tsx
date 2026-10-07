@@ -15,7 +15,16 @@ export default async function StudentModuleSummaryPage({ params }: ModuleSummary
   await requireEnrollment(student.id, courseId);
 
   const courseModule = await db.courseModule.findFirst({
-    where: { id: moduleId, week: { courseId } },
+    where: {
+      id: moduleId,
+      week: {
+        OR: [
+          { courseId },
+          { course: { id: courseId } },
+          { course: { slug: courseId } },
+        ],
+      },
+    },
     include: {
       week: true,
       summary: true,

@@ -1,6 +1,6 @@
 'use server';
 
-import { Prisma } from '@prisma/client';
+import { Prisma, QuizQuestion, QuizOption } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth/authorization';
@@ -20,6 +20,7 @@ export type CurriculumFormState = {
   quizId?: string;
   fieldErrors?: Record<string, string[] | undefined>;
   formError?: string;
+  question?: QuizQuestion & { options: QuizOption[] };
 };
 
 function refresh(courseId: string) {
@@ -676,29 +677,76 @@ export async function deleteModuleSummaryAction(formData: FormData) {
 }
 
 export async function upsertModuleQuizAction(
-  courseId: string,
-  moduleId: string,
-  _state: CurriculumFormState,
-  formData: FormData
+  courseIdOrState: string | CurriculumFormState,
+  moduleIdOrFormData: string | FormData,
+  maybeState?: CurriculumFormState,
+  maybeFormData?: FormData
 ): Promise<CurriculumFormState> {
+  let courseId: string;
+  let moduleId: string;
+  let formData: FormData;
+
+  if (
+    typeof courseIdOrState === 'string' &&
+    typeof moduleIdOrFormData === 'string' &&
+    maybeFormData instanceof FormData
+  ) {
+    courseId = courseIdOrState;
+    moduleId = moduleIdOrFormData;
+    formData = maybeFormData;
+  } else if (moduleIdOrFormData instanceof FormData) {
+    formData = moduleIdOrFormData;
+    courseId = String(formData.get('courseId') ?? '');
+    moduleId = String(formData.get('moduleId') ?? '');
+  } else {
+    return { formError: 'Invalid request parameters.' };
+  }
+
+  if (!courseId || !moduleId) {
+    return { formError: 'Missing course or module reference.' };
+  }
+
   await requireCourse(courseId);
+
+  const rawTitle = formData.get('title');
+  const rawDesc = formData.get('description');
+  const rawInst = formData.get('instructions');
+  const rawPass = formData.get('passingScore');
+  const rawMax = formData.get('maxAttempts');
+  const rawTime = formData.get('timeLimitMinutes');
+  const rawStatus = formData.get('status');
+
+  const timeLimitMinutes =
+    rawTime !== null && String(rawTime).trim() !== '' ? rawTime : undefined;
+
   const parsed = quizSchema.safeParse({
-    title: formData.get('title'),
-    description: formData.get('description'),
-    instructions: formData.get('instructions'),
-    passingScore: formData.get('passingScore'),
-    maxAttempts: formData.get('maxAttempts'),
-    timeLimitMinutes: formData.get('timeLimitMinutes') || undefined,
+    title: rawTitle !== null && rawTitle !== undefined ? String(rawTitle) : undefined,
+    description: rawDesc !== null && rawDesc !== undefined && String(rawDesc).trim() !== '' ? String(rawDesc) : undefined,
+    instructions: rawInst !== null && rawInst !== undefined && String(rawInst).trim() !== '' ? String(rawInst) : undefined,
+    passingScore: rawPass !== null && rawPass !== undefined && String(rawPass).trim() !== '' ? rawPass : undefined,
+    maxAttempts: rawMax !== null && rawMax !== undefined && String(rawMax).trim() !== '' ? rawMax : undefined,
+    timeLimitMinutes,
     randomizeQuestions:
       formData.get('randomizeQuestions') === 'true' || formData.get('randomizeQuestions') === 'on',
     randomizeOptions:
       formData.get('randomizeOptions') === 'true' || formData.get('randomizeOptions') === 'on',
-    showResults: formData.get('showResults') !== 'false' && formData.get('showResults') !== null,
+    showResults:
+      formData.get('showResults') === 'true' ||
+      formData.get('showResults') === 'on' ||
+      (formData.get('showResults') !== 'false' && formData.get('showResults') !== 'off' && formData.get('showResults') !== null),
     showExplanations:
-      formData.get('showExplanations') !== 'false' && formData.get('showExplanations') !== null,
-    status: formData.get('status'),
+      formData.get('showExplanations') === 'true' ||
+      formData.get('showExplanations') === 'on' ||
+      (formData.get('showExplanations') !== 'false' && formData.get('showExplanations') !== 'off' && formData.get('showExplanations') !== null),
+    status: rawStatus !== null && rawStatus !== undefined && String(rawStatus).trim() !== '' ? String(rawStatus) : 'DRAFT',
   });
-  if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
+
+  if (!parsed.success) {
+    return {
+      formError: 'Unable to save quiz. Please correct the highlighted fields.',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
 
   try {
     await requireModule(courseId, moduleId);
@@ -711,7 +759,10 @@ export async function upsertModuleQuizAction(
         instructions: parsed.data.instructions || null,
         passingScore: parsed.data.passingScore,
         maxAttempts: parsed.data.maxAttempts,
-        timeLimitMinutes: parsed.data.timeLimitMinutes === '' ? null : parsed.data.timeLimitMinutes,
+        timeLimitMinutes:
+          parsed.data.timeLimitMinutes === '' || parsed.data.timeLimitMinutes === undefined || parsed.data.timeLimitMinutes === null
+            ? null
+            : Number(parsed.data.timeLimitMinutes),
         randomizeQuestions: parsed.data.randomizeQuestions,
         randomizeOptions: parsed.data.randomizeOptions,
         showResults: parsed.data.showResults,
@@ -724,7 +775,10 @@ export async function upsertModuleQuizAction(
         instructions: parsed.data.instructions || null,
         passingScore: parsed.data.passingScore,
         maxAttempts: parsed.data.maxAttempts,
-        timeLimitMinutes: parsed.data.timeLimitMinutes === '' ? null : parsed.data.timeLimitMinutes,
+        timeLimitMinutes:
+          parsed.data.timeLimitMinutes === '' || parsed.data.timeLimitMinutes === undefined || parsed.data.timeLimitMinutes === null
+            ? null
+            : Number(parsed.data.timeLimitMinutes),
         randomizeQuestions: parsed.data.randomizeQuestions,
         randomizeOptions: parsed.data.randomizeOptions,
         showResults: parsed.data.showResults,
@@ -809,6 +863,8 @@ export async function saveQuizQuestionAction(
     });
     if (!quiz) return { formError: 'Quiz not found.' };
 
+    let savedQuestionId = questionId;
+
     if (questionId) {
       await db.$transaction(async (tx) => {
         await tx.quizQuestion.update({
@@ -838,7 +894,7 @@ export async function saveQuizQuestionAction(
       });
       const nextOrder = (maxOrder._max.order ?? -1) + 1;
 
-      await db.quizQuestion.create({
+      const created = await db.quizQuestion.create({
         data: {
           quizId,
           questionText: parsed.data.questionText,
@@ -855,10 +911,21 @@ export async function saveQuizQuestionAction(
           },
         },
       });
+      savedQuestionId = created.id;
     }
 
+    const saved = savedQuestionId
+      ? await db.quizQuestion.findUnique({
+          where: { id: savedQuestionId },
+          include: { options: { orderBy: { order: 'asc' } } },
+        })
+      : null;
+
     refresh(courseId);
-    return { success: true };
+    return {
+      success: true,
+      question: saved ? JSON.parse(JSON.stringify(saved)) : undefined,
+    };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to save question.' };
   }
@@ -872,6 +939,46 @@ export async function deleteQuizQuestionAction(courseId: string, questionId: str
   if (!question) throw new Error('Question not found.');
 
   await db.quizQuestion.delete({ where: { id: questionId } });
+  refresh(courseId);
+}
+
+export async function moveQuizQuestionAction(formData: FormData) {
+  const courseId = String(formData.get('courseId') ?? '');
+  const quizId = String(formData.get('quizId') ?? '');
+  const questionId = String(formData.get('questionId') ?? '');
+  const direction = String(formData.get('direction') ?? '').toLowerCase() === 'up' ? 'up' : 'down';
+
+  await requireCourse(courseId);
+  const quiz = await db.moduleQuiz.findFirst({
+    where: { id: quizId, module: { week: { courseId } } },
+  });
+  if (!quiz) throw new Error('Quiz not found.');
+
+  const questions = await db.quizQuestion.findMany({
+    where: { quizId },
+    orderBy: { order: 'asc' },
+  });
+
+  const currentIndex = questions.findIndex((q) => q.id === questionId);
+  if (currentIndex === -1) throw new Error('Question not found.');
+
+  const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+  if (targetIndex < 0 || targetIndex >= questions.length) return;
+
+  const currentItem = questions[currentIndex];
+  const targetItem = questions[targetIndex];
+
+  await db.$transaction([
+    db.quizQuestion.update({
+      where: { id: currentItem.id },
+      data: { order: targetItem.order },
+    }),
+    db.quizQuestion.update({
+      where: { id: targetItem.id },
+      data: { order: currentItem.order },
+    }),
+  ]);
+
   refresh(courseId);
 }
 

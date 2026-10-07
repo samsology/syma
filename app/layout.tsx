@@ -83,8 +83,11 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className="h-full scroll-smooth antialiased">
-      <body className="flex min-h-full flex-col bg-white font-sans text-slate-900 antialiased selection:bg-secondary/20 selection:text-primary">
+    <html lang="en" className="h-full scroll-smooth antialiased" suppressHydrationWarning>
+      <body
+        className="flex min-h-full flex-col bg-white font-sans text-slate-900 antialiased selection:bg-secondary/20 selection:text-primary"
+        suppressHydrationWarning
+      >
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
         {process.env.NEXT_PUBLIC_GA_ID && (

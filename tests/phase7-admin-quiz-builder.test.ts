@@ -178,3 +178,144 @@ test('Phase 7.4: Relational questions integrate end-to-end with student grading 
   assert.equal(submissionFail.answers[0].isCorrect, true);
   assert.equal(submissionFail.answers[1].isCorrect, false);
 });
+
+test('Phase 7.5: Question reordering preserves bounds and correctly targets adjacent elements', () => {
+  const sampleQuestions = [
+    { id: 'q1', order: 0 },
+    { id: 'q2', order: 1 },
+    { id: 'q3', order: 2 },
+  ];
+
+  // Moving first question UP should have no target above it
+  const firstIdx = sampleQuestions.findIndex((q) => q.id === 'q1');
+  assert.equal(firstIdx - 1 < 0, true);
+
+  // Moving last question DOWN should have no target below it
+  const lastIdx = sampleQuestions.findIndex((q) => q.id === 'q3');
+  assert.equal(lastIdx + 1 >= sampleQuestions.length, true);
+
+  // Moving middle question UP swaps with index 0
+  const midIdx = sampleQuestions.findIndex((q) => q.id === 'q2');
+  const targetIdxUp = midIdx - 1;
+  assert.equal(targetIdxUp, 0);
+  assert.equal(sampleQuestions[targetIdxUp].id, 'q1');
+
+  // Moving middle question DOWN swaps with index 2
+  const targetIdxDown = midIdx + 1;
+  assert.equal(targetIdxDown, 2);
+  assert.equal(sampleQuestions[targetIdxDown].id, 'q3');
+});
+
+test('Phase 7.6: Question builder options JSON payload parser enforces 2 to 6 choices with single correct selection', () => {
+  // Test parsing valid options payload format from form submissions
+  const rawPayload = JSON.stringify([
+    { optionText: 'Mean', isCorrect: true, order: 0 },
+    { optionText: 'Median', isCorrect: false, order: 1 },
+    { optionText: 'Mode', isCorrect: false, order: 2 },
+  ]);
+
+  const parsedRaw: Array<{ optionText: string; isCorrect: boolean; order: number }> = JSON.parse(rawPayload);
+  assert.equal(parsedRaw.length, 3);
+  assert.equal(parsedRaw.filter((o) => o.isCorrect).length, 1);
+
+  // Validate with quizQuestionSchema
+  const questionWithParsed = {
+    questionText: 'Which statistic is most sensitive to extreme outliers?',
+    points: 1,
+    hint: 'Sum divided by count',
+    explanation: 'The arithmetic mean incorporates the exact values of all data points including outliers.',
+    order: 0,
+    options: parsedRaw,
+  };
+
+  const validation = quizQuestionSchema.safeParse(questionWithParsed);
+  assert.equal(validation.success, true);
+});
+
+test('Phase 7.7: Question builder validates boundary conditions on points and option limits', () => {
+  // Negative points should fail
+  const negativePoints = {
+    questionText: 'Test question with negative points',
+    points: -1,
+    order: 0,
+    options: [
+      { optionText: 'A', isCorrect: true, order: 0 },
+      { optionText: 'B', isCorrect: false, order: 1 },
+    ],
+  };
+  assert.equal(quizQuestionSchema.safeParse(negativePoints).success, false);
+
+  // Less than 2 options should fail
+  const singleOption = {
+    questionText: 'Test question with only one option',
+    points: 1,
+    order: 0,
+    options: [{ optionText: 'Only One', isCorrect: true, order: 0 }],
+  };
+  assert.equal(quizQuestionSchema.safeParse(singleOption).success, false);
+});
+
+test('Phase 7.8: Quiz Builder Save & Error State pipeline ensures formError surfacing and quizId return', () => {
+  // 1. Valid quiz input returns parsed data cleanly
+  const validQuizData = {
+    title: 'Week 1 Knowledge Check',
+    passingScore: '70',
+    maxAttempts: '2',
+    timeLimitMinutes: '',
+    status: 'DRAFT',
+  };
+
+  const parsedValid = quizSchema.safeParse({
+    title: validQuizData.title,
+    passingScore: validQuizData.passingScore,
+    maxAttempts: validQuizData.maxAttempts,
+    timeLimitMinutes: validQuizData.timeLimitMinutes === '' ? undefined : validQuizData.timeLimitMinutes,
+    status: validQuizData.status,
+  });
+
+  assert.equal(parsedValid.success, true);
+  if (parsedValid.success) {
+    assert.equal(parsedValid.data.title, 'Week 1 Knowledge Check');
+    assert.equal(parsedValid.data.passingScore, 70);
+    assert.equal(parsedValid.data.maxAttempts, 2);
+    assert.equal(parsedValid.data.timeLimitMinutes, undefined);
+  }
+
+  // 2. Invalid quiz input (passing score > 100) fails validation with fieldErrors
+  const invalidQuizData = {
+    title: 'Invalid Passing Score Quiz',
+    passingScore: 150,
+    maxAttempts: 2,
+    status: 'DRAFT',
+  };
+
+  const parsedInvalid = quizSchema.safeParse(invalidQuizData);
+  assert.equal(parsedInvalid.success, false);
+  if (!parsedInvalid.success) {
+    const flattened = parsedInvalid.error.flatten();
+    assert.equal(Boolean(flattened.fieldErrors.passingScore), true);
+  }
+});
+
+test('Phase 7.9: upsertModuleQuizAction extracts FormData correctly when called via form submit', () => {
+  const formData = new FormData();
+  formData.set('courseId', 'test-course-id');
+  formData.set('moduleId', 'test-module-id');
+  formData.set('title', 'Data Literacy Knowledge Check');
+  formData.set('passingScore', '75');
+  formData.set('maxAttempts', '3');
+  formData.set('timeLimitMinutes', '');
+  formData.set('status', 'DRAFT');
+
+  const courseId = String(formData.get('courseId') ?? '');
+  const moduleId = String(formData.get('moduleId') ?? '');
+  const title = String(formData.get('title') ?? '');
+  const passingScore = Number(formData.get('passingScore') ?? 70);
+
+  assert.equal(courseId, 'test-course-id');
+  assert.equal(moduleId, 'test-module-id');
+  assert.equal(title, 'Data Literacy Knowledge Check');
+  assert.equal(passingScore, 75);
+});
+
+

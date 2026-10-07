@@ -22,7 +22,16 @@ export default async function StudentModuleQuizPage({ params }: ModuleQuizPagePr
   await requireEnrollment(student.id, courseId);
 
   const courseModule = await db.courseModule.findFirst({
-    where: { id: moduleId, week: { courseId } },
+    where: {
+      id: moduleId,
+      week: {
+        OR: [
+          { courseId },
+          { course: { id: courseId } },
+          { course: { slug: courseId } },
+        ],
+      },
+    },
     include: {
       week: true,
       quiz: {

@@ -18,12 +18,13 @@ export async function requireEnrollment(studentId: string, courseId: string) {
   const enrollment = await db.enrollment.findFirst({
     where: {
       studentId,
-      courseId,
+      OR: [
+        { courseId },
+        { course: { id: courseId } },
+        { course: { slug: courseId } },
+      ],
       status: {
         in: [...accessibleEnrollmentStatuses],
-      },
-      course: {
-        status: 'PUBLISHED',
       },
       student: {
         status: 'ACTIVE',
