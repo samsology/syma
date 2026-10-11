@@ -13,6 +13,7 @@ import {
   Presentation,
   RefreshCw,
 } from 'lucide-react';
+import { extractR2StorageKey } from '@/lib/resources/embed';
 
 interface ParsedSlide {
   slideNum: number;
@@ -55,6 +56,16 @@ export function PowerPointViewer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
 
+  const resolvedKey =
+    extractR2StorageKey(storageKey) ||
+    extractR2StorageKey(fileUrl) ||
+    storageKey ||
+    null;
+
+  const downloadUrl = resolvedKey
+    ? `/api/resources/proxy?key=${encodeURIComponent(resolvedKey)}&download=1`
+    : fileUrl;
+
   const loadPresentation = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -73,14 +84,9 @@ export function PowerPointViewer({
         console.warn('[PowerPointViewer] Direct fetch failed, attempting secure proxy fallback:', directErr);
         setLoadingProgress('Fetching presentation binary securely...');
 
-        let keyToUse = storageKey;
-        if (!keyToUse) {
-          if (fileUrl.includes('courses/')) {
-            keyToUse = 'courses/' + fileUrl.split('courses/')[1]?.split('?')[0];
-          } else {
-            keyToUse = fileUrl;
-          }
-        }
+        const keyToUse =
+          resolvedKey ||
+          (fileUrl.includes('courses/') ? 'courses/' + fileUrl.split('courses/')[1]?.split('?')[0] : fileUrl);
 
         const proxyUrl = `/api/resources/proxy?key=${encodeURIComponent(keyToUse)}`;
         response = await fetch(proxyUrl);
@@ -274,7 +280,7 @@ export function PowerPointViewer({
           </button>
           {isDownloadable && (
             <a
-              href={fileUrl}
+              href={downloadUrl}
               download
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
             >
@@ -330,7 +336,7 @@ export function PowerPointViewer({
 
           {isDownloadable && (
             <a
-              href={fileUrl}
+              href={downloadUrl}
               download
               className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-secondary transition"
               title="Download PowerPoint presentation"

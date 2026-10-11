@@ -266,15 +266,35 @@ export function extractR2StorageKey(url?: string | null): string | null {
     return trimmed.replace(/^r2:\/\//i, '');
   }
   if (trimmed.startsWith('courses/')) {
-    return trimmed;
+    return trimmed.split('?')[0];
+  }
+  if (trimmed.includes('courses/')) {
+    const idx = trimmed.indexOf('courses/');
+    return trimmed.slice(idx).split('?')[0];
   }
   if (trimmed.includes('.r2.cloudflarestorage.com/')) {
     const parts = trimmed.split('.r2.cloudflarestorage.com/');
     if (parts[1]) {
-      return parts[1].split('?')[0];
+      const pathPart = parts[1].split('?')[0];
+      const courseIdx = pathPart.indexOf('courses/');
+      if (courseIdx !== -1) {
+        return pathPart.slice(courseIdx);
+      }
+      return pathPart;
     }
   }
   return null;
+}
+
+/**
+ * Returns a same-origin authenticated proxy URL for Cloudflare R2 resources.
+ * Guarantees zero CORS failures, zero next-day presigned URL expirations, and safe downloading.
+ */
+export function getR2ProxyUrl(fileUrlOrKey?: string | null, download?: boolean): string | null {
+  const key = extractR2StorageKey(fileUrlOrKey);
+  if (!key) return null;
+  const param = encodeURIComponent(key);
+  return download ? `/api/resources/proxy?key=${param}&download=1` : `/api/resources/proxy?key=${param}`;
 }
 
 export function isPowerPointFile(urlOrType?: string | null): boolean {

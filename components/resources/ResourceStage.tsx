@@ -4,7 +4,12 @@ import { useState } from 'react';
 import { Download, ExternalLink, Eye, FileText, Play, Presentation, Video, X } from 'lucide-react';
 import type { LessonResource, ResourceType, ResourceSource } from '@prisma/client';
 import { ResourceRenderer } from './ResourceRenderer';
-import { canDownloadResource, getResourceEmbedDescriptor, isR2StorageReference } from '@/lib/resources/embed';
+import {
+  canDownloadResource,
+  getResourceEmbedDescriptor,
+  isR2StorageReference,
+  getR2ProxyUrl,
+} from '@/lib/resources/embed';
 
 interface ResourceStageProps {
   lessonTitle: string;
@@ -52,7 +57,7 @@ export function ResourceStage({
       fileType: ext && ext.length <= 5 ? ext : 'mp4',
       description: 'Official lecture walkthrough and explanation.',
     };
-  } else if (primarySlideUrl && primaryResourceType === 'SLIDE') {
+  } else if (primarySlideUrl && (!primaryVideoUrl || primaryResourceType === 'SLIDE')) {
     const isR2 = isR2StorageReference(primarySlideUrl);
     const ext = primarySlideUrl.split('?')[0].split('.').pop()?.toLowerCase();
 
@@ -209,6 +214,15 @@ export function ResourceStage({
                   isDownloadable: resource.isDownloadable,
                 });
 
+              const isR2Resource =
+                resource.sourceType === 'R2' ||
+                isR2StorageReference(resource.fileUrl) ||
+                (!resource.fileUrl.startsWith('http') && !resource.fileUrl.startsWith('/'));
+
+              const directDownloadHref = isR2Resource
+                ? getR2ProxyUrl(resource.fileUrl, true) || resource.fileUrl
+                : resource.fileUrl;
+
               return (
                 <div
                   key={resource.id}
@@ -297,10 +311,8 @@ export function ResourceStage({
                       </button>
                     ) : descriptor.kind === 'download_file' || isDataset ? (
                       <a
-                        href={resource.fileUrl}
+                        href={directDownloadHref}
                         download
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs transition hover:bg-emerald-700"
                       >
                         <Download className="h-3.5 w-3.5" />
@@ -314,10 +326,8 @@ export function ResourceStage({
 
                     {canDownloadInline && (
                       <a
-                        href={resource.fileUrl}
+                        href={directDownloadHref}
                         download
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                         title="Download file directly"
                       >
