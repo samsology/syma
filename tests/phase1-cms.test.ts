@@ -234,7 +234,7 @@ test('CMS 3.3: resourceSchema rejects malicious, invalid URLs or unsupported exe
     name: 'Huge File',
     fileUrl: 'https://example.com/large.zip',
     fileType: 'zip',
-    fileSize: 60_000_000, // > 50 MB
+    fileSize: 600_000_000, // > 500 MB
   });
   assert.equal(oversize.success, false);
 });

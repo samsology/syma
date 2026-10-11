@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Course, Admin } from '@prisma/client';
-import { Eye, Pencil, Plus } from 'lucide-react';
+import { BookOpen, Eye, Pencil, Plus } from 'lucide-react';
 import { CourseStatusBadge } from './CourseStatusBadge';
 import { CourseActionForm } from './CourseActionForm';
 import { archiveCourseAction, publishCourseAction, restoreCourseAction, unpublishCourseAction } from '@/app/admin/(protected)/courses/actions';
@@ -96,6 +96,10 @@ export function CourseTable({ courses, hasFilters }: CourseTableProps) {
                     </Link>
                     <Link href={`/admin/courses/${course.id}/preview`} className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
                       Preview
+                    </Link>
+                    <Link href={`/admin/courses/${course.id}/curriculum`} className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-secondary">
+                      <BookOpen className="h-4 w-4" />
+                      Curriculum
                     </Link>
                     <Link href={`/admin/courses/${course.id}/students`} className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
                       Students

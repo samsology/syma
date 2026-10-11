@@ -1,6 +1,6 @@
 export type ResourceType = 'VIDEO' | 'DOCUMENT' | 'FILE' | 'LINK';
 
-export type ResourceSource = 'YOUTUBE' | 'GOOGLE_DRIVE' | 'UPLOAD' | 'EXTERNAL';
+export type ResourceSource = 'YOUTUBE' | 'GOOGLE_DRIVE' | 'UPLOAD' | 'EXTERNAL' | 'R2';
 
 export interface ResourceView {
   id: string;
@@ -12,6 +12,8 @@ export interface ResourceView {
   fileUrl: string;
   fileType: string;
   fileSize?: number | null;
+  storageKey?: string | null;
+  mimeType?: string | null;
   sortOrder: number;
   isDownloadable: boolean;
   isActive: boolean;
@@ -20,7 +22,18 @@ export interface ResourceView {
 }
 
 export interface EmbedDescriptor {
-  kind: 'youtube' | 'html5_video' | 'google_slide' | 'google_doc' | 'google_drive_file' | 'pdf' | 'download_file' | 'external_link';
+  kind:
+    | 'youtube'
+    | 'html5_video'
+    | 'audio'
+    | 'image'
+    | 'google_slide'
+    | 'google_doc'
+    | 'google_drive_file'
+    | 'pdf'
+    | 'powerpoint'
+    | 'download_file'
+    | 'external_link';
   embedUrl?: string;
   originalUrl: string;
   title: string;

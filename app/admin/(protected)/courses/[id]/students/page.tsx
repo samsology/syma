@@ -9,8 +9,8 @@ type CourseStudentsPageProps = {
 
 export default async function CourseStudentsPage({ params }: CourseStudentsPageProps) {
   const { id } = await params;
-  const course = await db.course.findUnique({
-    where: { id },
+  const course = await db.course.findFirst({
+    where: { OR: [{ id }, { slug: id }] },
     select: {
       id: true,
       title: true,

@@ -10,7 +10,7 @@ type EditCoursePageProps = {
 export default async function EditCoursePage({ params }: EditCoursePageProps) {
   const { id } = await params;
   const [course, admins] = await Promise.all([
-    db.course.findUnique({ where: { id } }),
+    db.course.findFirst({ where: { OR: [{ id }, { slug: id }] } }),
     db.admin.findMany({
       where: { isActive: true },
       select: { id: true, name: true, email: true },

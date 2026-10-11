@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Download, ExternalLink, Eye, FileText, Play, Presentation, Video, X } from 'lucide-react';
 import type { LessonResource, ResourceType, ResourceSource } from '@prisma/client';
 import { ResourceRenderer } from './ResourceRenderer';
-import { canDownloadResource, getResourceEmbedDescriptor } from '@/lib/resources/embed';
+import { canDownloadResource, getResourceEmbedDescriptor, isR2StorageReference } from '@/lib/resources/embed';
 
 interface ResourceStageProps {
   lessonTitle: string;
@@ -35,6 +35,9 @@ export function ResourceStage({
   } | null = null;
 
   if (primaryVideoUrl) {
+    const isR2 = isR2StorageReference(primaryVideoUrl);
+    const ext = primaryVideoUrl.split('?')[0].split('.').pop()?.toLowerCase();
+
     computedInitialActive = {
       id: 'primary-video',
       title: `${lessonTitle} (Lecture Video)`,
@@ -43,16 +46,23 @@ export function ResourceStage({
       sourceType:
         primaryVideoUrl.includes('youtube') || primaryVideoUrl.includes('youtu.be')
           ? 'YOUTUBE'
-          : 'EXTERNAL',
+          : isR2
+            ? 'R2'
+            : 'EXTERNAL',
+      fileType: ext && ext.length <= 5 ? ext : 'mp4',
       description: 'Official lecture walkthrough and explanation.',
     };
   } else if (primarySlideUrl && primaryResourceType === 'SLIDE') {
+    const isR2 = isR2StorageReference(primarySlideUrl);
+    const ext = primarySlideUrl.split('?')[0].split('.').pop()?.toLowerCase();
+
     computedInitialActive = {
       id: 'primary-slide',
       title: `${lessonTitle} (Slide Deck)`,
       fileUrl: primarySlideUrl,
       resourceType: 'DOCUMENT',
-      sourceType: 'GOOGLE_DRIVE',
+      sourceType: isR2 ? 'R2' : 'GOOGLE_DRIVE',
+      fileType: ext && ext.length <= 5 ? ext : 'pptx',
       description: 'Full presentation deck for this lesson.',
     };
   } else if (resources && resources.length > 0) {
@@ -135,6 +145,7 @@ export function ResourceStage({
           </div>
 
           <ResourceRenderer
+            id={activeMedia.id}
             title={activeMedia.title}
             fileUrl={activeMedia.fileUrl}
             resourceType={activeMedia.resourceType}

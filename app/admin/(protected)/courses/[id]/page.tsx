@@ -26,8 +26,8 @@ function successMessage(value?: string | string[]) {
 export default async function CourseDetailPage({ params, searchParams }: CourseDetailPageProps) {
   const { id } = await params;
   const query = await searchParams;
-  const course = await db.course.findUnique({
-    where: { id },
+  const course = await db.course.findFirst({
+    where: { OR: [{ id }, { slug: id }] },
     include: {
       instructor: { select: { name: true, email: true } },
       _count: { select: { weeks: true, enrollments: true } },

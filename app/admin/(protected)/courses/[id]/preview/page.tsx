@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, BookOpen, Clock, Download, ExternalLink, FileText, ShieldAlert, Video } from 'lucide-react';
-import { db } from '@/lib/db';
+import { getCourseWithCurriculum } from '@/lib/curriculum/queries';
 import { CourseStatusBadge } from '@/components/admin/courses/CourseStatusBadge';
 
 type PreviewCoursePageProps = {
@@ -18,41 +18,20 @@ function formatBytes(bytes?: number | null) {
 
 export default async function PreviewCoursePage({ params }: PreviewCoursePageProps) {
   const { id } = await params;
-  const course = await db.course.findUnique({
-    where: { id },
-    include: {
-      instructor: { select: { name: true, email: true } },
-      weeks: {
-        orderBy: [{ sortOrder: 'asc' }, { weekNumber: 'asc' }],
-        include: {
-          modules: {
-            orderBy: { sortOrder: 'asc' },
-            include: {
-              lessons: {
-                orderBy: { sortOrder: 'asc' },
-                include: {
-                  resources: { orderBy: { createdAt: 'asc' } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  const course = await getCourseWithCurriculum(id);
 
   if (!course) notFound();
 
-  const totalModules = course.weeks.reduce((sum, w) => sum + w.modules.length, 0);
+  const totalModules = course.weeks.reduce((sum: number, w: any) => sum + w.modules.length, 0);
   const totalLessons = course.weeks.reduce(
-    (sum, w) => sum + w.modules.reduce((mSum, m) => mSum + m.lessons.length, 0),
+    (sum: number, w: any) => sum + w.modules.reduce((mSum: number, m: any) => mSum + m.lessons.length, 0),
     0
   );
   const totalResources = course.weeks.reduce(
-    (sum, w) =>
+    (sum: number, w: any) =>
       sum +
       w.modules.reduce(
-        (mSum, m) => mSum + m.lessons.reduce((lSum, l) => lSum + l.resources.length, 0),
+        (mSum: number, m: any) => mSum + m.lessons.reduce((lSum: number, l: any) => lSum + (l.resources?.length || 0), 0),
         0
       ),
     0
@@ -196,7 +175,7 @@ export default async function PreviewCoursePage({ params }: PreviewCoursePagePro
                                 {module.lessons.length === 0 ? (
                                   <p className="text-xs text-slate-400 italic">No lessons in this module.</p>
                                 ) : (
-                                  module.lessons.map((lesson) => (
+                                  module.lessons.map((lesson: any) => (
                                     <div
                                       key={lesson.id}
                                       className="rounded-md border border-slate-100 bg-slate-50/70 p-3 text-sm space-y-2"
@@ -263,7 +242,7 @@ export default async function PreviewCoursePage({ params }: PreviewCoursePagePro
                                             Resources ({lesson.resources.length})
                                           </p>
                                           <div className="mt-1 flex flex-wrap gap-2">
-                                            {lesson.resources.map((res) => (
+                                            {lesson.resources.map((res: any) => (
                                               <a
                                                 key={res.id}
                                                 href={res.fileUrl}

@@ -32,8 +32,15 @@ function refresh(courseId: string) {
 
 function sanitizeUrl(val: unknown): string {
   if (!val || typeof val !== 'string') return '';
-  const trimmed = val.trim();
+  let trimmed = val.trim();
   if (!trimmed) return '';
+  // R2 storage key or r2:// URI: preserve clean storage reference without prepending https://
+  if (trimmed.startsWith('r2://') || trimmed.startsWith('courses/')) {
+    return trimmed;
+  }
+  if (/^https?:\/\/courses\//i.test(trimmed)) {
+    return trimmed.replace(/^https?:\/\//i, '');
+  }
   if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
   return trimmed;
 }
@@ -410,6 +417,8 @@ export async function createResourceAction(
     fileUrl: formData.get('fileUrl'),
     fileType: formData.get('fileType'),
     fileSize: formData.get('fileSize') || undefined,
+    storageKey: formData.get('storageKey') || undefined,
+    mimeType: formData.get('mimeType') || undefined,
     sortOrder: formData.get('sortOrder') || undefined,
     isDownloadable:
       isDownloadableRaw !== null
@@ -438,6 +447,8 @@ export async function createResourceAction(
         fileUrl: parsed.data.fileUrl,
         fileType: parsed.data.fileType.toLowerCase(),
         fileSize: parsed.data.fileSize === '' ? null : parsed.data.fileSize,
+        storageKey: parsed.data.storageKey || null,
+        mimeType: parsed.data.mimeType || null,
         sortOrder,
         isDownloadable: parsed.data.isDownloadable ?? true,
         isActive: parsed.data.isActive ?? true,
@@ -468,6 +479,8 @@ export async function updateResourceAction(
     fileUrl: formData.get('fileUrl'),
     fileType: formData.get('fileType'),
     fileSize: formData.get('fileSize') || undefined,
+    storageKey: formData.get('storageKey') || undefined,
+    mimeType: formData.get('mimeType') || undefined,
     sortOrder: formData.get('sortOrder') || undefined,
     isDownloadable:
       isDownloadableRaw !== null
@@ -493,6 +506,8 @@ export async function updateResourceAction(
         fileUrl: parsed.data.fileUrl,
         fileType: parsed.data.fileType.toLowerCase(),
         fileSize: parsed.data.fileSize === '' ? null : parsed.data.fileSize,
+        storageKey: parsed.data.storageKey ?? resource.storageKey,
+        mimeType: parsed.data.mimeType ?? resource.mimeType,
         sortOrder: parsed.data.sortOrder ?? resource.sortOrder,
         isDownloadable: parsed.data.isDownloadable ?? true,
         isActive: parsed.data.isActive ?? true,
@@ -514,6 +529,18 @@ export async function deleteResourceAction(formData: FormData) {
   });
   if (!resource) throw new Error('Resource not found.');
   await db.lessonResource.delete({ where: { id: resourceId } });
+
+  // Clean up R2 object if applicable
+  if (resource.sourceType === 'R2' || resource.storageKey) {
+    const key = resource.storageKey || resource.fileUrl.replace(/^r2:\/\//i, '');
+    if (key) {
+      const { storageService } = await import('@/lib/storage');
+      await storageService.delete(key).catch((err) => {
+        console.error(`Failed to delete R2 object for key ${key}:`, err);
+      });
+    }
+  }
+
   refresh(courseId);
 }
 

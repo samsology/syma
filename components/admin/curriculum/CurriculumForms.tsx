@@ -3,11 +3,71 @@
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CourseModule, CourseWeek, Lesson } from '@prisma/client';
-import { ExternalLink, Video, Presentation } from 'lucide-react';
+import { ExternalLink, Video, Presentation, UploadCloud } from 'lucide-react';
 import type { CurriculumFormState } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
 import { slugifyCourseTitle } from '@/lib/courses/options';
 
 const initialState: CurriculumFormState = {};
+
+function QuickR2Uploader({
+  resourceType,
+  onUploadSuccess,
+}: {
+  resourceType: 'VIDEO' | 'DOCUMENT';
+  onUploadSuccess: (key: string) => void;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('courseId', 'main-lessons');
+      formData.append('lessonId', 'instructional');
+      formData.append('resourceType', resourceType.toLowerCase());
+
+      const res = await fetch('/api/admin/resources/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Failed to upload file to Cloudflare R2.');
+      }
+
+      onUploadSuccess(json.data.storageKey);
+    } catch (err: unknown) {
+      setUploadError((err as Error).message || 'File upload to Cloudflare R2 failed.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="mt-1.5 flex flex-col gap-1">
+      <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-sky-50 border border-sky-200 px-3 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-100 transition w-fit">
+        <UploadCloud className="h-3.5 w-3.5" />
+        <span>{isUploading ? 'Uploading to Cloudflare R2...' : `Upload ${resourceType === 'VIDEO' ? 'Video' : 'Slide'} File to Cloudflare R2`}</span>
+        <input
+          type="file"
+          onChange={handleFileChange}
+          disabled={isUploading}
+          accept={resourceType === 'VIDEO' ? 'video/mp4,video/webm,video/ogg' : '.pdf,.pptx,.ppt'}
+          className="hidden"
+        />
+      </label>
+      {uploadError && <p className="text-xs font-semibold text-red-600">{uploadError}</p>}
+    </div>
+  );
+}
 
 function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.[0]) return null;
@@ -311,10 +371,10 @@ export function InlineLessonForm({
               name="slideUrl"
               value={slideUrl}
               onChange={(e) => setSlideUrl(e.target.value)}
-              placeholder="https://docs.google.com/presentation/d/... or Canva / slide URL"
+              placeholder="https://docs.google.com/presentation/d/... or Cloudflare R2 slide key"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
-            {slideUrl && (
+            {slideUrl && slideUrl.startsWith('http') && !slideUrl.includes('courses/') && (
               <a
                 href={slideUrl}
                 target="_blank"
@@ -325,6 +385,7 @@ export function InlineLessonForm({
               </a>
             )}
           </div>
+          <QuickR2Uploader resourceType="DOCUMENT" onUploadSuccess={(key) => setSlideUrl(key)} />
           <FieldError errors={state.fieldErrors?.slideUrl} />
         </div>
       ) : (
@@ -337,7 +398,7 @@ export function InlineLessonForm({
               name="videoUrl"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+              placeholder="https://www.youtube.com/watch?v=... or Cloudflare R2 video key"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
             {videoUrl && (
@@ -351,6 +412,7 @@ export function InlineLessonForm({
               </a>
             )}
           </div>
+          <QuickR2Uploader resourceType="VIDEO" onUploadSuccess={(key) => setVideoUrl(key)} />
           <FieldError errors={state.fieldErrors?.videoUrl} />
         </div>
       )}
@@ -508,15 +570,17 @@ export function LessonForm({
             </label>
             {slideUrl && (
               <div className="flex items-center gap-2">
-                <a
-                  href={slideUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Test Slide Link
-                </a>
+                {slideUrl.startsWith('http') && !slideUrl.includes('courses/') && (
+                  <a
+                    href={slideUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Test Slide Link
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={() => setSlideUrl('')}
@@ -532,9 +596,10 @@ export function LessonForm({
             name="slideUrl"
             value={slideUrl}
             onChange={(e) => setSlideUrl(e.target.value)}
-            placeholder="https://docs.google.com/presentation/d/... or Canva presentation URL"
+            placeholder="https://docs.google.com/presentation/d/... or Cloudflare R2 slide key"
             className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
           />
+          <QuickR2Uploader resourceType="DOCUMENT" onUploadSuccess={(key) => setSlideUrl(key)} />
           <FieldError errors={state.fieldErrors?.slideUrl} />
         </div>
       ) : (
@@ -569,9 +634,10 @@ export function LessonForm({
             name="videoUrl"
             value={videoUrl}
             onChange={(e) => setVideoUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+            placeholder="https://www.youtube.com/watch?v=... or Cloudflare R2 video key"
             className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
           />
+          <QuickR2Uploader resourceType="VIDEO" onUploadSuccess={(key) => setVideoUrl(key)} />
           <FieldError errors={state.fieldErrors?.videoUrl} />
         </div>
       )}

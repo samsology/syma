@@ -86,6 +86,7 @@ enum ResourceSource {
   GOOGLE_DRIVE
   UPLOAD
   EXTERNAL
+  R2
 }
 
 model Admin {
@@ -403,6 +404,8 @@ model LessonResource {
   fileUrl        String
   fileType       String
   fileSize       Int?
+  storageKey     String?
+  mimeType       String?
   sortOrder      Int            @default(0)
   isDownloadable Boolean        @default(true)
   isActive       Boolean        @default(true)

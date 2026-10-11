@@ -395,4 +395,16 @@ test('Phase 5.7: Resource Behavior Matrix enforces Video/PPTX/PDF in-portal, Dat
   assert.equal(linkDesc.kind, 'external_link');
   assert.equal(linkDesc.isEmbeddable, false);
   assert.equal(linkDesc.requiresExternalFallback, true);
+
+  // 6. R2 PowerPoint (.pptx) File -> In-Portal Interactive PowerPoint Deck
+  const r2Pptx = getResourceEmbedDescriptor({
+    title: 'What is Data? (Slide Deck)',
+    fileUrl: 'courses/main-lessons/lessons/instructional/document/1ae8eca6-3b63-49ae-9643-0cd5350efd62-Test.pptx',
+    resourceType: 'DOCUMENT',
+    sourceType: 'R2',
+    fileType: 'pptx',
+  });
+  assert.equal(r2Pptx.kind, 'powerpoint');
+  assert.equal(r2Pptx.isEmbeddable, true);
+  assert.equal(r2Pptx.requiresExternalFallback, false);
 });

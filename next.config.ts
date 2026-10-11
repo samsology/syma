@@ -11,6 +11,25 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/manage-curriculum',
+        destination: '/admin/curriculum',
+        permanent: false,
+      },
+      {
+        source: '/curriculum',
+        destination: '/admin/curriculum',
+        permanent: false,
+      },
+      {
+        source: '/student/dashboard',
+        destination: '/student',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

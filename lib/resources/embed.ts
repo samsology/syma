@@ -9,6 +9,9 @@ const APPROVED_EMBED_DOMAINS = [
   'www.youtube-nocookie.com',
   'docs.google.com',
   'drive.google.com',
+  'r2.cloudflarestorage.com',
+  'view.officeapps.live.com',
+  'google.com',
 ];
 
 export interface YouTubeParseResult {
@@ -236,12 +239,92 @@ export function parseGoogleDriveEmbedUrl(
 }
 
 /**
- * Validates that an iframe URL belongs strictly to approved domains.
+ * Detects whether a URL or identifier refers to Cloudflare R2 storage.
+ * Handles r2:// scheme, courses/... paths, accidental https://courses/... prefixes, and R2 S3 endpoints.
+ */
+export function isR2StorageReference(url?: string | null): boolean {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  return (
+    trimmed.startsWith('r2://') ||
+    trimmed.startsWith('courses/') ||
+    /^https?:\/\/courses\//i.test(trimmed) ||
+    trimmed.includes('.r2.cloudflarestorage.com')
+  );
+}
+
+/**
+ * Extracts the clean S3/R2 storage key (e.g. courses/...) from any valid R2 reference.
+ */
+export function extractR2StorageKey(url?: string | null): string | null {
+  if (!url || typeof url !== 'string') return null;
+  let trimmed = url.trim();
+  if (/^https?:\/\/courses\//i.test(trimmed)) {
+    return trimmed.replace(/^https?:\/\//i, '');
+  }
+  if (trimmed.startsWith('r2://')) {
+    return trimmed.replace(/^r2:\/\//i, '');
+  }
+  if (trimmed.startsWith('courses/')) {
+    return trimmed;
+  }
+  if (trimmed.includes('.r2.cloudflarestorage.com/')) {
+    const parts = trimmed.split('.r2.cloudflarestorage.com/');
+    if (parts[1]) {
+      return parts[1].split('?')[0];
+    }
+  }
+  return null;
+}
+
+export function isPowerPointFile(urlOrType?: string | null): boolean {
+  if (!urlOrType || typeof urlOrType !== 'string') return false;
+  const lower = urlOrType.toLowerCase();
+  return (
+    /\.(pptx|ppt|key)(\?.*)?$/i.test(lower) ||
+    lower === 'pptx' ||
+    lower === 'ppt' ||
+    lower === 'key' ||
+    lower.includes('presentationml') ||
+    lower.includes('powerpoint')
+  );
+}
+
+export function isPdfFile(urlOrType?: string | null): boolean {
+  if (!urlOrType || typeof urlOrType !== 'string') return false;
+  const lower = urlOrType.toLowerCase();
+  return /\.(pdf)(\?.*)?$/i.test(lower) || lower === 'pdf' || lower.includes('application/pdf');
+}
+
+export function isAudioFile(urlOrType?: string | null): boolean {
+  if (!urlOrType || typeof urlOrType !== 'string') return false;
+  const lower = urlOrType.toLowerCase();
+  return (
+    /\.(mp3|wav|ogg|m4a|aac|flac)(\?.*)?$/i.test(lower) ||
+    ['mp3', 'wav', 'audio', 'm4a', 'aac', 'flac'].includes(lower) ||
+    lower.startsWith('audio/')
+  );
+}
+
+export function isImageFile(urlOrType?: string | null): boolean {
+  if (!urlOrType || typeof urlOrType !== 'string') return false;
+  const lower = urlOrType.toLowerCase();
+  return (
+    /\.(png|jpe?g|webp|gif|svg|bmp|avif)(\?.*)?$/i.test(lower) ||
+    ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif', 'bmp', 'image'].includes(lower) ||
+    lower.startsWith('image/')
+  );
+}
+
+/**
+ * Validates that an iframe URL belongs strictly to approved domains or internal R2 references.
  */
 export function isSafeEmbedUrl(url: string): boolean {
   if (!url) return false;
-  if (url.startsWith('/') && !url.startsWith('//')) {
-    // Internal site-relative path
+  if (
+    (url.startsWith('/') && !url.startsWith('//')) ||
+    isR2StorageReference(url)
+  ) {
     return true;
   }
 
@@ -326,10 +409,34 @@ export function getResourceEmbedDescriptor(params: {
     };
   }
 
-  // 3. Hosted / Uploaded Video (e.g. .mp4, .webm, .ogg)
+  // 3. Audio File (.mp3, .wav, .ogg, .m4a, .aac)
+  if (isAudioFile(url) || isAudioFile(fileType)) {
+    return {
+      kind: 'audio',
+      embedUrl: url,
+      originalUrl: url,
+      title,
+      isEmbeddable: true,
+      requiresExternalFallback: false,
+    };
+  }
+
+  // 4. Image File (.png, .jpg, .jpeg, .webp, .svg, .gif)
+  if (isImageFile(url) || isImageFile(fileType)) {
+    return {
+      kind: 'image',
+      embedUrl: url,
+      originalUrl: url,
+      title,
+      isEmbeddable: true,
+      requiresExternalFallback: false,
+    };
+  }
+
+  // 5. Hosted / Uploaded Video (e.g. .mp4, .webm, .ogg)
   const isVideoFile =
     resourceType === 'VIDEO' ||
-    /\.(mp4|webm|ogg|m4v)(\?.*)?$/i.test(url) ||
+    /\.(mp4|webm|ogg|m4v|mov)(\?.*)?$/i.test(url) ||
     fileType?.toLowerCase() === 'mp4' ||
     fileType?.toLowerCase() === 'webm';
   if (isVideoFile) {
@@ -343,12 +450,28 @@ export function getResourceEmbedDescriptor(params: {
     };
   }
 
-  // 4. PDF Document
-  const isPdf =
-    /\.pdf(\?.*)?$/i.test(url) ||
-    fileType?.toLowerCase() === 'pdf' ||
-    (resourceType === 'DOCUMENT' && /\.pdf/i.test(url));
-  if (isPdf) {
+  // 6. PowerPoint Presentation Slide Decks (.pptx, .ppt, .key)
+  const isPptx = isPowerPointFile(url) || isPowerPointFile(fileType);
+  if (isPptx) {
+    return {
+      kind: 'powerpoint',
+      embedUrl: url,
+      originalUrl: url,
+      title,
+      isEmbeddable: true,
+      requiresExternalFallback: false,
+    };
+  }
+
+  // 7. PDF Document & Other Documents
+  const isDocOrSlide =
+    resourceType === 'DOCUMENT' ||
+    sourceType === 'R2' ||
+    isPdfFile(url) ||
+    isPdfFile(fileType) ||
+    ['document', 'pdf', 'slide'].includes(fileType?.toLowerCase() || '') ||
+    isR2StorageReference(url);
+  if (isDocOrSlide) {
     return {
       kind: 'pdf',
       embedUrl: url,

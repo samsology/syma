@@ -12,11 +12,13 @@ type LessonEditPageProps = {
 
 export default async function LessonEditPage({ params }: LessonEditPageProps) {
   const { id, lessonId } = await params;
-  const course = await db.course.findUnique({ where: { id }, select: { id: true, title: true } });
-  const lesson = await db.lesson.findFirst({
-    where: { id: lessonId, module: { week: { courseId: id } } },
-    include: { resources: { orderBy: { createdAt: 'asc' } } },
-  });
+  const course = await db.course.findFirst({ where: { OR: [{ id }, { slug: id }] }, select: { id: true, title: true } });
+  const lesson = course
+    ? await db.lesson.findFirst({
+        where: { id: lessonId, module: { week: { courseId: course.id } } },
+        include: { resources: { orderBy: { createdAt: 'asc' } } },
+      })
+    : null;
 
   if (!course || !lesson) notFound();
 

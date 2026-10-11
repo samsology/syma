@@ -223,18 +223,13 @@ export function ModuleQuizForm({
   const router = useRouter();
   const serverAction = action ?? upsertModuleQuizAction;
   const [state, formAction, pending] = useActionState(serverAction, initialState);
-  const [savedQuizId, setSavedQuizId] = useState<string | null>(null);
-  const activeQuizId = savedQuizId ?? state.quizId ?? quiz?.id ?? null;
+  const activeQuizId = state.quizId ?? quiz?.id ?? null;
 
   useEffect(() => {
-    if (state.quizId) {
-      setSavedQuizId(state.quizId);
-    }
-
     if (state.success) {
       router.refresh();
     }
-  }, [state.quizId, state.success, router]);
+  }, [state.success, router]);
 
   const handleDone = () => {
     router.refresh();
@@ -483,15 +478,17 @@ export function QuizQuestionManager({
   questions: QuestionWithOptions[];
 }) {
   const router = useRouter();
+  const [prevQuestions, setPrevQuestions] = useState<QuestionWithOptions[]>(questions);
   const [questionList, setQuestionList] = useState<QuestionWithOptions[]>(questions);
   const [editingQuestion, setEditingQuestion] = useState<QuestionWithOptions | 'new' | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
+  if (questions !== prevQuestions) {
+    setPrevQuestions(questions);
     setQuestionList(questions);
-  }, [questions]);
+  }
 
   const handleQuestionSaved = (saved: QuestionWithOptions) => {
     setQuestionList((prev) => {

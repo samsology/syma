@@ -4,15 +4,23 @@ const validResourceUrl = z
   .string()
   .trim()
   .min(1, 'Resource URL or file path is required.')
-  .refine((val) => /^https?:\/\/.+/i.test(val) || val.startsWith('/'), {
-    message: 'Enter a valid URL (https://...) or site-relative file path (/...).',
-  });
+  .refine(
+    (val) =>
+      /^https?:\/\/.+/i.test(val) ||
+      /^r2:\/\/.+/i.test(val) ||
+      val.startsWith('/') ||
+      (val.includes('/') && !val.includes(' ')),
+    {
+      message:
+        'Enter a valid URL (https://...), R2 key (r2://... or path/file), or site-relative file path (/...).',
+    }
+  );
 
 const supportedFileTypeRegex =
   /^(pdf|doc|docx|xls|xlsx|csv|ppt|pptx|png|jpg|jpeg|webp|txt|zip|sql|json|pbix|ipynb|mp4|webm|mov|m4v|youtube|drive|link|url|file)$/i;
 
 export const resourceTypeSchema = z.enum(['VIDEO', 'DOCUMENT', 'FILE', 'LINK']);
-export const resourceSourceSchema = z.enum(['YOUTUBE', 'GOOGLE_DRIVE', 'UPLOAD', 'EXTERNAL']);
+export const resourceSourceSchema = z.enum(['YOUTUBE', 'GOOGLE_DRIVE', 'UPLOAD', 'EXTERNAL', 'R2']);
 
 export const resourceSchema = z.object({
   name: z
@@ -41,9 +49,11 @@ export const resourceSchema = z.object({
     .number()
     .int()
     .min(0, 'File size cannot be negative')
-    .max(50_000_000, 'Keep resources under 50 MB.')
+    .max(500_000_000, 'Keep resources under 500 MB.')
     .optional()
     .or(z.literal('')),
+  storageKey: z.string().trim().optional().or(z.literal('')),
+  mimeType: z.string().trim().optional().or(z.literal('')),
   sortOrder: z.coerce.number().int().default(0).optional(),
   isDownloadable: z.coerce.boolean().default(true).optional(),
   isActive: z.coerce.boolean().default(true).optional(),

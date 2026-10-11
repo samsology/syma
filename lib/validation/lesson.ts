@@ -3,6 +3,25 @@ import { z } from 'zod';
 export const lessonTypeSchema = z.enum(['TEXT', 'VIDEO', 'ASSIGNMENT']);
 export const lessonResourceTypeSchema = z.enum(['SLIDE', 'VIDEO']);
 
+const urlOrR2KeySchema = z
+  .string()
+  .trim()
+  .refine(
+    (val) => {
+      if (!val) return true;
+      if (val.startsWith('r2://') || val.startsWith('courses/') || val.startsWith('/') || /^https?:\/\/courses\//i.test(val)) return true;
+      try {
+        new URL(val);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Must be a valid URL or Cloudflare R2 storage reference' }
+  )
+  .nullish()
+  .or(z.literal(''));
+
 export const lessonSchema = z.object({
   title: z.string().trim().min(2, 'Lesson title must be at least 2 characters'),
   slug: z
@@ -12,9 +31,9 @@ export const lessonSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use a lowercase URL slug, for example intro-to-sql'),
   lessonType: lessonTypeSchema.default('TEXT'),
   resourceType: lessonResourceTypeSchema.default('VIDEO').nullish(),
-  slideUrl: z.string().trim().url('Slide URL must be valid').or(z.literal('')).nullish(),
+  slideUrl: urlOrR2KeySchema,
   content: z.string().trim().min(1, 'Lesson content is required'),
-  videoUrl: z.string().trim().url('Video URL must be valid').or(z.literal('')).nullish(),
+  videoUrl: urlOrR2KeySchema,
   duration: z.coerce.number().int().min(0, 'Duration cannot be negative').nullish().or(z.literal('')),
   isPreview: z.coerce.boolean().default(false),
   status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).default('DRAFT'),

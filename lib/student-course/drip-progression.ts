@@ -52,40 +52,40 @@ export function buildCourseItemSequence(course: {
   for (const week of sortedWeeks) {
     const sortedModules = [...week.modules].sort((a, b) => a.sortOrder - b.sortOrder);
 
-    for (const module of sortedModules) {
+    for (const mod of sortedModules) {
       // 1. Lessons
-      const sortedLessons = [...module.lessons].sort((a, b) => a.sortOrder - b.sortOrder);
+      const sortedLessons = [...mod.lessons].sort((a, b) => a.sortOrder - b.sortOrder);
       for (const lesson of sortedLessons) {
         sequence.push({
           id: lesson.id,
           type: 'LESSON',
           title: lesson.title,
           weekId: week.id,
-          moduleId: module.id,
+          moduleId: mod.id,
           weekNumber: week.weekNumber,
         });
       }
 
       // 2. Module Summary (if present)
-      if (module.summary) {
+      if (mod.summary) {
         sequence.push({
-          id: module.summary.id,
+          id: mod.summary.id,
           type: 'SUMMARY',
-          title: module.summary.title,
+          title: mod.summary.title,
           weekId: week.id,
-          moduleId: module.id,
+          moduleId: mod.id,
           weekNumber: week.weekNumber,
         });
       }
 
       // 3. Module Quiz (if present & published)
-      if (module.quiz && module.quiz.status === 'PUBLISHED') {
+      if (mod.quiz && mod.quiz.status === 'PUBLISHED') {
         sequence.push({
-          id: module.quiz.id,
+          id: mod.quiz.id,
           type: 'QUIZ',
-          title: module.quiz.title,
+          title: mod.quiz.title,
           weekId: week.id,
-          moduleId: module.id,
+          moduleId: mod.id,
           weekNumber: week.weekNumber,
         });
       }
