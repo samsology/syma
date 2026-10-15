@@ -555,6 +555,7 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                               {addingLesson === module.id ? (
                                 <InlineLessonForm
                                   action={createLessonAction.bind(null, course.id, module.id)}
+                                  courseId={course.id}
                                   onDone={() => setAddingLesson(null)}
                                 />
                               ) : (

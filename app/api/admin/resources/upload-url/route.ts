@@ -9,6 +9,32 @@ function sanitizeFilename(fileName: string): string {
   return nameWithoutPath.replace(/[^a-zA-Z0-9_.-]/g, '_');
 }
 
+// Config per category: allowed extensions, mime prefix checks, and byte limits
+const ALLOWED_CONFIG: Record<string, { extensions: string[]; mimePrefixes?: string[]; maxBytes: number }> = {
+  video: {
+    extensions: ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv'],
+    mimePrefixes: ['video/'],
+    maxBytes: 1024 * 1024 * 1024, // 1 GB limit for videos
+  },
+  document: {
+    extensions: ['pdf', 'pptx', 'ppt', 'key', 'doc', 'docx'],
+    mimePrefixes: ['application/pdf', 'application/vnd', 'application/msword'],
+    maxBytes: 500 * 1024 * 1024, // 500 MB limit for documents
+  },
+  slide: {
+    extensions: ['pdf', 'pptx', 'ppt', 'key'],
+    mimePrefixes: ['application/pdf', 'application/vnd', 'application/msword'],
+    maxBytes: 500 * 1024 * 1024, // 500 MB limit for slides
+  },
+  file: {
+    extensions: [
+      'csv', 'json', 'xlsx', 'xls', 'zip', 'tar', 'gz', 'txt', 'tsv',
+      'parquet', 'png', 'jpg', 'jpeg', 'pdf', 'mp4', 'webm', 'pptx',
+    ],
+    maxBytes: 500 * 1024 * 1024, // 500 MB limit for general files
+  },
+};
+
 export async function POST(request: Request) {
   try {
     await requireAdmin();
@@ -32,26 +58,71 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'fileName is required.' }, { status: 400 });
     }
 
-    const maxSizeBytes = 500 * 1024 * 1024; // 500 MB limit
-    if (fileSize && typeof fileSize === 'number' && fileSize > maxSizeBytes) {
-      return NextResponse.json({ success: false, error: 'File size exceeds maximum limit of 500 MB.' }, { status: 400 });
+    const safeFilename = sanitizeFilename(fileName);
+    const fileExt = safeFilename.split('.').pop()?.toLowerCase() || '';
+    if (!fileExt) {
+      return NextResponse.json({ success: false, error: 'Uploaded file must have a valid extension.' }, { status: 400 });
     }
 
-    const safeFilename = sanitizeFilename(fileName);
-    const folderType = (resourceType || 'file').toString().toLowerCase();
+    const category = (resourceType || 'file').toString().toLowerCase();
+    const config = ALLOWED_CONFIG[category] || ALLOWED_CONFIG.file;
+
+    // Validate extension
+    if (!config.extensions.includes(fileExt)) {
+      return NextResponse.json({
+        success: false,
+        error: `Invalid file extension '.${fileExt}' for ${category} resource. Allowed extensions: ${config.extensions.map((e) => `.${e}`).join(', ')}`,
+      }, { status: 400 });
+    }
+
+    // Validate file size (up to 1 GB for videos)
+    if (fileSize && typeof fileSize === 'number') {
+      if (fileSize <= 0) {
+        return NextResponse.json({ success: false, error: 'File size must be greater than 0 bytes.' }, { status: 400 });
+      }
+      if (fileSize > config.maxBytes) {
+        const maxMB = Math.round(config.maxBytes / (1024 * 1024));
+        const maxDisplay = maxMB >= 1024 ? `${maxMB / 1024} GB` : `${maxMB} MB`;
+        return NextResponse.json({
+          success: false,
+          error: `File size exceeds maximum allowed limit of ${maxDisplay}.`,
+        }, { status: 400 });
+      }
+    }
+
+    // Sanitize course and lesson IDs for the key path
+    const safeCourseId = courseId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeLessonId = lessonId.replace(/[^a-zA-Z0-9_-]/g, '_');
     const uniqueId = crypto.randomUUID();
-    const storageKey = `courses/${courseId}/lessons/${lessonId}/${folderType}/${uniqueId}-${safeFilename}`;
+    const folderType = category;
+    const storageKey = `courses/${safeCourseId}/lessons/${safeLessonId}/${folderType}/${uniqueId}-${safeFilename}`;
 
     const client = getR2Client();
     const bucket = getR2BucketName();
 
+    // Default MIME type mapping if not provided or generic
+    let resolvedMimeType = (mimeType && mimeType !== 'application/octet-stream') ? mimeType : '';
+    if (!resolvedMimeType) {
+      if (fileExt === 'mp4') resolvedMimeType = 'video/mp4';
+      else if (fileExt === 'webm') resolvedMimeType = 'video/webm';
+      else if (fileExt === 'ogg') resolvedMimeType = 'video/ogg';
+      else if (fileExt === 'mov') resolvedMimeType = 'video/quicktime';
+      else if (fileExt === 'pdf') resolvedMimeType = 'application/pdf';
+      else if (fileExt === 'pptx') resolvedMimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      else if (fileExt === 'ppt') resolvedMimeType = 'application/vnd.ms-powerpoint';
+      else if (fileExt === 'csv') resolvedMimeType = 'text/csv';
+      else if (fileExt === 'json') resolvedMimeType = 'application/json';
+      else resolvedMimeType = 'application/octet-stream';
+    }
+
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: storageKey,
-      ContentType: mimeType || 'application/octet-stream',
+      ContentType: resolvedMimeType,
     });
 
-    const uploadUrl = await getSignedUrl(client, command, { expiresIn: 900 });
+    const expiresInSeconds = 900; // 15 minutes
+    const uploadUrl = await getSignedUrl(client, command, { expiresIn: expiresInSeconds });
 
     return NextResponse.json({
       success: true,
@@ -59,7 +130,11 @@ export async function POST(request: Request) {
         uploadUrl,
         storageKey,
         key: storageKey,
-        expiresInSeconds: 900,
+        expiresInSeconds,
+        method: 'PUT',
+        headers: {
+          'Content-Type': resolvedMimeType,
+        },
       },
     });
   } catch (err: unknown) {

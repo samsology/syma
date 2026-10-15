@@ -29,18 +29,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'lessonId is required.' }, { status: 400 });
     }
 
-    const maxSizeBytes = 500 * 1024 * 1024; // 500 MB limit
-    if (file.size > maxSizeBytes) {
-      return NextResponse.json({ success: false, error: 'File size exceeds maximum limit of 500 MB.' }, { status: 400 });
+    // Strict Vercel serverless request body protection:
+    // Any file larger than 4 MB cannot be proxied through Vercel serverless functions.
+    const VERCEL_SERVERLESS_MAX_BODY = 4.2 * 1024 * 1024; // 4.2 MB safe ceiling
+    if (file.size > VERCEL_SERVERLESS_MAX_BODY) {
+      return NextResponse.json({
+        success: false,
+        error:
+          'File size exceeds 4 MB. Large video and presentation files cannot be proxied through the serverless function. Please use direct Cloudflare R2 upload.',
+      }, { status: 413 });
     }
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     const safeFilename = sanitizeFilename(file.name);
+    const safeCourseId = courseId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeLessonId = lessonId.replace(/[^a-zA-Z0-9_-]/g, '_');
     const folderType = resourceType.toLowerCase();
     const uniqueId = crypto.randomUUID();
-    const storageKey = `courses/${courseId}/lessons/${lessonId}/${folderType}/${uniqueId}-${safeFilename}`;
+    const storageKey = `courses/${safeCourseId}/lessons/${safeLessonId}/${folderType}/${uniqueId}-${safeFilename}`;
 
     await r2Storage.upload(storageKey, buffer, {
       contentType: file.type || 'application/octet-stream',

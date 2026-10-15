@@ -26,6 +26,7 @@ import {
 import { ResourceRenderer } from '@/components/resources/ResourceRenderer';
 import { inferResourceMetaFromUrl } from '@/lib/resources/embed';
 import type { ResourceType, ResourceSource } from '@/lib/resources/types';
+import { uploadFileDirectToR2 } from '@/lib/resources/r2-uploader';
 
 const initialState: CurriculumFormState = {};
 
@@ -143,89 +144,31 @@ function R2FileUploader({
 
     setIsUploading(true);
     setUploadError(null);
-    setUploadProgress(15);
+    setUploadProgress(0);
 
     try {
-      let finalStorageKey: string | null = null;
+      const result = await uploadFileDirectToR2({
+        file,
+        courseId,
+        lessonId,
+        resourceType,
+        onProgress: (percent) => setUploadProgress(percent),
+      });
 
-      // 1. Attempt direct presigned upload to R2
-      try {
-        const res = await fetch('/api/admin/resources/upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            courseId,
-            lessonId,
-            fileName: file.name,
-            fileSize: file.size,
-            mimeType: file.type || 'application/octet-stream',
-            resourceType,
-          }),
-        });
-
-        const json = await res.json();
-        if (res.ok && json.success && json.data?.uploadUrl) {
-          setUploadProgress(40);
-          const { uploadUrl, storageKey } = json.data;
-
-          const uploadRes = await fetch(uploadUrl, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': file.type || 'application/octet-stream',
-            },
-            body: file,
-          });
-
-          if (uploadRes.ok) {
-            finalStorageKey = storageKey;
-          }
-        }
-      } catch (directErr) {
-        console.warn('Direct R2 presigned upload encountered an issue (e.g. CORS). Falling back to server upload route...', directErr);
-      }
-
-      // 2. If direct upload didn't complete (e.g. CORS blocked fetch), fallback to server upload proxy
-      if (!finalStorageKey) {
-        setUploadProgress(50);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('courseId', courseId);
-        formData.append('lessonId', lessonId);
-        formData.append('resourceType', resourceType || 'file');
-
-        const fallbackRes = await fetch('/api/admin/resources/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const fallbackJson = await fallbackRes.json();
-        if (!fallbackRes.ok || !fallbackJson.success) {
-          throw new Error(fallbackJson.error || 'Failed to upload file to Cloudflare R2.');
-        }
-
-        finalStorageKey = fallbackJson.data.storageKey;
-      }
-
-      if (!finalStorageKey) {
-        throw new Error('Upload completed but storage key was not returned.');
-      }
-
-      setUploadProgress(100);
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'file';
-
-      setUploadedName(file.name);
+      setUploadedName(result.fileName);
       onUploadSuccess({
-        storageKey: finalStorageKey,
-        fileUrl: `r2://${finalStorageKey}`,
-        mimeType: file.type || 'application/octet-stream',
-        fileSize: file.size,
-        fileType: ext,
-        fileName: file.name,
+        storageKey: result.storageKey,
+        fileUrl: result.fileUrl,
+        mimeType: result.mimeType,
+        fileSize: result.fileSize,
+        fileType: result.fileType,
+        fileName: result.fileName,
       });
     } catch (err: unknown) {
       setUploadError((err as Error).message || 'File upload to Cloudflare R2 failed.');
     } finally {
       setIsUploading(false);
+      e.target.value = '';
     }
   };
 

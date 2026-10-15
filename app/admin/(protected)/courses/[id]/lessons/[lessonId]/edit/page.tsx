@@ -57,7 +57,7 @@ export default async function LessonEditPage({ params }: LessonEditPageProps) {
 
       <section className="space-y-4">
         <h3 className="text-lg font-bold text-slate-900">Instructional Content</h3>
-        <LessonForm action={updateLessonAction.bind(null, course.id, lesson.id)} lesson={lesson} />
+        <LessonForm action={updateLessonAction.bind(null, course.id, lesson.id)} lesson={lesson} courseId={course.id} />
       </section>
 
       <section className="space-y-4">

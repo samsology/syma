@@ -306,7 +306,7 @@ test('Phase PDF.7: isPdfFile accurately classifies PDF file types and URLs', () 
 // 8. PDF Validation Magic Bytes Check
 // ---------------------------------------------------------------------------
 test('Phase PDF.8: PDF binary validator correctly accepts valid PDFs and rejects HTML/JSON error responses', () => {
-  function validatePdfBytes(buffer: ArrayBuffer): boolean {
+  function validatePdfBytes(buffer: ArrayBufferLike): boolean {
     const headerBytes = new Uint8Array(buffer.slice(0, 5));
     const headerStr = String.fromCharCode(...headerBytes);
     return headerStr.startsWith('%PDF');
