@@ -25,6 +25,7 @@ import {
   isImageFile,
 } from '@/lib/resources/embed';
 import { PowerPointViewer } from './PowerPointViewer';
+import { PdfViewer } from './PdfViewer';
 import type { ResourceType, ResourceSource } from '@/lib/resources/types';
 
 interface ResourceRendererProps {
@@ -419,22 +420,43 @@ export function ResourceRenderer({
     descriptor.kind === 'pdf' ||
     isPdfFile(fileType) ||
     isPdfFile(effectiveUrl) ||
-    descriptor.kind === 'google_doc' ||
-    descriptor.kind === 'google_drive_file'
+    isPdfFile(fileUrl)
+  ) {
+    const computedStorageKey =
+      extractR2StorageKey(fileUrl) || extractR2StorageKey(effectiveUrl) || fileUrl;
+
+    return (
+      <PdfViewer
+        fileUrl={effectiveUrl}
+        storageKey={computedStorageKey}
+        title={title}
+        description={description}
+        fileSize={fileSize}
+        className={className}
+      />
+    );
+  }
+
+  // 9b. Google Drive Documents & Files (Preview Only)
+  if (
+    (descriptor.kind === 'google_doc' || descriptor.kind === 'google_drive_file') &&
+    descriptor.embedUrl &&
+    isEmbedSafe &&
+    !hasError
   ) {
     return (
       <div className={`space-y-3 ${className}`}>
         <div className="relative h-[550px] w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:h-[700px]">
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-500 z-10">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-50 text-slate-500">
               <div className="flex flex-col items-center gap-2">
-                <RefreshCw className="text-primary h-6 w-6 animate-spin" />
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
                 <span className="text-xs font-semibold">Rendering document inside portal...</span>
               </div>
             </div>
           )}
           <iframe
-            src={`${effectiveUrl}#toolbar=1`}
+            src={descriptor.embedUrl}
             title={title}
             className="h-full w-full border-0"
             loading="lazy"
@@ -446,31 +468,14 @@ export function ResourceRenderer({
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1 rounded bg-indigo-100 px-2 py-0.5 font-bold text-indigo-800 uppercase">
-              <FileText className="h-3.5 w-3.5" /> PDF Document
+              <FileText className="h-3.5 w-3.5" /> Document Preview
             </span>
             {formattedSize && <span>{formattedSize}</span>}
             {description && <span className="text-slate-600">· {description}</span>}
           </div>
-          <div className="flex items-center gap-3">
-            <a
-              href={effectiveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> Open in New Tab
-            </a>
-            <a
-              href={effectiveUrl}
-              download
-              className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-            >
-              <Download className="h-3.5 w-3.5" /> Download PDF
-            </a>
-            <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-              In-Portal Viewer
-            </span>
-          </div>
+          <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+            In-Portal Viewer
+          </span>
         </div>
       </div>
     );

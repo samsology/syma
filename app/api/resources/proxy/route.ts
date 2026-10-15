@@ -3,6 +3,7 @@ import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'node:stream';
 import { getCurrentAdmin } from '@/lib/auth/session';
 import { getCurrentStudent } from '@/lib/auth/student-session';
+import { db } from '@/lib/db';
 import { getR2Client, getR2BucketName } from '@/lib/storage/r2Client';
 import { extractR2StorageKey } from '@/lib/resources/embed';
 
@@ -59,6 +60,80 @@ export async function GET(request: Request) {
       );
     }
 
+    // Authorize student course enrollment
+    if (student) {
+      const resource = await db.lessonResource.findFirst({
+        where: {
+          OR: [
+            { storageKey: key },
+            { fileUrl: key },
+            { fileUrl: { contains: key } },
+          ],
+          isActive: true,
+        },
+        select: {
+          lesson: {
+            select: {
+              module: {
+                select: {
+                  week: {
+                    select: {
+                      courseId: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const lesson = !resource
+        ? await db.lesson.findFirst({
+            where: {
+              OR: [
+                { videoUrl: key },
+                { videoUrl: { contains: key } },
+                { slideUrl: key },
+                { slideUrl: { contains: key } },
+              ],
+            },
+            select: {
+              module: {
+                select: {
+                  week: {
+                    select: {
+                      courseId: true,
+                    },
+                  },
+                },
+              },
+            },
+          })
+        : null;
+
+      const courseId =
+        resource?.lesson?.module?.week?.courseId ||
+        lesson?.module?.week?.courseId;
+
+      if (courseId) {
+        const enrollment = await db.enrollment.findFirst({
+          where: {
+            studentId: student.id,
+            courseId,
+            status: { in: ['ACTIVE', 'COMPLETED'] },
+          },
+        });
+
+        if (!enrollment) {
+          return NextResponse.json(
+            { success: false, error: 'Access denied. Active course enrollment required.' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     const client = getR2Client();
     const bucket = getR2BucketName();
     const rangeHeader = request.headers.get('range');
@@ -103,7 +178,9 @@ export async function GET(request: Request) {
     const cleanFilename = rawFilename.replace(/^[0-9a-fA-F-]{36}-/, '');
     const encodedFilename = encodeURIComponent(cleanFilename);
 
-    const dispositionType = isDownload ? 'attachment' : 'inline';
+    // Prevent download disposition on instructional media (PDF, Video, PPTX)
+    const isRestrictedLearningMedia = ['pdf', 'mp4', 'webm', 'ogg', 'mov', 'm4v', 'pptx', 'ppt'].includes(ext);
+    const dispositionType = (isDownload && !isRestrictedLearningMedia) ? 'attachment' : 'inline';
     const contentDisposition = `${dispositionType}; filename="${cleanFilename.replace(/"/g, '')}"; filename*=UTF-8''${encodedFilename}`;
 
     const headers = new Headers();

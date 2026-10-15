@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentAdmin } from '@/lib/auth/session';
 import { getCurrentStudent } from '@/lib/auth/student-session';
+import { db } from '@/lib/db';
 import { storageService } from '@/lib/storage';
 
 export async function GET(request: Request) {
@@ -26,6 +27,80 @@ export async function GET(request: Request) {
 
     if (!admin && !student) {
       return NextResponse.json({ success: false, error: 'Authentication required.' }, { status: 401 });
+    }
+
+    // Authorize student course enrollment
+    if (student) {
+      const resource = await db.lessonResource.findFirst({
+        where: {
+          OR: [
+            { storageKey: key },
+            { fileUrl: key },
+            { fileUrl: { contains: key } },
+          ],
+          isActive: true,
+        },
+        select: {
+          lesson: {
+            select: {
+              module: {
+                select: {
+                  week: {
+                    select: {
+                      courseId: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const lesson = !resource
+        ? await db.lesson.findFirst({
+            where: {
+              OR: [
+                { videoUrl: key },
+                { videoUrl: { contains: key } },
+                { slideUrl: key },
+                { slideUrl: { contains: key } },
+              ],
+            },
+            select: {
+              module: {
+                select: {
+                  week: {
+                    select: {
+                      courseId: true,
+                    },
+                  },
+                },
+              },
+            },
+          })
+        : null;
+
+      const courseId =
+        resource?.lesson?.module?.week?.courseId ||
+        lesson?.module?.week?.courseId;
+
+      if (courseId) {
+        const enrollment = await db.enrollment.findFirst({
+          where: {
+            studentId: student.id,
+            courseId,
+            status: { in: ['ACTIVE', 'COMPLETED'] },
+          },
+        });
+
+        if (!enrollment) {
+          return NextResponse.json(
+            { success: false, error: 'Access denied. Active course enrollment required.' },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     // 2. Verify object exists in bucket
