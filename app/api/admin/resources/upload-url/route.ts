@@ -3,6 +3,7 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { requireAdmin } from '@/lib/auth/authorization';
 import { db } from '@/lib/db';
+import { sanitizeR2PathSegment } from '@/lib/resources/r2-upload-key';
 import { getR2Client, getR2BucketName } from '@/lib/storage/r2Client';
 
 function sanitizeFilename(fileName: string): string {
@@ -55,12 +56,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'lessonId is required.' }, { status: 400 });
     }
 
-    const lesson = await db.lesson.findFirst({
-      where: { id: lessonId, module: { week: { courseId } } },
-      select: { id: true },
-    });
-    if (!lesson) {
-      return NextResponse.json({ success: false, error: 'Lesson not found in the specified course.' }, { status: 404 });
+    // Lessons can be uploaded before their first save (the curriculum form uses a draft ID).
+    // Bind the key to an existing course; requiring a persisted lesson here blocks that flow.
+    const course = await db.course.findUnique({ where: { id: courseId }, select: { id: true } });
+    if (!course) {
+      return NextResponse.json({ success: false, error: 'Course not found.' }, { status: 404 });
     }
 
     if (!fileName || typeof fileName !== 'string') {
@@ -100,8 +100,8 @@ export async function POST(request: Request) {
     }
 
     // Sanitize course and lesson IDs for the key path
-    const safeCourseId = courseId.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const safeLessonId = lessonId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeCourseId = sanitizeR2PathSegment(courseId);
+    const safeLessonId = sanitizeR2PathSegment(lessonId);
     const uniqueId = crypto.randomUUID();
     const folderType = category;
     const storageKey = `courses/${safeCourseId}/lessons/${safeLessonId}/${folderType}/${uniqueId}-${safeFilename}`;

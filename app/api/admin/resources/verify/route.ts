@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/authorization';
 import { db } from '@/lib/db';
+import { isR2KeyForCourseLesson } from '@/lib/resources/r2-upload-key';
 import { r2Storage } from '@/lib/storage/r2Storage';
 
 export async function POST(request: Request) {
@@ -22,19 +23,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'courseId and lessonId are required.' }, { status: 400 });
     }
 
-    const lesson = await db.lesson.findFirst({
-      where: { id: lessonId, module: { week: { courseId } } },
-      select: { id: true },
-    });
-    if (!lesson) {
-      return NextResponse.json({ success: false, error: 'Lesson not found in the specified course.' }, { status: 404 });
+    // New lessons are allowed to upload before they are saved in the curriculum form.
+    // The authenticated admin and verified course-scoped key bind the object during this draft phase.
+    const course = await db.course.findUnique({ where: { id: courseId }, select: { id: true } });
+    if (!course) {
+      return NextResponse.json({ success: false, error: 'Course not found.' }, { status: 404 });
     }
 
     // Security check: storageKey must be in the expected courses/ folder structure
-    const safeCourseId = courseId.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const safeLessonId = lessonId.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const expectedPrefix = `courses/${safeCourseId}/lessons/${safeLessonId}/`;
-    if (!storageKey.startsWith(expectedPrefix) || storageKey.includes('..')) {
+    if (!isR2KeyForCourseLesson(storageKey, courseId, lessonId)) {
       return NextResponse.json({ success: false, error: 'Invalid storage key path.' }, { status: 400 });
     }
 
