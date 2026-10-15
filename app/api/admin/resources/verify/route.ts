@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/authorization';
+import { db } from '@/lib/db';
 import { r2Storage } from '@/lib/storage/r2Storage';
 
 export async function POST(request: Request) {
@@ -17,8 +18,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'storageKey is required.' }, { status: 400 });
     }
 
+    if (typeof courseId !== 'string' || typeof lessonId !== 'string') {
+      return NextResponse.json({ success: false, error: 'courseId and lessonId are required.' }, { status: 400 });
+    }
+
+    const lesson = await db.lesson.findFirst({
+      where: { id: lessonId, module: { week: { courseId } } },
+      select: { id: true },
+    });
+    if (!lesson) {
+      return NextResponse.json({ success: false, error: 'Lesson not found in the specified course.' }, { status: 404 });
+    }
+
     // Security check: storageKey must be in the expected courses/ folder structure
-    if (!storageKey.startsWith('courses/') || storageKey.includes('..')) {
+    const safeCourseId = courseId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeLessonId = lessonId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const expectedPrefix = `courses/${safeCourseId}/lessons/${safeLessonId}/`;
+    if (!storageKey.startsWith(expectedPrefix) || storageKey.includes('..')) {
       return NextResponse.json({ success: false, error: 'Invalid storage key path.' }, { status: 400 });
     }
 
@@ -36,6 +52,20 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: false,
         error: 'The uploaded file in Cloudflare R2 is empty (0 bytes).',
+      }, { status: 400 });
+    }
+
+    if (typeof expectedSize === 'number' && metadata.size !== expectedSize) {
+      return NextResponse.json({
+        success: false,
+        error: 'The uploaded object size does not match the selected file.',
+      }, { status: 400 });
+    }
+
+    if (typeof expectedType === 'string' && expectedType && metadata.contentType !== expectedType) {
+      return NextResponse.json({
+        success: false,
+        error: 'The uploaded object content type does not match the selected file.',
       }, { status: 400 });
     }
 

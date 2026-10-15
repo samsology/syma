@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { requireAdmin } from '@/lib/auth/authorization';
+import { db } from '@/lib/db';
 import { getR2Client, getR2BucketName } from '@/lib/storage/r2Client';
 
 function sanitizeFilename(fileName: string): string {
@@ -52,6 +53,14 @@ export async function POST(request: Request) {
 
     if (!lessonId || typeof lessonId !== 'string') {
       return NextResponse.json({ success: false, error: 'lessonId is required.' }, { status: 400 });
+    }
+
+    const lesson = await db.lesson.findFirst({
+      where: { id: lessonId, module: { week: { courseId } } },
+      select: { id: true },
+    });
+    if (!lesson) {
+      return NextResponse.json({ success: false, error: 'Lesson not found in the specified course.' }, { status: 404 });
     }
 
     if (!fileName || typeof fileName !== 'string') {

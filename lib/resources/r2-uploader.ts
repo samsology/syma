@@ -95,22 +95,34 @@ export async function uploadFileDirectToR2(
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve();
       } else {
-        const errorText = xhr.responseText || xhr.statusText;
-        reject(
-          new Error(
-            `Cloudflare R2 rejected upload with status ${xhr.status} (${xhr.statusText}). ${errorText}`
-          )
-        );
+        const code = xhr.responseText.match(/<Code>([^<]+)<\/Code>/i)?.[1];
+        if (xhr.status === 403 && code === 'RequestExpired') {
+          reject(new Error('The Cloudflare R2 upload authorization expired before the upload started. Please retry.'));
+          return;
+        }
+        if (xhr.status === 403) {
+          reject(new Error('Cloudflare R2 denied the upload (403). The signed request may not match its Content-Type or may no longer be valid. Please retry; if it continues, contact an administrator.'));
+          return;
+        }
+        if (xhr.status === 404) {
+          reject(new Error('Cloudflare R2 could not find the target bucket or object (404). Please contact an administrator.'));
+          return;
+        }
+        if (xhr.status === 413) {
+          reject(new Error('Cloudflare R2 rejected the upload because the request is too large (413).'));
+          return;
+        }
+        if (xhr.status >= 500) {
+          reject(new Error(`Cloudflare R2 is temporarily unavailable (${xhr.status}). Please retry later.`));
+          return;
+        }
+        reject(new Error(`Cloudflare R2 rejected the upload (${xhr.status || 'unknown status'}). Please retry or contact an administrator.`));
       }
     };
 
     xhr.onerror = () => {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://syma-nine.vercel.app';
-      reject(
-        new Error(
-          `Cloudflare R2 blocked direct browser upload from ${origin}. This is caused by missing CORS rules on the R2 bucket 'syma-tech-resources'. Please ensure AllowedOrigins includes '${origin}' and AllowedMethods includes PUT and GET.`
-        )
-      );
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'this site';
+      reject(new Error(`The browser could not read a response from Cloudflare R2 for ${origin}. This can be a CORS/preflight rejection or a network/TLS failure; check the browser Network panel for the OPTIONS and PUT requests before changing bucket settings.`));
     };
 
     xhr.ontimeout = () => {
