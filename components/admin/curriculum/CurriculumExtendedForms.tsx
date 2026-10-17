@@ -24,6 +24,9 @@ import {
   X,
   ArrowUp,
   ArrowDown,
+  Upload,
+  Link2,
+  FileText,
 } from 'lucide-react';
 import type { CurriculumFormState } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
 import {
@@ -981,7 +984,32 @@ export function WeeklyAssignmentForm({
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(action, initialState);
-  const [datasetUrl, setDatasetUrl] = useState(assignment?.datasetUrl ?? '');
+
+  // Controlled form values so inputs never clear on error
+  const [title, setTitle] = useState(assignment?.title ?? 'Weekly Practical Assignment');
+  const [description, setDescription] = useState(assignment?.description ?? '');
+  const [instructions, setInstructions] = useState(assignment?.instructions ?? '');
+  const [submissionType, setSubmissionType] = useState<string>(
+    assignment?.submissionType ?? 'FILE_OR_TEXT'
+  );
+  const [dueDateDays, setDueDateDays] = useState<string | number>(assignment?.dueDateDays ?? 7);
+  const [dueAt, setDueAt] = useState(
+    assignment?.dueAt ? new Date(assignment.dueAt).toISOString().slice(0, 16) : ''
+  );
+  const [maxScore, setMaxScore] = useState<string | number>(assignment?.maxScore ?? '');
+  const [status, setStatus] = useState<string>(assignment?.status ?? 'DRAFT');
+
+  // Dataset attachment state
+  const isExistingR2 = assignment?.datasetUrl?.startsWith('r2://');
+  const [datasetMode, setDatasetMode] = useState<'DRIVE' | 'FILE'>(
+    isExistingR2 ? 'FILE' : 'DRIVE'
+  );
+  const [datasetUrl, setDatasetUrl] = useState(
+    isExistingR2 ? '' : (assignment?.datasetUrl ?? '')
+  );
+  const [datasetName, setDatasetName] = useState(assignment?.datasetName ?? '');
+  const [removeDataset, setRemoveDataset] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   useEffect(() => {
     if (state.success) {
@@ -993,8 +1021,11 @@ export function WeeklyAssignmentForm({
   return (
     <form
       action={formAction}
+      encType="multipart/form-data"
       className="space-y-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/40 p-5 shadow-xs"
     >
+      <input type="hidden" name="removeDataset" value={removeDataset ? 'true' : 'false'} />
+
       <div className="flex items-center gap-2 border-b border-emerald-100 pb-3">
         <BookOpen className="h-5 w-5 text-emerald-600" />
         <h4 className="text-sm font-bold tracking-wider text-emerald-900 uppercase">
@@ -1004,16 +1035,27 @@ export function WeeklyAssignmentForm({
         </h4>
       </div>
 
-      {state.formError && <p className="text-error text-sm font-semibold">{state.formError}</p>}
+      {state.formError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+          {state.formError}
+        </div>
+      )}
+
+      {state.success && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+          Assignment saved successfully!
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="block text-xs font-bold text-slate-600 uppercase">
-            Assignment Title
+            Assignment Title <span className="text-red-500">*</span>
           </label>
           <input
             name="title"
-            defaultValue={assignment?.title ?? 'Weekly Practical Assignment'}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Week 1 Practical Lab: Dataset Cleaning and Exploration"
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             required
@@ -1023,11 +1065,12 @@ export function WeeklyAssignmentForm({
 
         <div className="sm:col-span-2">
           <label className="block text-xs font-bold text-slate-600 uppercase">
-            Brief Description
+            Brief Description <span className="text-red-500">*</span>
           </label>
           <input
             name="description"
-            defaultValue={assignment?.description ?? ''}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             placeholder="Overview of practical scenario and learning goals..."
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             required
@@ -1037,13 +1080,14 @@ export function WeeklyAssignmentForm({
 
         <div className="sm:col-span-2">
           <label className="block text-xs font-bold text-slate-600 uppercase">
-            Detailed Instructions &amp; Tasks
+            Detailed Instructions &amp; Tasks <span className="text-red-500">*</span>
           </label>
           <textarea
             name="instructions"
-            defaultValue={assignment?.instructions ?? ''}
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
             rows={4}
-            placeholder="Step 1: Download the dataset&#10;Step 2: Perform analysis&#10;Step 3: Document your conclusions..."
+            placeholder="Step 1: Download the dataset&#10;Step 2: Perform analysis in Excel/Power BI/Python&#10;Step 3: Document your conclusions and submit..."
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             required
           />
@@ -1056,100 +1100,237 @@ export function WeeklyAssignmentForm({
           </label>
           <select
             name="submissionType"
-            defaultValue={assignment?.submissionType ?? 'FILE_OR_TEXT'}
+            value={submissionType}
+            onChange={(e) => setSubmissionType(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
           >
-            <option value="FILE_OR_TEXT">File Upload or Text Input</option>
-            <option value="FILE_ONLY">File Upload Only (CSV, PBIX, PDF, ZIP)</option>
-            <option value="TEXT_ONLY">Online Text / Link Only</option>
+            <option value="FILE_OR_TEXT">File Upload or Document Link</option>
+            <option value="FILE_ONLY">File Upload Only (CSV, PBIX, Excel, PDF, ZIP)</option>
+            <option value="TEXT_ONLY">Online Link Only (Google Drive, Sheets)</option>
           </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase">
-            Due Date (Days from week start)
-          </label>
-          <input
-            name="dueDateDays"
-            type="number"
-            min={1}
-            defaultValue={assignment?.dueDateDays ?? 7}
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase">Due Date (optional)</label>
-          <input
-            name="dueAt"
-            type="datetime-local"
-            defaultValue={assignment?.dueAt ? new Date(assignment.dueAt).toISOString().slice(0, 16) : ''}
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase">Maximum score (optional)</label>
-          <input
-            name="maxScore"
-            type="number"
-            min="0.01"
-            step="0.01"
-            defaultValue={assignment?.maxScore ?? ''}
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase">
-            Attached Dataset Name (optional)
-          </label>
-          <input
-            name="datasetName"
-            defaultValue={assignment?.datasetName ?? ''}
-            placeholder="e.g. ecommerce_transactions_q1.csv"
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase">
-            Attached Dataset URL (optional)
-          </label>
-          <div className="mt-1 flex gap-2">
-            <input
-              name="datasetUrl"
-              value={datasetUrl}
-              onChange={(e) => setDatasetUrl(e.target.value)}
-              placeholder="https://... or /assets/datasets/..."
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-            />
-            {datasetUrl && (
-              <a
-                href={datasetUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
-              >
-                <ExternalLink className="h-3.5 w-3.5" /> Test
-              </a>
-            )}
-          </div>
-          <FieldError errors={state.fieldErrors?.datasetUrl} />
         </div>
 
         <div>
           <label className="block text-xs font-bold text-slate-600 uppercase">Status</label>
           <select
             name="status"
-            defaultValue={assignment?.status ?? 'DRAFT'}
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
           >
-            <option value="DRAFT">Draft</option>
-            <option value="PUBLISHED">Published</option>
+            <option value="DRAFT">Draft (Admin only)</option>
+            <option value="PUBLISHED">Published (Visible to students)</option>
             <option value="ARCHIVED">Archived</option>
           </select>
         </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 uppercase">
+            Due Date (Days from week unlock)
+          </label>
+          <input
+            name="dueDateDays"
+            type="number"
+            min={1}
+            value={dueDateDays}
+            onChange={(e) => setDueDateDays(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          />
+          <FieldError errors={state.fieldErrors?.dueDateDays} />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 uppercase">
+            Exact Due Date &amp; Time (optional)
+          </label>
+          <input
+            name="dueAt"
+            type="datetime-local"
+            value={dueAt}
+            onChange={(e) => setDueAt(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          />
+          <FieldError errors={state.fieldErrors?.dueAt} />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 uppercase">
+            Maximum Score / Points (optional)
+          </label>
+          <input
+            name="maxScore"
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={maxScore}
+            onChange={(e) => setMaxScore(e.target.value)}
+            placeholder="e.g. 100 or 10 (leave blank for unranked feedback)"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          />
+          <FieldError errors={state.fieldErrors?.maxScore} />
+        </div>
+      </div>
+
+      {/* DATASET ATTACHMENT SECTION */}
+      <div className="space-y-3 rounded-xl border border-emerald-300 bg-white/90 p-4 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 pb-2.5">
+          <div>
+            <h5 className="text-xs font-bold tracking-wider text-emerald-950 uppercase">
+              Assignment Dataset / Practical Starter Files
+            </h5>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Provide students with a dataset via Google Drive link or by uploading a file directly (max 4 MB).
+            </p>
+          </div>
+          {/* Mode switch */}
+          <div className="flex rounded-lg border border-slate-200 bg-slate-100 p-0.5 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => {
+                setDatasetMode('DRIVE');
+                setRemoveDataset(false);
+              }}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
+                datasetMode === 'DRIVE'
+                  ? 'bg-white text-emerald-800 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Link2 className="h-3.5 w-3.5" />
+              Google Drive Link
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDatasetMode('FILE');
+                setRemoveDataset(false);
+              }}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
+                datasetMode === 'FILE'
+                  ? 'bg-white text-emerald-800 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Upload File
+            </button>
+          </div>
+        </div>
+
+        {/* Existing Dataset Notice */}
+        {assignment?.datasetUrl && !removeDataset && (
+          <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-emerald-700 shrink-0" />
+              <div>
+                <span className="font-bold text-emerald-900">
+                  Current Dataset: {assignment.datasetName || 'Attached Dataset'}
+                </span>
+                <span className="ml-2 text-slate-500">
+                  ({isExistingR2 ? 'Uploaded file in Cloudflare R2' : 'Google Drive / External link'})
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setRemoveDataset(true);
+                setDatasetUrl('');
+                setDatasetName('');
+                setSelectedFileName(null);
+              }}
+              className="font-bold text-red-600 hover:text-red-800"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
+        {removeDataset && (
+          <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+            <span>Dataset will be removed upon saving.</span>
+            <button
+              type="button"
+              onClick={() => setRemoveDataset(false)}
+              className="text-emerald-800 underline hover:text-emerald-950"
+            >
+              Undo
+            </button>
+          </div>
+        )}
+
+        {!removeDataset && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase">
+                Dataset Display Label
+              </label>
+              <input
+                name="datasetName"
+                value={datasetName}
+                onChange={(e) => setDatasetName(e.target.value)}
+                placeholder="e.g. Health_Records_Q1.csv or Patient Cohort Dataset"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            {datasetMode === 'DRIVE' ? (
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase">
+                  Google Drive / External Dataset URL
+                </label>
+                <div className="mt-1 flex gap-2">
+                  <input
+                    name="datasetUrl"
+                    value={datasetUrl}
+                    onChange={(e) => setDatasetUrl(e.target.value)}
+                    placeholder="https://drive.google.com/file/d/... or sheets link"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  />
+                  {datasetUrl && (
+                    <a
+                      href={datasetUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" /> Test
+                    </a>
+                  )}
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Ensure the sharing settings in Google Drive are set to &quot;Anyone with the link can view&quot;.
+                </p>
+                <FieldError errors={state.fieldErrors?.datasetUrl} />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase">
+                  Select Dataset File (.csv, .xlsx, .zip, .pdf, .pbix, etc.)
+                </label>
+                <input
+                  name="datasetFile"
+                  type="file"
+                  accept=".csv,.xlsx,.xls,.zip,.json,.pdf,.pbix,.ipynb,.txt"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    setSelectedFileName(f ? `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)} MB)` : null);
+                    if (f && !datasetName) {
+                      setDatasetName(f.name);
+                    }
+                  }}
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-emerald-600 file:px-3 file:py-1 file:text-xs file:font-bold file:text-white hover:file:bg-emerald-700"
+                />
+                {selectedFileName && (
+                  <p className="mt-1 text-xs font-semibold text-emerald-700">
+                    Selected: {selectedFileName}
+                  </p>
+                )}
+                <FieldError errors={state.fieldErrors?.datasetUrl} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end gap-2 border-t border-emerald-100 pt-3">
@@ -1165,9 +1346,9 @@ export function WeeklyAssignmentForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-60"
+          className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-60"
         >
-          {pending ? 'Saving...' : 'Save Assignment'}
+          {pending ? 'Saving Assignment...' : 'Save Assignment'}
         </button>
       </div>
     </form>

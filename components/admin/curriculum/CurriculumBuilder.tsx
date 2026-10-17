@@ -815,6 +815,12 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                                   {week.assignment.submissionType}
                                 </span>
                                 <span>Due: {week.assignment.dueDateDays ?? 7} days</span>
+                                {week.assignment.dueAt && (
+                                  <span>· Exact: {new Date(week.assignment.dueAt).toLocaleDateString()}</span>
+                                )}
+                                {week.assignment.maxScore != null && (
+                                  <span>· Max score: {week.assignment.maxScore}</span>
+                                )}
                                 <span>
                                   · Status:{' '}
                                   <span className="font-semibold text-slate-800">
@@ -822,26 +828,39 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                                   </span>
                                 </span>
                                 {week.assignment.datasetUrl && (
-                                  <a
-                                    href={week.assignment.datasetUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:underline"
-                                  >
-                                    <ExternalLink className="h-3 w-3" />
-                                    Dataset: {week.assignment.datasetName || 'Download File'}
-                                  </a>
+                                  week.assignment.datasetUrl.startsWith('r2://') ? (
+                                    <span className="inline-flex items-center gap-1 rounded bg-emerald-100/90 px-2 py-0.5 font-semibold text-emerald-900">
+                                      <BookOpen className="h-3 w-3" />
+                                      Dataset: {week.assignment.datasetName || 'Uploaded File'}
+                                    </span>
+                                  ) : (
+                                    <a
+                                      href={week.assignment.datasetUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:underline"
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                      Dataset: {week.assignment.datasetName || 'Google Drive / Link'}
+                                    </a>
+                                  )
                                 )}
                               </div>
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
+                            <Link
+                              href={`/admin/assignments/${week.assignment.id}`}
+                              className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-800"
+                            >
+                              Submissions &amp; Grades
+                            </Link>
                             <button
                               type="button"
                               onClick={() => setEditingAssignment(week.id)}
                               className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50"
                             >
-                              Edit Assignment
+                              Edit
                             </button>
                             <form
                               action={deleteWeeklyAssignmentAction}

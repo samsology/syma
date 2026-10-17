@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Download, FileText, Send } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Download, ExternalLink, FileText, Send } from 'lucide-react';
 import { requireEnrollment, requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { submitWeeklyAssignmentAction } from '@/app/student/progress-actions';
@@ -28,16 +28,14 @@ export default async function StudentWeeklyAssignmentPage({ params, searchParams
   }
 
   const assignment = week.assignment;
-  const datasetLink = (() => {
-    if (!assignment.datasetUrl) return null;
-    if (assignment.datasetUrl.startsWith('/')) return assignment.datasetUrl;
-    try {
-      const url = new URL(assignment.datasetUrl);
-      return ['https:', 'http:'].includes(url.protocol) ? url.toString() : null;
-    } catch {
-      return null;
-    }
-  })();
+  const datasetDownloadUrl = assignment.datasetUrl?.startsWith('r2://')
+    ? await r2Storage.getSignedUrl(assignment.datasetUrl.replace(/^r2:\/\//, ''), 900).catch(() => null)
+    : null;
+  const datasetExternalUrl =
+    assignment.datasetUrl && !assignment.datasetUrl.startsWith('r2://')
+      ? normalizeAssignmentUrl(assignment.datasetUrl)
+      : null;
+
 
   const [completedLessonProgress, completedSummaryProgress, passedAttempts, assignmentSubmissions] =
     await Promise.all([
@@ -130,30 +128,84 @@ export default async function StudentWeeklyAssignmentPage({ params, searchParams
       </header>
 
       {/* Dataset & Practical Files (if attached) */}
-      {(datasetLink || resources.length > 0) && (
+      {(datasetDownloadUrl || datasetExternalUrl || resources.length > 0) && (
         <section className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-sm">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-2">Assignment Dataset &amp; Lab Data</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-2">
+            Assignment Dataset &amp; Lab Data
+          </h2>
           <div className="space-y-3">
-          {datasetLink && <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-lg border border-emerald-100">
-            <div className="flex items-center gap-3">
-              <div className="rounded-md bg-emerald-100 p-2 text-emerald-700">
-                <FileText className="h-5 w-5" />
+            {(datasetDownloadUrl || datasetExternalUrl) && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-lg border border-emerald-100">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md bg-emerald-100 p-2 text-emerald-700">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">
+                      {assignment.datasetName || 'Practical Lab Dataset'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {datasetDownloadUrl
+                        ? 'Official practical dataset provided for this assignment'
+                        : 'Google Drive / external dataset document provided for this assignment'}
+                    </p>
+                  </div>
+                </div>
+                {datasetDownloadUrl ? (
+                  <a
+                    href={datasetDownloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download Dataset
+                  </a>
+                ) : (
+                  <a
+                    href={datasetExternalUrl!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Open Dataset (Google Drive) ↗
+                  </a>
+                )}
               </div>
-              <div>
-                <p className="font-bold text-slate-900 text-sm">{assignment.datasetName || 'Lab Dataset File'}</p>
-                <p className="text-xs text-slate-500">Official practical dataset provided for this assignment</p>
+            )}
+            {resources.map((resource) => (
+              <div
+                key={resource.id}
+                className="flex flex-col gap-2 rounded-lg border border-emerald-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{resource.label}</p>
+                  {resource.description && (
+                    <p className="text-xs text-slate-600">{resource.description}</p>
+                  )}
+                </div>
+                {resource.externalUrl ? (
+                  <a
+                    href={resource.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Open resource ↗
+                  </a>
+                ) : resource.signedUrl ? (
+                  <a
+                    href={resource.signedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download {resource.originalFilename ?? 'file'}
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-500">File unavailable</span>
+                )}
               </div>
-            </div>
-            <a
-              href={datasetLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition"
-            >
-              <Download className="h-3.5 w-3.5" /> Download Dataset
-            </a>
-          </div>}
-          {resources.map((resource) => <div key={resource.id} className="flex flex-col gap-2 rounded-lg border border-emerald-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-bold text-slate-900">{resource.label}</p>{resource.description && <p className="text-xs text-slate-600">{resource.description}</p>}</div>{resource.externalUrl ? <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-700">Open resource ↗</a> : resource.signedUrl ? <a href={resource.signedUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-700">Download {resource.originalFilename ?? 'file'}</a> : <span className="text-xs text-slate-500">File unavailable</span>}</div>)}
+            ))}
           </div>
         </section>
       )}
@@ -201,8 +253,8 @@ export default async function StudentWeeklyAssignmentPage({ params, searchParams
           <input type="hidden" name="assignmentId" value={assignment.id} />
 
           <fieldset className="space-y-3"><legend className="text-xs font-bold uppercase text-slate-600">Choose one submission method</legend>
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800"><input type="radio" name="method" value="FILE" required /> Upload a file (PDF, CSV, Excel, or Word; max 4 MB)</label>
-            <input name="file" type="file" accept=".pdf,.csv,.xlsx,.xls,.docx,.doc" className="block w-full text-sm" />
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800"><input type="radio" name="method" value="FILE" required /> Upload a completed assignment file (PDF, CSV, Excel, Word, Power BI, or ZIP; max 4 MB)</label>
+            <input name="file" type="file" accept=".pdf,.csv,.xlsx,.xls,.docx,.doc,.zip,.pbix,.ipynb,.json,.txt" className="block w-full text-sm" />
             <label className="flex items-center gap-2 text-sm font-semibold text-slate-800"><input type="radio" name="method" value="LINK" required /> Submit a document link</label>
             <input name="submissionUrl" type="url" placeholder="https://…" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
             <p className="text-xs text-slate-500">For Google Drive, Sheets, or other external documents, grant your instructor access in the provider’s sharing settings. We cannot verify external permissions.</p>

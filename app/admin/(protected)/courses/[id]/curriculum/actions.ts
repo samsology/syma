@@ -14,6 +14,8 @@ import { weekSchema } from '@/lib/validation/week';
 import { summarySchema } from '@/lib/validation/summary';
 import { quizSchema, quizQuestionSchema } from '@/lib/validation/quiz';
 import { assignmentSchema } from '@/lib/validation/assignment';
+import { r2Storage } from '@/lib/storage/r2Storage';
+import { validateAssignmentFile, ASSIGNMENT_DATASET_EXTENSIONS } from '@/lib/assignments/files';
 
 export type CurriculumFormState = {
   success?: boolean;
@@ -28,7 +30,10 @@ function refresh(courseId: string) {
   revalidatePath(`/admin/courses/${courseId}/curriculum`);
   revalidatePath(`/admin/courses/${courseId}/curriculum`, 'page');
   revalidatePath('/admin/dashboard');
+  revalidatePath('/admin/assignments');
+  revalidatePath(`/student/courses/${courseId}`);
 }
+
 
 function sanitizeUrl(val: unknown): string {
   if (!val || typeof val !== 'string') return '';
@@ -1016,23 +1021,103 @@ export async function upsertWeeklyAssignmentAction(
   formData: FormData
 ): Promise<CurriculumFormState> {
   await requireCourse(courseId);
+  const rawTitle = formData.get('title');
+  const rawDescription = formData.get('description');
+  const rawInstructions = formData.get('instructions');
+  const rawSubmissionType = formData.get('submissionType') || 'FILE_OR_TEXT';
+  const rawSubmissionRequirements = formData.get('submissionRequirements');
+  const rawDatasetUrl = formData.get('datasetUrl');
+  const rawDatasetName = formData.get('datasetName');
+  const rawDueDateDays = formData.get('dueDateDays');
+  const rawDueAt = formData.get('dueAt');
+  const rawMaxScore = formData.get('maxScore');
+  const rawStatus = formData.get('status') || 'DRAFT';
+  const removeDataset = formData.get('removeDataset') === 'true';
+
   const parsed = assignmentSchema.safeParse({
-    title: formData.get('title'),
-    description: formData.get('description'),
-    instructions: formData.get('instructions'),
-    submissionType: formData.get('submissionType') || 'FILE_OR_TEXT',
-    submissionRequirements: formData.get('submissionRequirements'),
-    datasetUrl: formData.get('datasetUrl'),
-    datasetName: formData.get('datasetName'),
-    dueDateDays: formData.get('dueDateDays') || undefined,
-    dueAt: formData.get('dueAt') || undefined,
-    maxScore: formData.get('maxScore') || undefined,
-    status: formData.get('status'),
+    title: rawTitle,
+    description: rawDescription,
+    instructions: rawInstructions,
+    submissionType: rawSubmissionType,
+    submissionRequirements: rawSubmissionRequirements,
+    datasetUrl: rawDatasetUrl,
+    datasetName: rawDatasetName,
+    dueDateDays: rawDueDateDays || undefined,
+    dueAt: rawDueAt || undefined,
+    maxScore: rawMaxScore || undefined,
+    status: rawStatus,
   });
-  if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
+
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
 
   try {
     await requireWeek(courseId, weekId);
+
+    const existing = await db.weeklyAssignment.findUnique({
+      where: { weekId },
+    });
+
+    let finalDatasetUrl = existing?.datasetUrl ?? null;
+    let finalDatasetName = existing?.datasetName ?? null;
+
+    const datasetFile = formData.get('datasetFile');
+    const hasUploadedFile = datasetFile instanceof File && datasetFile.size > 0;
+
+    if (hasUploadedFile) {
+      const fileError = validateAssignmentFile(datasetFile, ASSIGNMENT_DATASET_EXTENSIONS);
+      if (fileError) {
+        return { fieldErrors: { datasetUrl: [fileError] } };
+      }
+
+      const safeName = (datasetFile.name.split(/[\\/]/).pop() || 'dataset').replace(
+        /[^a-zA-Z0-9_.-]/g,
+        '_'
+      );
+      const storageKey = `courses/${courseId}/weeks/${weekId}/assignment/datasets/${crypto.randomUUID()}-${safeName}`;
+
+      try {
+        await r2Storage.upload(storageKey, Buffer.from(await datasetFile.arrayBuffer()), {
+          contentType: datasetFile.type || 'application/octet-stream',
+        });
+      } catch (uploadErr) {
+        return {
+          formError:
+            uploadErr instanceof Error
+              ? uploadErr.message
+              : 'Failed to upload dataset file to storage.',
+        };
+      }
+
+      // If replacing an existing R2 file, clean up old file
+      if (existing?.datasetUrl?.startsWith('r2://')) {
+        const oldKey = existing.datasetUrl.replace(/^r2:\/\//, '');
+        await r2Storage.delete(oldKey).catch(() => false);
+      }
+
+      finalDatasetUrl = `r2://${storageKey}`;
+      finalDatasetName = parsed.data.datasetName?.trim() || datasetFile.name;
+    } else if (removeDataset) {
+      if (existing?.datasetUrl?.startsWith('r2://')) {
+        const oldKey = existing.datasetUrl.replace(/^r2:\/\//, '');
+        await r2Storage.delete(oldKey).catch(() => false);
+      }
+      finalDatasetUrl = null;
+      finalDatasetName = null;
+    } else if (parsed.data.datasetUrl && parsed.data.datasetUrl.trim() !== '') {
+      // User provided or updated an external link (e.g. Google Drive / Sheets)
+      if (existing?.datasetUrl?.startsWith('r2://') && existing.datasetUrl !== parsed.data.datasetUrl) {
+        const oldKey = existing.datasetUrl.replace(/^r2:\/\//, '');
+        await r2Storage.delete(oldKey).catch(() => false);
+      }
+      finalDatasetUrl = parsed.data.datasetUrl.trim();
+      finalDatasetName = parsed.data.datasetName?.trim() || 'Google Drive Dataset';
+    } else if (rawDatasetUrl === '' && !existing?.datasetUrl) {
+      finalDatasetUrl = null;
+      finalDatasetName = null;
+    }
+
     await db.weeklyAssignment.upsert({
       where: { weekId },
       create: {
@@ -1042,11 +1127,11 @@ export async function upsertWeeklyAssignmentAction(
         instructions: parsed.data.instructions,
         submissionType: parsed.data.submissionType,
         submissionRequirements: parsed.data.submissionRequirements || null,
-        datasetUrl: parsed.data.datasetUrl || null,
-        datasetName: parsed.data.datasetName || null,
-        dueDateDays: parsed.data.dueDateDays === '' ? null : parsed.data.dueDateDays,
+        datasetUrl: finalDatasetUrl,
+        datasetName: finalDatasetName,
+        dueDateDays: parsed.data.dueDateDays ?? null,
         dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
-        maxScore: parsed.data.maxScore === '' ? null : parsed.data.maxScore,
+        maxScore: parsed.data.maxScore ?? null,
         status: parsed.data.status,
       },
       update: {
@@ -1055,14 +1140,15 @@ export async function upsertWeeklyAssignmentAction(
         instructions: parsed.data.instructions,
         submissionType: parsed.data.submissionType,
         submissionRequirements: parsed.data.submissionRequirements || null,
-        datasetUrl: parsed.data.datasetUrl || null,
-        datasetName: parsed.data.datasetName || null,
-        dueDateDays: parsed.data.dueDateDays === '' ? null : parsed.data.dueDateDays,
+        datasetUrl: finalDatasetUrl,
+        datasetName: finalDatasetName,
+        dueDateDays: parsed.data.dueDateDays ?? null,
         dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
-        maxScore: parsed.data.maxScore === '' ? null : parsed.data.maxScore,
+        maxScore: parsed.data.maxScore ?? null,
         status: parsed.data.status,
       },
     });
+
     refresh(courseId);
     return { success: true };
   } catch (error) {
@@ -1077,6 +1163,25 @@ export async function deleteWeeklyAssignmentAction(formData: FormData) {
   const weekId = String(formData.get('weekId') ?? '');
   await requireCourse(courseId);
   await requireWeek(courseId, weekId);
+
+  const existing = await db.weeklyAssignment.findUnique({
+    where: { weekId },
+    include: { resources: true },
+  });
+
+  if (existing) {
+    if (existing.datasetUrl?.startsWith('r2://')) {
+      const oldKey = existing.datasetUrl.replace(/^r2:\/\//, '');
+      await r2Storage.delete(oldKey).catch(() => false);
+    }
+    for (const res of existing.resources) {
+      if (res.storageKey) {
+        await r2Storage.delete(res.storageKey).catch(() => false);
+      }
+    }
+  }
+
   await db.weeklyAssignment.deleteMany({ where: { weekId } });
   refresh(courseId);
 }
+

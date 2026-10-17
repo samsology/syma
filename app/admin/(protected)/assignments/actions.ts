@@ -119,6 +119,10 @@ export async function reviewAssignmentSubmissionAction(formData: FormData) {
     },
   });
   revalidatePath(`/admin/assignments/${submission.assignmentId}`);
+  revalidatePath('/admin/assignments');
   revalidatePath(`/student/courses/${submission.assignment.week.courseId}/weeks/${submission.assignment.weekId}/assignment`);
+  revalidatePath(`/student/courses/${submission.assignment.week.courseId}`);
+  revalidatePath('/student');
   redirect(`/admin/assignments/${submission.assignmentId}`);
 }
+

@@ -14,10 +14,24 @@ export default async function AssignmentReviewPage({ params, searchParams }: { p
     include: {
       week: { include: { course: { select: { id: true, title: true } } } },
       resources: { orderBy: { createdAt: 'asc' } },
-      submissions: { orderBy: [{ studentId: 'asc' }, { attemptNumber: 'desc' }], include: { student: { select: { firstName: true, lastName: true, email: true } } } },
+      submissions: {
+        orderBy: [{ studentId: 'asc' }, { attemptNumber: 'desc' }],
+        include: {
+          student: { select: { firstName: true, lastName: true, email: true } },
+          reviewer: { select: { name: true } },
+        },
+      },
     },
   });
   if (!assignment) notFound();
+
+  const datasetDownloadUrl = assignment.datasetUrl?.startsWith('r2://')
+    ? await r2Storage.getSignedUrl(assignment.datasetUrl.replace(/^r2:\/\//, ''), 900).catch(() => null)
+    : null;
+  const datasetExternalUrl =
+    assignment.datasetUrl && !assignment.datasetUrl.startsWith('r2://')
+      ? normalizeAssignmentUrl(assignment.datasetUrl)
+      : null;
 
   const resources = await Promise.all(assignment.resources.map(async (resource) => ({
     ...resource,
@@ -43,7 +57,44 @@ export default async function AssignmentReviewPage({ params, searchParams }: { p
         <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{assignment.week.course.title} · Week {assignment.week.weekNumber}</p>
         <h1 className="mt-2 text-2xl font-black text-slate-950">{assignment.title}</h1>
         <p className="mt-2 text-sm text-slate-600">{assignment.status === 'PUBLISHED' ? 'Published' : 'Draft'}{assignment.maxScore != null ? ` · Maximum score: ${assignment.maxScore}` : ''}</p>
-        <Link href={`/admin/courses/${assignment.week.course.id}/curriculum`} className="mt-4 inline-flex rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">Edit details and publication</Link>
+        
+        {(datasetDownloadUrl || datasetExternalUrl) && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-sm">
+            <div>
+              <p className="font-bold text-emerald-950">
+                Primary Dataset: {assignment.datasetName || 'Lab Dataset'}
+              </p>
+              <p className="text-xs text-slate-500">
+                {datasetDownloadUrl
+                  ? 'Uploaded file stored in Cloudflare R2'
+                  : 'Google Drive / external dataset link'}
+              </p>
+            </div>
+            {datasetDownloadUrl ? (
+              <a
+                href={datasetDownloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700"
+              >
+                Download Dataset File
+              </a>
+            ) : (
+              <a
+                href={datasetExternalUrl!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700"
+              >
+                Open Google Drive Link ↗
+              </a>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 flex gap-3">
+          <Link href={`/admin/courses/${assignment.week.course.id}/curriculum`} className="inline-flex rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Edit curriculum details</Link>
+        </div>
       </header>
 
       <section className="rounded-xl border border-slate-200 bg-white p-6">
@@ -77,8 +128,40 @@ export default async function AssignmentReviewPage({ params, searchParams }: { p
         {submissions.length === 0 ? <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">No submissions yet.</p> : submissions.map((submission) => (
           <article key={submission.id} className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><h3 className="font-bold text-slate-950">{submission.student.firstName} {submission.student.lastName}</h3><p className="text-xs text-slate-500">{submission.student.email} · Attempt {submission.attemptNumber} · {submission.submittedAt.toLocaleString()}</p></div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{submission.status.replace('_', ' ')}</span>
+              <div>
+                <h3 className="font-bold text-slate-950">
+                  {submission.student.firstName} {submission.student.lastName}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {submission.student.email} · Attempt {submission.attemptNumber} ·{' '}
+                  {submission.submittedAt.toLocaleString()}
+                </p>
+                {submission.reviewedAt && (
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Reviewed by {submission.reviewer?.name ?? 'Admin'} on{' '}
+                    {new Date(submission.reviewedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {submission.score != null && (
+                  <span className="rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900">
+                    Score: {submission.score}
+                    {assignment.maxScore != null ? ` / ${assignment.maxScore}` : ''}
+                  </span>
+                )}
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-bold ${
+                    submission.status === 'REVIEWED'
+                      ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : submission.status === 'NEEDS_REVISION'
+                      ? 'border border-amber-200 bg-amber-50 text-amber-800'
+                      : 'bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  {submission.status.replace('_', ' ')}
+                </span>
+              </div>
             </div>
             <div className="mt-3 text-sm text-slate-700">
               {submission.method === 'FILE' ? (submission.fileDownload ? <a href={submission.fileDownload} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary">Download {submission.originalFilename ?? 'submitted file'}</a> : <p>File unavailable or storage credentials are not configured.</p>) : submission.safeSubmittedUrl ? <a href={submission.safeSubmittedUrl} target="_blank" rel="noopener noreferrer" className="break-all font-semibold text-primary">Open submitted link</a> : <div className="space-y-2"><p className="whitespace-pre-wrap">{submission.content || 'Submission link unavailable or invalid.'}</p>{submission.safeLegacyFileUrl && <a href={submission.safeLegacyFileUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary">Open legacy attached file</a>}{submission.legacyR2Download && <a href={submission.legacyR2Download} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary">Open previous private file</a>}</div>}

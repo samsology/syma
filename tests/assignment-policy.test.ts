@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canSubmitAssignment, normalizeAssignmentUrl, validateAssignmentScore } from '../lib/assignments/policy';
+import { assignmentSchema } from '../lib/validation/assignment';
+import {
+  validateAssignmentFile,
+  ASSIGNMENT_SUBMISSION_EXTENSIONS,
+  ASSIGNMENT_DATASET_EXTENSIONS,
+} from '../lib/assignments/files';
 
 test('weekly assignment resubmission is permitted only after Needs Revision', () => {
   assert.equal(canSubmitAssignment(null), true);
@@ -26,3 +32,96 @@ test('assignment scores are optional, nonnegative, and bounded when a maximum is
   assert.equal(validateAssignmentScore('12', null), 12);
   assert.equal(validateAssignmentScore('NaN', null), undefined);
 });
+
+test('assignmentSchema handles optional fields with empty strings cleanly', () => {
+  const result = assignmentSchema.safeParse({
+    title: 'Week 1 Practical Lab',
+    description: 'Practical data cleaning lab with pandas',
+    instructions: '1. Download dataset. 2. Clean nulls. 3. Submit.',
+    submissionType: 'FILE_OR_TEXT',
+    maxScore: '',
+    dueDateDays: '',
+    dueAt: '',
+    datasetUrl: '',
+    datasetName: '',
+    status: 'DRAFT',
+  });
+
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.data.maxScore, undefined);
+    assert.equal(result.data.dueDateDays, undefined);
+    assert.equal(result.data.dueAt, '');
+    assert.equal(result.data.datasetUrl, '');
+  }
+});
+
+test('assignmentSchema accepts Google Drive links and R2 storage keys', () => {
+  const driveResult = assignmentSchema.safeParse({
+    title: 'Week 2 Lab',
+    description: 'Cohort analysis lab',
+    instructions: 'Open the dataset in Google Drive and compute retention.',
+    datasetUrl: 'https://drive.google.com/file/d/12345/view?usp=sharing',
+    datasetName: 'Hospital_Visits.csv',
+    maxScore: '100',
+    dueDateDays: '7',
+  });
+  assert.equal(driveResult.success, true);
+  if (driveResult.success) {
+    assert.equal(driveResult.data.maxScore, 100);
+    assert.equal(driveResult.data.dueDateDays, 7);
+    assert.equal(
+      driveResult.data.datasetUrl,
+      'https://drive.google.com/file/d/12345/view?usp=sharing'
+    );
+  }
+
+  const r2Result = assignmentSchema.safeParse({
+    title: 'Week 3 Lab',
+    description: 'Power BI report dashboard',
+    instructions: 'Download the PBIX file starter and build the KPI cards.',
+    datasetUrl: 'r2://courses/course-1/weeks/week-3/assignment/datasets/data.csv',
+    datasetName: 'transactions.csv',
+  });
+  assert.equal(r2Result.success, true);
+});
+
+test('assignmentSchema rejects invalid titles and negative scores', () => {
+  const badScore = assignmentSchema.safeParse({
+    title: 'Week 4 Lab',
+    description: 'Valid description',
+    instructions: 'Valid instructions for week 4',
+    maxScore: '-10',
+  });
+  assert.equal(badScore.success, false);
+
+  const shortTitle = assignmentSchema.safeParse({
+    title: 'A',
+    description: 'Valid description',
+    instructions: 'Valid instructions for week 4',
+  });
+  assert.equal(shortTitle.success, false);
+});
+
+test('validateAssignmentFile permits data formats including pbix, ipynb, and zip', () => {
+  const pbixFile = new File([new Uint8Array(100)], 'report.pbix', {
+    type: 'application/octet-stream',
+  });
+  assert.equal(validateAssignmentFile(pbixFile, ASSIGNMENT_SUBMISSION_EXTENSIONS), null);
+
+  const ipynbFile = new File([new Uint8Array(100)], 'analysis.ipynb', {
+    type: 'application/json',
+  });
+  assert.equal(validateAssignmentFile(ipynbFile, ASSIGNMENT_SUBMISSION_EXTENSIONS), null);
+
+  const csvFile = new File([new Uint8Array(100)], 'dataset.csv', {
+    type: 'text/csv',
+  });
+  assert.equal(validateAssignmentFile(csvFile, ASSIGNMENT_DATASET_EXTENSIONS), null);
+
+  const exeFile = new File([new Uint8Array(100)], 'danger.exe', {
+    type: 'application/x-msdownload',
+  });
+  assert.notEqual(validateAssignmentFile(exeFile, ASSIGNMENT_SUBMISSION_EXTENSIONS), null);
+});
+
