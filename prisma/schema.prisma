@@ -102,6 +102,7 @@ model Admin {
 
   courses  Course[]       @relation("CourseInstructor")
   sessions AdminSession[]
+  reviewedAssignmentSubmissions AssignmentSubmission[] @relation("AssignmentSubmissionReviewer")
 }
 
 model AdminSession {
@@ -565,14 +566,35 @@ model WeeklyAssignment {
   datasetUrl             String?
   datasetName            String?
   dueDateDays            Int?
+  dueAt                  DateTime?
+  maxScore               Float?
   status                 CourseStatus           @default(DRAFT)
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
 
   week                   CourseWeek             @relation(fields: [weekId], references: [id], onDelete: Cascade)
   submissions            AssignmentSubmission[]
+  resources              AssignmentResource[]
 
   @@index([weekId])
+}
+
+model AssignmentResource {
+  id             String   @id @default(cuid())
+  assignmentId   String
+  resourceType   String
+  label          String
+  description    String?
+  storageKey     String?
+  originalFilename String?
+  mimeType       String?
+  fileSize       Int?
+  externalUrl    String?
+  createdAt      DateTime @default(now())
+
+  assignment WeeklyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
 }
 
 model AssignmentSubmission {
@@ -581,14 +603,25 @@ model AssignmentSubmission {
   studentId    String
   content      String?
   fileUrl      String?
+  method       String           @default("LINK")
+  attemptNumber Int             @default(1)
+  originalFilename String?
+  mimeType     String?
+  fileSize     Int?
   status       String           @default("SUBMITTED")
+  score        Float?
+  feedback     String?
+  reviewerId   String?
+  reviewedAt   DateTime?
   submittedAt  DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
   assignment   WeeklyAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reviewer     Admin?           @relation("AssignmentSubmissionReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
 
-  @@unique([studentId, assignmentId])
+  @@unique([studentId, assignmentId, attemptNumber])
   @@index([assignmentId])
-  @@index([studentId])
+  @@index([studentId, assignmentId, submittedAt])
+  @@index([status])
 }

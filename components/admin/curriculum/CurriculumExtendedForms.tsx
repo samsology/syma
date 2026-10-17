@@ -1079,6 +1079,28 @@ export function WeeklyAssignmentForm({
         </div>
 
         <div>
+          <label className="block text-xs font-bold text-slate-600 uppercase">Due Date (optional)</label>
+          <input
+            name="dueAt"
+            type="datetime-local"
+            defaultValue={assignment?.dueAt ? new Date(assignment.dueAt).toISOString().slice(0, 16) : ''}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-600 uppercase">Maximum score (optional)</label>
+          <input
+            name="maxScore"
+            type="number"
+            min="0.01"
+            step="0.01"
+            defaultValue={assignment?.maxScore ?? ''}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          />
+        </div>
+
+        <div>
           <label className="block text-xs font-bold text-slate-600 uppercase">
             Attached Dataset Name (optional)
           </label>

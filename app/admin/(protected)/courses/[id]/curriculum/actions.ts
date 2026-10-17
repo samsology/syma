@@ -32,7 +32,7 @@ function refresh(courseId: string) {
 
 function sanitizeUrl(val: unknown): string {
   if (!val || typeof val !== 'string') return '';
-  let trimmed = val.trim();
+  const trimmed = val.trim();
   if (!trimmed) return '';
   // R2 storage key or r2:// URI: preserve clean storage reference without prepending https://
   if (trimmed.startsWith('r2://') || trimmed.startsWith('courses/')) {
@@ -1025,6 +1025,8 @@ export async function upsertWeeklyAssignmentAction(
     datasetUrl: formData.get('datasetUrl'),
     datasetName: formData.get('datasetName'),
     dueDateDays: formData.get('dueDateDays') || undefined,
+    dueAt: formData.get('dueAt') || undefined,
+    maxScore: formData.get('maxScore') || undefined,
     status: formData.get('status'),
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -1043,6 +1045,8 @@ export async function upsertWeeklyAssignmentAction(
         datasetUrl: parsed.data.datasetUrl || null,
         datasetName: parsed.data.datasetName || null,
         dueDateDays: parsed.data.dueDateDays === '' ? null : parsed.data.dueDateDays,
+        dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
+        maxScore: parsed.data.maxScore === '' ? null : parsed.data.maxScore,
         status: parsed.data.status,
       },
       update: {
@@ -1054,6 +1058,8 @@ export async function upsertWeeklyAssignmentAction(
         datasetUrl: parsed.data.datasetUrl || null,
         datasetName: parsed.data.datasetName || null,
         dueDateDays: parsed.data.dueDateDays === '' ? null : parsed.data.dueDateDays,
+        dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
+        maxScore: parsed.data.maxScore === '' ? null : parsed.data.maxScore,
         status: parsed.data.status,
       },
     });

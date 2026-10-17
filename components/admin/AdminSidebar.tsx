@@ -1,10 +1,11 @@
-import { BookOpen, ClipboardList, CreditCard, FolderOpen, LayoutDashboard, LogOut, Receipt, Settings, Users } from 'lucide-react';
+import { BookOpen, ClipboardList, CreditCard, FolderOpen, LayoutDashboard, LogOut, Receipt, Settings, Users, FileText } from 'lucide-react';
 import { logoutAdminAction } from '@/app/admin/actions';
 import { AdminNavLink } from './AdminNavLink';
 
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/courses', label: 'Courses', icon: BookOpen },
+  { href: '/admin/assignments', label: 'Assignments', icon: FileText },
   { href: '/admin/students', label: 'Students', icon: Users },
   { href: '/admin/enrollments', label: 'Enrollments', icon: ClipboardList },
   { href: '/admin/orders', label: 'Orders', icon: Receipt },

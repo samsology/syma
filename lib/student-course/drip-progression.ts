@@ -32,7 +32,7 @@ export function buildCourseItemSequence(course: {
     id: string;
     weekNumber: number;
     sortOrder: number;
-    assignment?: { id: string; title: string } | null;
+    assignment?: { id: string; title: string; status?: string } | null;
     modules: Array<{
       id: string;
       sortOrder: number;
@@ -92,7 +92,7 @@ export function buildCourseItemSequence(course: {
     }
 
     // 4. Weekly Assignment (at end of week)
-    if (week.assignment) {
+    if (week.assignment && (!week.assignment.status || week.assignment.status === 'PUBLISHED')) {
       sequence.push({
         id: week.assignment.id,
         type: 'ASSIGNMENT',

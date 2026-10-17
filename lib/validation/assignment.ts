@@ -9,6 +9,8 @@ export const assignmentSchema = z.object({
   datasetUrl: z.string().trim().url('Dataset URL must be a valid URL').optional().or(z.literal('')),
   datasetName: z.string().trim().optional().or(z.literal('')),
   dueDateDays: z.coerce.number().int().positive('Due date days must be positive').optional().or(z.literal('')),
+  dueAt: z.string().trim().refine((value) => !value || !Number.isNaN(Date.parse(value)), 'Enter a valid due date').optional().or(z.literal('')),
+  maxScore: z.coerce.number().positive('Maximum score must be greater than zero').optional().or(z.literal('')),
   status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).default('DRAFT'),
 });
 

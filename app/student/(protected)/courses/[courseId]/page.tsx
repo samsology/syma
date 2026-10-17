@@ -46,6 +46,7 @@ export default async function StudentCoursePage({ params }: StudentCoursePagePro
       }),
       db.assignmentSubmission.findMany({
         where: { studentId: student.id },
+        orderBy: { attemptNumber: 'desc' },
         select: { assignmentId: true, status: true, submittedAt: true },
       }),
     ]);
@@ -55,7 +56,10 @@ export default async function StudentCoursePage({ params }: StudentCoursePagePro
   const passedQuizIds = new Set(quizAttempts.filter((a) => a.passed).map((a) => a.quizId));
   const submittedAssignmentIds = new Set(assignmentSubmissions.map((a) => a.assignmentId));
 
-  const submissionMap = new Map(assignmentSubmissions.map((s) => [s.assignmentId, s]));
+  const submissionMap = new Map<string, (typeof assignmentSubmissions)[number]>();
+  for (const submission of assignmentSubmissions) {
+    if (!submissionMap.has(submission.assignmentId)) submissionMap.set(submission.assignmentId, submission);
+  }
 
   // Drip Unlock Status Calculation
   const courseSequence = buildCourseItemSequence(course);
@@ -401,7 +405,7 @@ export default async function StudentCoursePage({ params }: StudentCoursePagePro
                 })}
 
                 {/* Weekly Assignment */}
-                {week.assignment && (() => {
+                {week.assignment?.status === 'PUBLISHED' && (() => {
                   const assignmentStatus = dripStatusMap.get(week.assignment.id) ?? {
                     isUnlocked: false,
                     isCompleted: false,

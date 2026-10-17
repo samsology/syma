@@ -4,13 +4,16 @@ import { ArrowLeft, CheckCircle2, Download, FileText, Send } from 'lucide-react'
 import { requireEnrollment, requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { submitWeeklyAssignmentAction } from '@/app/student/progress-actions';
+import { r2Storage } from '@/lib/storage/r2Storage';
+import { normalizeAssignmentUrl } from '@/lib/assignments/policy';
 
 type WeeklyAssignmentPageProps = {
   params: Promise<{ courseId: string; weekId: string }>;
+  searchParams: Promise<{ error?: string }>;
 };
 
-export default async function StudentWeeklyAssignmentPage({ params }: WeeklyAssignmentPageProps) {
-  const [{ courseId, weekId }, student] = await Promise.all([params, requireStudent()]);
+export default async function StudentWeeklyAssignmentPage({ params, searchParams }: WeeklyAssignmentPageProps) {
+  const [{ courseId, weekId }, query, student] = await Promise.all([params, searchParams, requireStudent()]);
   const enrollment = await requireEnrollment(student.id, courseId);
 
   const week = await db.courseWeek.findFirst({
@@ -20,11 +23,21 @@ export default async function StudentWeeklyAssignmentPage({ params }: WeeklyAssi
     },
   });
 
-  if (!week || !week.assignment) {
+  if (!week || !week.assignment || week.assignment.status !== 'PUBLISHED') {
     redirect(`/student/courses/${courseId}`);
   }
 
   const assignment = week.assignment;
+  const datasetLink = (() => {
+    if (!assignment.datasetUrl) return null;
+    if (assignment.datasetUrl.startsWith('/')) return assignment.datasetUrl;
+    try {
+      const url = new URL(assignment.datasetUrl);
+      return ['https:', 'http:'].includes(url.protocol) ? url.toString() : null;
+    } catch {
+      return null;
+    }
+  })();
 
   const [completedLessonProgress, completedSummaryProgress, passedAttempts, assignmentSubmissions] =
     await Promise.all([
@@ -58,16 +71,32 @@ export default async function StudentWeeklyAssignmentPage({ params }: WeeklyAssi
     redirect(`/student/courses/${courseId}`);
   }
 
-  const submission = await db.assignmentSubmission.findUnique({
-    where: {
-      studentId_assignmentId: {
-        studentId: student.id,
-        assignmentId: assignment.id,
-      },
-    },
+  const submissions = await db.assignmentSubmission.findMany({
+    where: { studentId: student.id, assignmentId: assignment.id },
+    orderBy: { attemptNumber: 'desc' },
   });
-
+  const submission = submissions[0] ?? null;
   const isSubmitted = !!submission;
+  const resources = await db.assignmentResource.findMany({
+    where: { assignmentId: assignment.id },
+    orderBy: { createdAt: 'asc' },
+  }).then((items) => Promise.all(items.map(async (resource) => ({
+    ...resource,
+    externalUrl: resource.externalUrl ? normalizeAssignmentUrl(resource.externalUrl) : null,
+    signedUrl: resource.storageKey ? await r2Storage.getSignedUrl(resource.storageKey, 900).catch(() => null) : null,
+  }))));
+  const submissionHistory = await Promise.all(submissions.map(async (attempt) => ({
+    ...attempt,
+    safeSubmittedUrl: attempt.method === 'LINK' && attempt.content ? normalizeAssignmentUrl(attempt.content) : null,
+    safeLegacyFileUrl: attempt.method === 'LINK' && attempt.fileUrl?.startsWith('http') ? normalizeAssignmentUrl(attempt.fileUrl) : null,
+    legacyR2Download: attempt.method === 'LINK' && attempt.fileUrl?.startsWith('r2://')
+      ? await r2Storage.getSignedUrl(attempt.fileUrl.replace(/^r2:\/\//, ''), 900).catch(() => null)
+      : null,
+    downloadUrl: attempt.method === 'FILE' && attempt.fileUrl
+      ? await r2Storage.getSignedUrl(attempt.fileUrl.replace(/^r2:\/\//, ''), 900).catch(() => null)
+      : null,
+  })));
+  const latestSubmission = submissionHistory[0] ?? null;
 
   return (
     <article className="space-y-6">
@@ -92,17 +121,20 @@ export default async function StudentWeeklyAssignmentPage({ params }: WeeklyAssi
               Due: {assignment.dueDateDays} days from week start
             </span>
           )}
+          {assignment.dueAt && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">Due: {assignment.dueAt.toLocaleString()}</span>}
         </div>
 
         <h1 className="mt-4 text-3xl font-black text-slate-950">{assignment.title}</h1>
         <p className="mt-2 text-sm text-slate-600">{assignment.description}</p>
+        {assignment.maxScore != null && <p className="mt-2 text-xs font-semibold text-slate-600">Maximum score: {assignment.maxScore}</p>}
       </header>
 
       {/* Dataset & Practical Files (if attached) */}
-      {assignment.datasetUrl && (
+      {(datasetLink || resources.length > 0) && (
         <section className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-sm">
           <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-2">Assignment Dataset &amp; Lab Data</h2>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-lg border border-emerald-100">
+          <div className="space-y-3">
+          {datasetLink && <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-lg border border-emerald-100">
             <div className="flex items-center gap-3">
               <div className="rounded-md bg-emerald-100 p-2 text-emerald-700">
                 <FileText className="h-5 w-5" />
@@ -113,13 +145,15 @@ export default async function StudentWeeklyAssignmentPage({ params }: WeeklyAssi
               </div>
             </div>
             <a
-              href={assignment.datasetUrl}
+              href={datasetLink}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition"
             >
               <Download className="h-3.5 w-3.5" /> Download Dataset
             </a>
+          </div>}
+          {resources.map((resource) => <div key={resource.id} className="flex flex-col gap-2 rounded-lg border border-emerald-100 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-bold text-slate-900">{resource.label}</p>{resource.description && <p className="text-xs text-slate-600">{resource.description}</p>}</div>{resource.externalUrl ? <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-700">Open resource ↗</a> : resource.signedUrl ? <a href={resource.signedUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-700">Download {resource.originalFilename ?? 'file'}</a> : <span className="text-xs text-slate-500">File unavailable</span>}</div>)}
           </div>
         </section>
       )}
@@ -141,53 +175,38 @@ export default async function StudentWeeklyAssignmentPage({ params }: WeeklyAssi
 
       {/* Submission Status */}
       {isSubmitted && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-5 flex items-center gap-3">
-          <CheckCircle2 className="h-6 w-6 text-emerald-600 shrink-0" />
-          <div>
-            <h3 className="font-bold text-emerald-950">Assignment Submitted</h3>
-            <p className="text-xs text-emerald-800">
-              Submitted on {new Date(submission.submittedAt).toLocaleDateString()} at {new Date(submission.submittedAt).toLocaleTimeString()}.
-            </p>
-          </div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-5">
+          <div className="flex items-center gap-3"><CheckCircle2 className="h-6 w-6 text-emerald-600 shrink-0" /><div><h3 className="font-bold text-emerald-950">{submission.status.replace('_', ' ')}</h3><p className="text-xs text-emerald-800">Attempt {submission.attemptNumber} · Submitted {submission.submittedAt.toLocaleString()}</p></div></div>
+          {latestSubmission?.downloadUrl && <a className="mt-3 inline-block text-sm font-semibold text-emerald-800 underline" href={latestSubmission.downloadUrl} target="_blank" rel="noopener noreferrer">Open your submitted file: {submission.originalFilename}</a>}
+          {latestSubmission?.safeSubmittedUrl && <a className="mt-3 inline-block text-sm font-semibold text-emerald-800 underline" href={latestSubmission.safeSubmittedUrl} target="_blank" rel="noopener noreferrer">Open your submitted link ↗</a>}
+          {submission.method === 'LINK' && !latestSubmission?.safeSubmittedUrl && submission.content && <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{submission.content}</p>}
+          {latestSubmission?.safeLegacyFileUrl && <a className="mt-2 inline-block text-sm font-semibold text-emerald-800 underline" href={latestSubmission.safeLegacyFileUrl} target="_blank" rel="noopener noreferrer">Open previously attached file</a>}
+          {latestSubmission?.legacyR2Download && <a className="mt-2 inline-block text-sm font-semibold text-emerald-800 underline" href={latestSubmission.legacyR2Download} target="_blank" rel="noopener noreferrer">Open previous private file</a>}
+          {submission.status === 'NEEDS_REVISION' && <p className="mt-3 text-sm font-semibold text-amber-800">Your instructor requested a revision. You can submit a new attempt below.</p>}
+          {submission.status === 'REVIEWED' && submission.score != null && <p className="mt-3 text-sm font-bold text-emerald-900">Score: {submission.score}{assignment.maxScore != null ? ` / ${assignment.maxScore}` : ''}</p>}
+          {submission.status !== 'SUBMITTED' && submission.feedback && <div className="mt-3 rounded-lg bg-white p-3"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Instructor feedback</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{submission.feedback}</p></div>}
+          {submissions.length > 1 && <div className="mt-4 border-t border-emerald-200 pt-3"><h4 className="text-xs font-bold uppercase tracking-wide text-emerald-900">Attempt history</h4><ul className="mt-2 space-y-2">{submissionHistory.map((attempt) => <li key={attempt.id} className="text-xs text-slate-700">Attempt {attempt.attemptNumber}: {attempt.status.replace('_', ' ')} · {attempt.submittedAt.toLocaleString()}{attempt.score != null ? ` · Score ${attempt.score}` : ''}{attempt.feedback && <p className="mt-1 whitespace-pre-wrap">Feedback: {attempt.feedback}</p>}{attempt.downloadUrl && <a className="ml-1 font-semibold text-primary underline" href={attempt.downloadUrl} target="_blank" rel="noopener noreferrer">Open submitted file</a>}{attempt.safeSubmittedUrl && <a className="ml-1 font-semibold text-primary underline" href={attempt.safeSubmittedUrl} target="_blank" rel="noopener noreferrer">Open submitted link</a>}{!attempt.safeSubmittedUrl && attempt.method === 'LINK' && attempt.content && <p className="mt-1 whitespace-pre-wrap">{attempt.content}</p>}{attempt.safeLegacyFileUrl && <a className="ml-1 font-semibold text-primary underline" href={attempt.safeLegacyFileUrl} target="_blank" rel="noopener noreferrer">Open prior attachment</a>}{attempt.legacyR2Download && <a className="ml-1 font-semibold text-primary underline" href={attempt.legacyR2Download} target="_blank" rel="noopener noreferrer">Open prior private file</a>}</li>)}</ul></div>}
         </div>
       )}
 
       {/* Submission Form */}
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <h2 className="text-lg font-bold text-slate-950">
-          {isSubmitted ? 'Update Your Submission' : 'Submit Assignment'}
+          {submission?.status === 'NEEDS_REVISION' ? 'Submit a revision' : isSubmitted ? 'Submission received' : 'Submit Assignment'}
         </h2>
-
-        <form action={submitWeeklyAssignmentAction} className="space-y-4">
+        {query.error && <p className="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700">{query.error === 'resubmit' ? 'You can submit again only after your instructor requests a revision.' : query.error === 'file' ? 'Choose a permitted file under the configured size limit.' : query.error === 'url' ? 'Enter a valid HTTP or HTTPS URL.' : 'Choose exactly one submission method and provide the required file or link.'}</p>}
+        {submission && submission.status !== 'NEEDS_REVISION' ? <p className="text-sm text-slate-600">Resubmission is available only after your instructor marks your work as Needs Revision.</p> : <form action={submitWeeklyAssignmentAction} encType="multipart/form-data" className="space-y-4">
           <input type="hidden" name="courseId" value={courseId} />
           <input type="hidden" name="weekId" value={weekId} />
           <input type="hidden" name="assignmentId" value={assignment.id} />
 
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-              Submission Text, Deliverable Notes, or Cloud Drive Link
-            </label>
-            <textarea
-              name="content"
-              defaultValue={submission?.content ?? ''}
-              rows={5}
-              placeholder="Paste your analysis summary, report text, or shareable link (e.g. Google Drive, GitHub repository, Tableau Public)..."
-              className="w-full rounded-lg border border-slate-300 p-3 text-sm focus:border-emerald-500 focus:outline-none"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase text-slate-600 mb-1">
-              File Attachment URL (optional)
-            </label>
-            <input
-              name="fileUrl"
-              defaultValue={submission?.fileUrl ?? ''}
-              placeholder="https://... or direct link to your submitted file"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-            />
-          </div>
+          <fieldset className="space-y-3"><legend className="text-xs font-bold uppercase text-slate-600">Choose one submission method</legend>
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800"><input type="radio" name="method" value="FILE" required /> Upload a file (PDF, CSV, Excel, or Word; max 4 MB)</label>
+            <input name="file" type="file" accept=".pdf,.csv,.xlsx,.xls,.docx,.doc" className="block w-full text-sm" />
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-800"><input type="radio" name="method" value="LINK" required /> Submit a document link</label>
+            <input name="submissionUrl" type="url" placeholder="https://…" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            <p className="text-xs text-slate-500">For Google Drive, Sheets, or other external documents, grant your instructor access in the provider’s sharing settings. We cannot verify external permissions.</p>
+          </fieldset>
 
           <div className="flex justify-end pt-2">
             <button
@@ -198,7 +217,7 @@ export default async function StudentWeeklyAssignmentPage({ params }: WeeklyAssi
               {isSubmitted ? 'Resubmit Assignment' : 'Submit Assignment'}
             </button>
           </div>
-        </form>
+        </form>}
       </section>
     </article>
   );

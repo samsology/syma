@@ -6,6 +6,9 @@ import { requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { getStudentLesson } from '@/lib/student-course/queries';
 import { getQuizQuestions, evaluateQuizSubmission } from '@/lib/curriculum/quiz-engine';
+import { r2Storage } from '@/lib/storage/r2Storage';
+import { ASSIGNMENT_SUBMISSION_EXTENSIONS, validateAssignmentFile } from '@/lib/assignments/files';
+import { canSubmitAssignment, normalizeAssignmentUrl } from '@/lib/assignments/policy';
 
 export async function setLessonProgressAction(formData: FormData) {
   const student = await requireStudent();
@@ -210,8 +213,13 @@ export async function submitWeeklyAssignmentAction(formData: FormData) {
   const courseId = String(formData.get('courseId') ?? '');
   const weekId = String(formData.get('weekId') ?? '');
   const assignmentId = String(formData.get('assignmentId') ?? '');
-  const content = String(formData.get('content') ?? '');
-  const fileUrl = String(formData.get('fileUrl') ?? '');
+  const method = String(formData.get('method') ?? '');
+  const rawUrl = String(formData.get('submissionUrl') ?? '').trim();
+  const file = formData.get('file');
+  const hasFile = file instanceof File && file.size > 0;
+  if ((method === 'FILE' && rawUrl) || (method === 'LINK' && hasFile)) {
+    redirect(`/student/courses/${courseId}/weeks/${weekId}/assignment?error=ambiguous`);
+  }
 
   if (!courseId || !weekId || !assignmentId) redirect('/student');
 
@@ -225,32 +233,66 @@ export async function submitWeeklyAssignmentAction(formData: FormData) {
 
   // Verify assignment exists and belongs to this week & course
   const assignment = await db.weeklyAssignment.findFirst({
-    where: { id: assignmentId, weekId, week: { courseId } },
+    where: { id: assignmentId, weekId, status: 'PUBLISHED', week: { courseId } },
   });
   if (!assignment) redirect(`/student/courses/${courseId}`);
-
-  await db.assignmentSubmission.upsert({
-    where: {
-      studentId_assignmentId: {
-        studentId: student.id,
-        assignmentId,
-      },
-    },
-    update: {
-      content: content || null,
-      fileUrl: fileUrl || null,
-      status: 'SUBMITTED',
-      submittedAt: new Date(),
-    },
-    create: {
-      studentId: student.id,
-      assignmentId,
-      content: content || null,
-      fileUrl: fileUrl || null,
-      status: 'SUBMITTED',
-      submittedAt: new Date(),
-    },
+  const previous = await db.assignmentSubmission.findFirst({
+    where: { studentId: student.id, assignmentId },
+    orderBy: { attemptNumber: 'desc' },
   });
+  if (!canSubmitAssignment(previous?.status)) {
+    redirect(`/student/courses/${courseId}/weeks/${weekId}/assignment?error=resubmit`);
+  }
+  const attemptNumber = (previous?.attemptNumber ?? 0) + 1;
+  let storageKey: string | null = null;
+  let originalFilename: string | null = null;
+  let mimeType: string | null = null;
+  let fileSize: number | null = null;
+  let content: string | null = null;
+  if (method === 'LINK' && typeof formData.get('submissionUrl') === 'string') {
+    content = normalizeAssignmentUrl(rawUrl);
+    if (!content) {
+      redirect(`/student/courses/${courseId}/weeks/${weekId}/assignment?error=url`);
+    }
+  } else if (method === 'FILE' && hasFile) {
+    if (validateAssignmentFile(file, ASSIGNMENT_SUBMISSION_EXTENSIONS)) {
+      redirect(`/student/courses/${courseId}/weeks/${weekId}/assignment?error=file`);
+    }
+    const safeName = (file.name.split(/[\\/]/).pop() || 'submission').replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const submissionId = crypto.randomUUID();
+    storageKey = `assignments/${assignmentId}/submissions/${student.id}/${submissionId}/${safeName}`;
+    originalFilename = safeName;
+    mimeType = file.type || null;
+    fileSize = file.size;
+    try {
+      await r2Storage.upload(storageKey, Buffer.from(await file.arrayBuffer()), { contentType: file.type || 'application/octet-stream' });
+    } catch (error) {
+      await r2Storage.delete(storageKey).catch(() => false);
+      throw error;
+    }
+  } else {
+    redirect(`/student/courses/${courseId}/weeks/${weekId}/assignment?error=empty`);
+  }
+
+  try {
+    await db.assignmentSubmission.create({
+      data: {
+        assignmentId,
+        studentId: student.id,
+        content,
+        fileUrl: storageKey ? `r2://${storageKey}` : null,
+        method,
+        attemptNumber,
+        originalFilename,
+        mimeType,
+        fileSize,
+        status: 'SUBMITTED',
+      },
+    });
+  } catch (error) {
+    if (storageKey) await r2Storage.delete(storageKey).catch(() => false);
+    throw error;
+  }
 
   revalidatePath('/student');
   revalidatePath(`/student/courses/${courseId}`);
