@@ -27,6 +27,8 @@ import {
   Upload,
   Link2,
   FileText,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import type { CurriculumFormState } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
 import {
@@ -1025,6 +1027,7 @@ export function WeeklyAssignmentForm({
       className="space-y-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/40 p-5 shadow-xs"
     >
       <input type="hidden" name="removeDataset" value={removeDataset ? 'true' : 'false'} />
+      <input type="hidden" name="submissionRequirements" value="" />
 
       <div className="flex items-center gap-2 border-b border-emerald-100 pb-3">
         <BookOpen className="h-5 w-5 text-emerald-600" />
@@ -1036,8 +1039,12 @@ export function WeeklyAssignmentForm({
       </div>
 
       {state.formError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
-          {state.formError}
+        <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-semibold text-red-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+          <div>
+            <span className="font-bold">Error saving assignment: </span>
+            <span>{state.formError}</span>
+          </div>
         </div>
       )}
 
@@ -1171,50 +1178,15 @@ export function WeeklyAssignmentForm({
         </div>
       </div>
 
-      {/* DATASET ATTACHMENT SECTION */}
-      <div className="space-y-3 rounded-xl border border-emerald-300 bg-white/90 p-4 shadow-2xs">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 pb-2.5">
-          <div>
-            <h5 className="text-xs font-bold tracking-wider text-emerald-950 uppercase">
-              Assignment Dataset / Practical Starter Files
-            </h5>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Provide students with a dataset via Google Drive link or by uploading a file directly (max 4 MB).
-            </p>
-          </div>
-          {/* Mode switch */}
-          <div className="flex rounded-lg border border-slate-200 bg-slate-100 p-0.5 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => {
-                setDatasetMode('DRIVE');
-                setRemoveDataset(false);
-              }}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
-                datasetMode === 'DRIVE'
-                  ? 'bg-white text-emerald-800 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Link2 className="h-3.5 w-3.5" />
-              Google Drive Link
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDatasetMode('FILE');
-                setRemoveDataset(false);
-              }}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
-                datasetMode === 'FILE'
-                  ? 'bg-white text-emerald-800 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              Upload File
-            </button>
-          </div>
+      {/* DATASET & PRACTICAL STARTER RESOURCES SECTION */}
+      <div className="space-y-4 rounded-xl border border-emerald-300 bg-white/90 p-4 shadow-2xs">
+        <div className="border-b border-emerald-100 pb-2.5">
+          <h5 className="text-xs font-bold tracking-wider text-emerald-950 uppercase">
+            Assignment Dataset &amp; Resources (Upload File, External Link, or Both)
+          </h5>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Attach supporting materials for this assignment. You can upload a starter file to Cloudflare R2, provide a Google Drive / Sheets link, or attach both.
+          </p>
         </div>
 
         {/* Existing Dataset Notice */}
@@ -1224,7 +1196,7 @@ export function WeeklyAssignmentForm({
               <FileText className="h-4 w-4 text-emerald-700 shrink-0" />
               <div>
                 <span className="font-bold text-emerald-900">
-                  Current Dataset: {assignment.datasetName || 'Attached Dataset'}
+                  Current Resource: {assignment.datasetName || 'Attached Dataset'}
                 </span>
                 <span className="ml-2 text-slate-500">
                   ({isExistingR2 ? 'Uploaded file in Cloudflare R2' : 'Google Drive / External link'})
@@ -1248,7 +1220,7 @@ export function WeeklyAssignmentForm({
 
         {removeDataset && (
           <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-            <span>Dataset will be removed upon saving.</span>
+            <span>Attached dataset will be removed upon saving.</span>
             <button
               type="button"
               onClick={() => setRemoveDataset(false)}
@@ -1260,58 +1232,35 @@ export function WeeklyAssignmentForm({
         )}
 
         {!removeDataset && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase">
-                Dataset Display Label
+                Resource Display Label (Optional)
               </label>
               <input
                 name="datasetName"
                 value={datasetName}
                 onChange={(e) => setDatasetName(e.target.value)}
-                placeholder="e.g. Health_Records_Q1.csv or Patient Cohort Dataset"
+                placeholder="e.g. Sales_Data_Q1.xlsx or Patient Cohort Dataset"
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
+              <FieldError errors={state.fieldErrors?.datasetName} />
             </div>
 
-            {datasetMode === 'DRIVE' ? (
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase">
-                  Google Drive / External Dataset URL
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Option A: Upload file directly */}
+              <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase">
+                  <Upload className="h-3.5 w-3.5 text-emerald-600" />
+                  Option A: Upload Dataset File (R2 Storage)
                 </label>
-                <div className="mt-1 flex gap-2">
-                  <input
-                    name="datasetUrl"
-                    value={datasetUrl}
-                    onChange={(e) => setDatasetUrl(e.target.value)}
-                    placeholder="https://drive.google.com/file/d/... or sheets link"
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-                  />
-                  {datasetUrl && (
-                    <a
-                      href={datasetUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" /> Test
-                    </a>
-                  )}
-                </div>
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Ensure the sharing settings in Google Drive are set to &quot;Anyone with the link can view&quot;.
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  Supports .csv, .xlsx, .xls, .zip, .json, .pdf, .pbix, .ipynb, .txt (Max 4 MB)
                 </p>
-                <FieldError errors={state.fieldErrors?.datasetUrl} />
-              </div>
-            ) : (
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase">
-                  Select Dataset File (.csv, .xlsx, .zip, .pdf, .pbix, etc.)
-                </label>
                 <input
                   name="datasetFile"
                   type="file"
-                  accept=".csv,.xlsx,.xls,.zip,.json,.pdf,.pbix,.ipynb,.txt"
+                  accept=".csv,.xlsx,.xls,.zip,.json,.pdf,.pbix,.ipynb,.txt,.parquet"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     setSelectedFileName(f ? `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)} MB)` : null);
@@ -1319,16 +1268,46 @@ export function WeeklyAssignmentForm({
                       setDatasetName(f.name);
                     }
                   }}
-                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-emerald-600 file:px-3 file:py-1 file:text-xs file:font-bold file:text-white hover:file:bg-emerald-700"
+                  className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs file:mr-2 file:rounded-md file:border-0 file:bg-emerald-600 file:px-2.5 file:py-1 file:text-xs file:font-bold file:text-white hover:file:bg-emerald-700"
                 />
                 {selectedFileName && (
-                  <p className="mt-1 text-xs font-semibold text-emerald-700">
+                  <p className="mt-1.5 text-xs font-semibold text-emerald-700">
                     Selected: {selectedFileName}
                   </p>
                 )}
+              </div>
+
+              {/* Option B: External Google Drive / Sheets Link */}
+              <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase">
+                  <Link2 className="h-3.5 w-3.5 text-emerald-600" />
+                  Option B: Google Drive / Sheets / External URL
+                </label>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  Paste a shareable Google Sheets or Drive dataset link
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    name="datasetUrl"
+                    value={datasetUrl}
+                    onChange={(e) => setDatasetUrl(e.target.value)}
+                    placeholder="https://drive.google.com/... or docs.google.com/spreadsheets/..."
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:border-emerald-500 focus:outline-none"
+                  />
+                  {datasetUrl && (
+                    <a
+                      href={datasetUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                    >
+                      <ExternalLink className="h-3 w-3" /> Test
+                    </a>
+                  )}
+                </div>
                 <FieldError errors={state.fieldErrors?.datasetUrl} />
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -1346,8 +1325,9 @@ export function WeeklyAssignmentForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-60"
         >
+          {pending && <Loader2 className="h-4 w-4 animate-spin" />}
           {pending ? 'Saving Assignment...' : 'Save Assignment'}
         </button>
       </div>

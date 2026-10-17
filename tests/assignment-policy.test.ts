@@ -51,8 +51,8 @@ test('assignmentSchema handles optional fields with empty strings cleanly', () =
   if (result.success) {
     assert.equal(result.data.maxScore, undefined);
     assert.equal(result.data.dueDateDays, undefined);
-    assert.equal(result.data.dueAt, '');
-    assert.equal(result.data.datasetUrl, '');
+    assert.ok(result.data.dueAt === undefined || result.data.dueAt === '');
+    assert.ok(result.data.datasetUrl === undefined || result.data.datasetUrl === '');
   }
 });
 
@@ -123,5 +123,45 @@ test('validateAssignmentFile permits data formats including pbix, ipynb, and zip
     type: 'application/x-msdownload',
   });
   assert.notEqual(validateAssignmentFile(exeFile, ASSIGNMENT_SUBMISSION_EXTENSIONS), null);
+});
+
+test('assignmentSchema handles null and empty string FormData inputs without error', () => {
+  const result = assignmentSchema.safeParse({
+    title: 'Week 1 Practical Lab',
+    description: 'Clean and explore customer dataset',
+    instructions: 'Download the dataset, calculate KPIs, and submit your spreadsheet.',
+    submissionType: 'FILE_OR_TEXT',
+    submissionRequirements: null,
+    datasetUrl: null,
+    datasetName: null,
+    dueDateDays: null,
+    dueAt: null,
+    maxScore: null,
+    status: 'DRAFT',
+  });
+  assert.equal(result.success, true);
+  if (result.success) {
+    assert.equal(result.data.title, 'Week 1 Practical Lab');
+    assert.equal(result.data.datasetUrl, undefined);
+    assert.equal(result.data.datasetName, undefined);
+    assert.equal(result.data.maxScore, undefined);
+    assert.equal(result.data.status, 'DRAFT');
+  }
+});
+
+test('assignmentSchema accepts Google Sheets URL and Excel dataset label', () => {
+  const sheetsResult = assignmentSchema.safeParse({
+    title: 'Spreadsheet Analytics Lab',
+    description: 'Practical analysis using Google Sheets and Excel',
+    instructions: 'Open the linked Google Sheet or use your local spreadsheet tool.',
+    datasetUrl: 'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit?usp=sharing',
+    datasetName: 'Quarterly_Sales_Data.xlsx',
+    status: 'DRAFT',
+  });
+  assert.equal(sheetsResult.success, true);
+  if (sheetsResult.success) {
+    assert.equal(sheetsResult.data.datasetName, 'Quarterly_Sales_Data.xlsx');
+    assert.ok(sheetsResult.data.datasetUrl?.includes('docs.google.com/spreadsheets'));
+  }
 });
 

@@ -1020,43 +1020,50 @@ export async function upsertWeeklyAssignmentAction(
   _state: CurriculumFormState,
   formData: FormData
 ): Promise<CurriculumFormState> {
-  await requireCourse(courseId);
-  const rawTitle = formData.get('title');
-  const rawDescription = formData.get('description');
-  const rawInstructions = formData.get('instructions');
-  const rawSubmissionType = formData.get('submissionType') || 'FILE_OR_TEXT';
-  const rawSubmissionRequirements = formData.get('submissionRequirements');
-  const rawDatasetUrl = formData.get('datasetUrl');
-  const rawDatasetName = formData.get('datasetName');
-  const rawDueDateDays = formData.get('dueDateDays');
-  const rawDueAt = formData.get('dueAt');
-  const rawMaxScore = formData.get('maxScore');
-  const rawStatus = formData.get('status') || 'DRAFT';
-  const removeDataset = formData.get('removeDataset') === 'true';
-
-  const parsed = assignmentSchema.safeParse({
-    title: rawTitle,
-    description: rawDescription,
-    instructions: rawInstructions,
-    submissionType: rawSubmissionType,
-    submissionRequirements: rawSubmissionRequirements,
-    datasetUrl: rawDatasetUrl,
-    datasetName: rawDatasetName,
-    dueDateDays: rawDueDateDays || undefined,
-    dueAt: rawDueAt || undefined,
-    maxScore: rawMaxScore || undefined,
-    status: rawStatus,
-  });
-
-  if (!parsed.success) {
-    return { fieldErrors: parsed.error.flatten().fieldErrors };
-  }
+  let uploadedStorageKey: string | null = null;
+  let assignmentPersisted = false;
 
   try {
+    await requireCourse(courseId);
     await requireWeek(courseId, weekId);
+
+    const rawTitle = formData.get('title');
+    const rawDescription = formData.get('description');
+    const rawInstructions = formData.get('instructions');
+    const rawSubmissionType = formData.get('submissionType') || 'FILE_OR_TEXT';
+    const rawSubmissionRequirements = formData.get('submissionRequirements');
+    const rawDatasetUrl = formData.get('datasetUrl');
+    const rawDatasetName = formData.get('datasetName');
+    const rawDueDateDays = formData.get('dueDateDays');
+    const rawDueAt = formData.get('dueAt');
+    const rawMaxScore = formData.get('maxScore');
+    const rawStatus = formData.get('status') || 'DRAFT';
+    const removeDataset = formData.get('removeDataset') === 'true';
+
+    const parsed = assignmentSchema.safeParse({
+      title: rawTitle,
+      description: rawDescription,
+      instructions: rawInstructions,
+      submissionType: rawSubmissionType,
+      submissionRequirements: rawSubmissionRequirements,
+      datasetUrl: rawDatasetUrl,
+      datasetName: rawDatasetName,
+      dueDateDays: rawDueDateDays || undefined,
+      dueAt: rawDueAt || undefined,
+      maxScore: rawMaxScore || undefined,
+      status: rawStatus,
+    });
+
+    if (!parsed.success) {
+      return {
+        formError: 'Please check the form fields and correct the highlighted errors.',
+        fieldErrors: parsed.error.flatten().fieldErrors,
+      };
+    }
 
     const existing = await db.weeklyAssignment.findUnique({
       where: { weekId },
+      include: { resources: true },
     });
 
     let finalDatasetUrl = existing?.datasetUrl ?? null;
@@ -1068,7 +1075,10 @@ export async function upsertWeeklyAssignmentAction(
     if (hasUploadedFile) {
       const fileError = validateAssignmentFile(datasetFile, ASSIGNMENT_DATASET_EXTENSIONS);
       if (fileError) {
-        return { fieldErrors: { datasetUrl: [fileError] } };
+        return {
+          formError: fileError,
+          fieldErrors: { datasetUrl: [fileError] },
+        };
       }
 
       const safeName = (datasetFile.name.split(/[\\/]/).pop() || 'dataset').replace(
@@ -1081,44 +1091,31 @@ export async function upsertWeeklyAssignmentAction(
         await r2Storage.upload(storageKey, Buffer.from(await datasetFile.arrayBuffer()), {
           contentType: datasetFile.type || 'application/octet-stream',
         });
+        uploadedStorageKey = storageKey;
       } catch (uploadErr) {
         return {
           formError:
             uploadErr instanceof Error
-              ? uploadErr.message
+              ? `Failed to upload dataset file to Cloudflare R2: ${uploadErr.message}`
               : 'Failed to upload dataset file to storage.',
         };
-      }
-
-      // If replacing an existing R2 file, clean up old file
-      if (existing?.datasetUrl?.startsWith('r2://')) {
-        const oldKey = existing.datasetUrl.replace(/^r2:\/\//, '');
-        await r2Storage.delete(oldKey).catch(() => false);
       }
 
       finalDatasetUrl = `r2://${storageKey}`;
       finalDatasetName = parsed.data.datasetName?.trim() || datasetFile.name;
     } else if (removeDataset) {
-      if (existing?.datasetUrl?.startsWith('r2://')) {
-        const oldKey = existing.datasetUrl.replace(/^r2:\/\//, '');
-        await r2Storage.delete(oldKey).catch(() => false);
-      }
       finalDatasetUrl = null;
       finalDatasetName = null;
     } else if (parsed.data.datasetUrl && parsed.data.datasetUrl.trim() !== '') {
       // User provided or updated an external link (e.g. Google Drive / Sheets)
-      if (existing?.datasetUrl?.startsWith('r2://') && existing.datasetUrl !== parsed.data.datasetUrl) {
-        const oldKey = existing.datasetUrl.replace(/^r2:\/\//, '');
-        await r2Storage.delete(oldKey).catch(() => false);
-      }
       finalDatasetUrl = parsed.data.datasetUrl.trim();
-      finalDatasetName = parsed.data.datasetName?.trim() || 'Google Drive Dataset';
-    } else if (rawDatasetUrl === '' && !existing?.datasetUrl) {
+      finalDatasetName = parsed.data.datasetName?.trim() || 'Google Drive / External Dataset';
+    } else if (formData.has('datasetUrl') && !parsed.data.datasetUrl && !existing?.datasetUrl?.startsWith('r2://')) {
       finalDatasetUrl = null;
       finalDatasetName = null;
     }
 
-    await db.weeklyAssignment.upsert({
+    const savedAssignment = await db.weeklyAssignment.upsert({
       where: { weekId },
       create: {
         weekId,
@@ -1148,10 +1145,44 @@ export async function upsertWeeklyAssignmentAction(
         status: parsed.data.status,
       },
     });
+    assignmentPersisted = true;
+
+    // Option C: Both uploaded file and external link on the same assignment
+    // If a file was uploaded AND an external link was provided in datasetUrl:
+    if (hasUploadedFile && parsed.data.datasetUrl && parsed.data.datasetUrl.trim() !== '') {
+      const linkLabel = parsed.data.datasetName?.trim() || 'Google Drive / External Dataset';
+      // Upsert resource for external dataset link
+      const existingLinkResource = existing?.resources?.find(
+        (r) => r.resourceType === 'LINK' && r.externalUrl === parsed.data.datasetUrl!.trim()
+      );
+      if (!existingLinkResource) {
+        await db.assignmentResource.create({
+          data: {
+            assignmentId: savedAssignment.id,
+            resourceType: 'LINK',
+            label: linkLabel,
+            externalUrl: parsed.data.datasetUrl.trim(),
+          },
+        });
+      }
+    }
+
+    // Clean up previous R2 file if replaced or removed
+    if (
+      existing?.datasetUrl?.startsWith('r2://') &&
+      existing.datasetUrl !== finalDatasetUrl
+    ) {
+      const oldKey = existing.datasetUrl.replace(/^r2:\/\//, '');
+      await r2Storage.delete(oldKey).catch(() => false);
+    }
 
     refresh(courseId);
     return { success: true };
   } catch (error) {
+    if (uploadedStorageKey && !assignmentPersisted) {
+      await r2Storage.delete(uploadedStorageKey).catch(() => false);
+    }
+    console.error('Error in upsertWeeklyAssignmentAction:', error);
     return {
       formError: error instanceof Error ? error.message : 'Unable to save weekly assignment.',
     };

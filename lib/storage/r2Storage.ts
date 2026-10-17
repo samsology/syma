@@ -11,6 +11,12 @@ import { StorageProvider, StorageObjectMetadata, UploadOptions, UploadResult } f
 export class R2StorageProvider implements StorageProvider {
   name = 'r2';
 
+  private requestOptions() {
+    // Bound storage waits so a stalled R2 request cannot leave a Server Action
+    // pending indefinitely. The signal also aborts the underlying SDK request.
+    return { abortSignal: AbortSignal.timeout(25_000) };
+  }
+
   async upload(
     key: string,
     body: Buffer | Uint8Array | ReadableStream,
@@ -43,7 +49,7 @@ export class R2StorageProvider implements StorageProvider {
       ContentType: options?.contentType || 'application/octet-stream',
     });
 
-    await client.send(command);
+    await client.send(command, this.requestOptions());
 
     return {
       key,
@@ -59,7 +65,7 @@ export class R2StorageProvider implements StorageProvider {
       Key: key,
     });
 
-    await client.send(command);
+    await client.send(command, this.requestOptions());
     return true;
   }
 
@@ -78,7 +84,7 @@ export class R2StorageProvider implements StorageProvider {
         Key: key,
       });
 
-      const response = await client.send(command);
+      const response = await client.send(command, this.requestOptions());
       return {
         contentType: response.ContentType,
         size: response.ContentLength,
