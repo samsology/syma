@@ -5,9 +5,11 @@ import { parseApiResponse } from '@/lib/api/safe-response';
 export interface DirectUploadOptions {
   file: File;
   courseId: string;
-  lessonId: string;
+  lessonId?: string;
+  weekId?: string;
   resourceType: 'VIDEO' | 'DOCUMENT' | 'SLIDE' | 'FILE' | 'DATASET' | string;
   onProgress?: (progressPercent: number) => void;
+  onStorageKey?: (storageKey: string) => void;
 }
 
 export interface DirectUploadResult {
@@ -27,7 +29,7 @@ export interface DirectUploadResult {
 export async function uploadFileDirectToR2(
   options: DirectUploadOptions
 ): Promise<DirectUploadResult> {
-  const { file, courseId, lessonId, resourceType, onProgress } = options;
+  const { file, courseId, lessonId, weekId, resourceType, onProgress, onStorageKey } = options;
 
   if (!file) {
     throw new Error('No file selected for upload.');
@@ -49,12 +51,14 @@ export async function uploadFileDirectToR2(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         courseId,
-        lessonId,
+        ...(lessonId ? { lessonId } : {}),
+        ...(weekId ? { weekId } : {}),
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || 'application/octet-stream',
         resourceType,
       }),
+      signal: AbortSignal.timeout(20_000),
     });
   } catch (netErr) {
     throw new Error(`Failed to contact Syma Tech upload authorization endpoint: ${(netErr as Error).message}`);
@@ -72,6 +76,7 @@ export async function uploadFileDirectToR2(
   }
 
   const { uploadUrl, storageKey, headers } = parsedAuth.data;
+  onStorageKey?.(storageKey);
   const contentType = headers?.['Content-Type'] || file.type || 'application/octet-stream';
 
   onProgress?.(10);
@@ -80,6 +85,7 @@ export async function uploadFileDirectToR2(
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl, true);
+    xhr.timeout = 120_000;
     xhr.setRequestHeader('Content-Type', contentType);
 
     xhr.upload.onprogress = (event) => {
@@ -126,7 +132,11 @@ export async function uploadFileDirectToR2(
     };
 
     xhr.ontimeout = () => {
-      reject(new Error('Cloudflare R2 upload timed out. Please check your internet connection and retry.'));
+      reject(new Error('Cloudflare R2 upload timed out. The server will verify the object before saving; retry Save Assignment to continue.'));
+    };
+
+    xhr.onabort = () => {
+      reject(new Error('Cloudflare R2 upload was cancelled before it could be confirmed.'));
     };
 
     xhr.send(file);
@@ -145,8 +155,10 @@ export async function uploadFileDirectToR2(
         expectedSize: file.size,
         expectedType: file.type,
         courseId,
-        lessonId,
+        ...(lessonId ? { lessonId } : {}),
+        ...(weekId ? { weekId } : {}),
       }),
+      signal: AbortSignal.timeout(20_000),
     });
   } catch (netErr) {
     throw new Error(`Failed to contact verification endpoint: ${(netErr as Error).message}`);

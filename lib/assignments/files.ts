@@ -45,7 +45,7 @@ export function validateAssignmentFile(file: File, allowedExtensions = ASSIGNMEN
   const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
   if (!allowedExtensions.has(extension)) return `File type .${extension} is not supported.`;
   if (file.size < 1 || file.size > ASSIGNMENT_MAX_FILE_SIZE) return 'File is empty or exceeds the upload limit (4 MB).';
-  const mime = file.type.toLowerCase();
+  const mime = (file.type || '').toLowerCase();
   if (mime && mime !== 'application/octet-stream' && !commonTypes[extension]?.includes(mime)) {
     return 'The file type does not match its extension.';
   }

@@ -35,6 +35,13 @@ const ALLOWED_CONFIG: Record<string, { extensions: string[]; mimePrefixes?: stri
     ],
     maxBytes: 500 * 1024 * 1024, // 500 MB limit for general files
   },
+  dataset: {
+    extensions: [
+      'csv', 'xlsx', 'xls', 'zip', 'json', 'pdf', 'pbix', 'ipynb', 'txt', 'parquet',
+    ],
+    mimePrefixes: ['text/', 'application/'],
+    maxBytes: 4 * 1024 * 1024, // 4 MB limit for assignment datasets
+  },
 };
 
 export async function POST(request: Request) {
@@ -46,18 +53,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Invalid JSON request body.' }, { status: 400 });
     }
 
-    const { courseId, lessonId, fileName, fileSize, mimeType, resourceType } = body;
+    const { courseId, lessonId, weekId, fileName, fileSize, mimeType, resourceType } = body;
 
     if (!courseId || typeof courseId !== 'string') {
       return NextResponse.json({ success: false, error: 'courseId is required.' }, { status: 400 });
     }
 
-    if (!lessonId || typeof lessonId !== 'string') {
-      return NextResponse.json({ success: false, error: 'lessonId is required.' }, { status: 400 });
+    if ((!lessonId || typeof lessonId !== 'string') && (!weekId || typeof weekId !== 'string')) {
+      return NextResponse.json({ success: false, error: 'lessonId or weekId is required.' }, { status: 400 });
     }
 
-    // Lessons can be uploaded before their first save (the curriculum form uses a draft ID).
-    // Bind the key to an existing course; requiring a persisted lesson here blocks that flow.
+    // Bind the key to an existing course; requiring a persisted lesson/week here blocks draft pre-saves.
     const course = await db.course.findUnique({ where: { id: courseId }, select: { id: true } });
     if (!course) {
       return NextResponse.json({ success: false, error: 'Course not found.' }, { status: 404 });
@@ -84,7 +90,7 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Validate file size (up to 1 GB for videos)
+    // Validate file size (up to 1 GB for videos, 4 MB for datasets)
     if (fileSize && typeof fileSize === 'number') {
       if (fileSize <= 0) {
         return NextResponse.json({ success: false, error: 'File size must be greater than 0 bytes.' }, { status: 400 });
@@ -99,12 +105,18 @@ export async function POST(request: Request) {
       }
     }
 
-    // Sanitize course and lesson IDs for the key path
+    // Sanitize course and lesson/week IDs for the key path
     const safeCourseId = sanitizeR2PathSegment(courseId);
-    const safeLessonId = sanitizeR2PathSegment(lessonId);
     const uniqueId = crypto.randomUUID();
     const folderType = category;
-    const storageKey = `courses/${safeCourseId}/lessons/${safeLessonId}/${folderType}/${uniqueId}-${safeFilename}`;
+    let storageKey: string;
+    if (weekId) {
+      const safeWeekId = sanitizeR2PathSegment(weekId);
+      storageKey = `courses/${safeCourseId}/weeks/${safeWeekId}/assignment/datasets/${uniqueId}-${safeFilename}`;
+    } else {
+      const safeLessonId = sanitizeR2PathSegment(lessonId!);
+      storageKey = `courses/${safeCourseId}/lessons/${safeLessonId}/${folderType}/${uniqueId}-${safeFilename}`;
+    }
 
     const client = getR2Client();
     const bucket = getR2BucketName();

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/authorization';
 import { db } from '@/lib/db';
-import { isR2KeyForCourseLesson } from '@/lib/resources/r2-upload-key';
+import { isR2KeyForCourseLesson, isR2KeyForCourseWeekAssignment } from '@/lib/resources/r2-upload-key';
 import { r2Storage } from '@/lib/storage/r2Storage';
 
 export async function POST(request: Request) {
@@ -13,17 +13,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Invalid JSON request body.' }, { status: 400 });
     }
 
-    const { storageKey, expectedSize, expectedType, courseId, lessonId } = body;
+    const { storageKey, expectedSize, expectedType, courseId, lessonId, weekId } = body;
 
     if (!storageKey || typeof storageKey !== 'string') {
       return NextResponse.json({ success: false, error: 'storageKey is required.' }, { status: 400 });
     }
 
-    if (typeof courseId !== 'string' || typeof lessonId !== 'string') {
-      return NextResponse.json({ success: false, error: 'courseId and lessonId are required.' }, { status: 400 });
+    if (typeof courseId !== 'string') {
+      return NextResponse.json({ success: false, error: 'courseId is required.' }, { status: 400 });
     }
 
-    // New lessons are allowed to upload before they are saved in the curriculum form.
+    if ((!lessonId || typeof lessonId !== 'string') && (!weekId || typeof weekId !== 'string')) {
+      return NextResponse.json({ success: false, error: 'lessonId or weekId is required.' }, { status: 400 });
+    }
+
+    // New lessons/weeks are allowed to upload before they are saved in the curriculum form.
     // The authenticated admin and verified course-scoped key bind the object during this draft phase.
     const course = await db.course.findUnique({ where: { id: courseId }, select: { id: true } });
     if (!course) {
@@ -31,7 +35,11 @@ export async function POST(request: Request) {
     }
 
     // Security check: storageKey must be in the expected courses/ folder structure
-    if (!isR2KeyForCourseLesson(storageKey, courseId, lessonId)) {
+    const isKeyValid = weekId
+      ? isR2KeyForCourseWeekAssignment(storageKey, courseId, weekId)
+      : isR2KeyForCourseLesson(storageKey, courseId, lessonId!);
+
+    if (!isKeyValid) {
       return NextResponse.json({ success: false, error: 'Invalid storage key path.' }, { status: 400 });
     }
 

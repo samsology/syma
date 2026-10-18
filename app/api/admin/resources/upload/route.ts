@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File | null;
     const courseId = formData.get('courseId') as string | null;
     const lessonId = formData.get('lessonId') as string | null;
+    const weekId = formData.get('weekId') as string | null;
     const resourceType = (formData.get('resourceType') as string | null) || 'file';
 
     if (!file) {
@@ -25,8 +26,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'courseId is required.' }, { status: 400 });
     }
 
-    if (!lessonId || typeof lessonId !== 'string') {
-      return NextResponse.json({ success: false, error: 'lessonId is required.' }, { status: 400 });
+    if ((!lessonId || typeof lessonId !== 'string') && (!weekId || typeof weekId !== 'string')) {
+      return NextResponse.json({ success: false, error: 'lessonId or weekId is required.' }, { status: 400 });
     }
 
     // Strict Vercel serverless request body protection:
@@ -45,10 +46,16 @@ export async function POST(request: Request) {
 
     const safeFilename = sanitizeFilename(file.name);
     const safeCourseId = courseId.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const safeLessonId = lessonId.replace(/[^a-zA-Z0-9_-]/g, '_');
     const folderType = resourceType.toLowerCase();
     const uniqueId = crypto.randomUUID();
-    const storageKey = `courses/${safeCourseId}/lessons/${safeLessonId}/${folderType}/${uniqueId}-${safeFilename}`;
+    let storageKey: string;
+    if (weekId) {
+      const safeWeekId = weekId.replace(/[^a-zA-Z0-9_-]/g, '_');
+      storageKey = `courses/${safeCourseId}/weeks/${safeWeekId}/assignment/datasets/${uniqueId}-${safeFilename}`;
+    } else {
+      const safeLessonId = lessonId!.replace(/[^a-zA-Z0-9_-]/g, '_');
+      storageKey = `courses/${safeCourseId}/lessons/${safeLessonId}/${folderType}/${uniqueId}-${safeFilename}`;
+    }
 
     await r2Storage.upload(storageKey, buffer, {
       contentType: file.type || 'application/octet-stream',

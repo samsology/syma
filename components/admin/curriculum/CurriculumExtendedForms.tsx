@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type {
   ModuleSummary,
@@ -8,6 +8,7 @@ import type {
   WeeklyAssignment,
   QuizQuestion,
   QuizOption,
+  AssignmentResource,
 } from '@prisma/client';
 import {
   ExternalLink,
@@ -37,6 +38,7 @@ import {
   moveQuizQuestionAction,
   upsertModuleQuizAction,
 } from '@/app/admin/(protected)/courses/[id]/curriculum/actions';
+import { uploadFileDirectToR2 } from '@/lib/resources/r2-uploader';
 
 const initialState: CurriculumFormState = {};
 
@@ -284,7 +286,9 @@ export function ModuleQuizForm({
           </div>
 
           <div className="sm:col-span-2">
-            <label className="block text-xs font-bold text-slate-600 uppercase">Quiz Description (Optional)</label>
+            <label className="block text-xs font-bold text-slate-600 uppercase">
+              Quiz Description (Optional)
+            </label>
             <textarea
               name="description"
               defaultValue={quiz?.description ?? ''}
@@ -449,9 +453,12 @@ export function ModuleQuizForm({
               <HelpCircle className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <h5 className="text-sm font-bold text-amber-950">Quiz Questions &amp; Answer Choices</h5>
+              <h5 className="text-sm font-bold text-amber-950">
+                Quiz Questions &amp; Answer Choices
+              </h5>
               <p className="mx-auto max-w-md text-xs text-slate-600">
-                Save the quiz configuration above to start adding questions. Once saved, the question authoring builder will immediately unlock right here.
+                Save the quiz configuration above to start adding questions. Once saved, the
+                question authoring builder will immediately unlock right here.
               </p>
             </div>
             <button
@@ -978,14 +985,17 @@ export function QuizQuestionEditor({
 export function WeeklyAssignmentForm({
   action,
   assignment,
+  courseId,
+  weekId,
   onDone,
 }: {
   action: (state: CurriculumFormState, formData: FormData) => Promise<CurriculumFormState>;
-  assignment?: WeeklyAssignment | null;
+  assignment?: (WeeklyAssignment & { resources?: AssignmentResource[] }) | null;
+  courseId?: string;
+  weekId?: string;
   onDone?: () => void;
 }) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(action, initialState);
 
   // Controlled form values so inputs never clear on error
   const [title, setTitle] = useState(assignment?.title ?? 'Weekly Practical Assignment');
@@ -1001,33 +1011,175 @@ export function WeeklyAssignmentForm({
   const [maxScore, setMaxScore] = useState<string | number>(assignment?.maxScore ?? '');
   const [status, setStatus] = useState<string>(assignment?.status ?? 'DRAFT');
 
-  // Dataset attachment state
-  const isExistingR2 = assignment?.datasetUrl?.startsWith('r2://');
-  const [datasetMode, setDatasetMode] = useState<'DRIVE' | 'FILE'>(
-    isExistingR2 ? 'FILE' : 'DRIVE'
-  );
-  const [datasetUrl, setDatasetUrl] = useState(
-    isExistingR2 ? '' : (assignment?.datasetUrl ?? '')
-  );
-  const [datasetName, setDatasetName] = useState(assignment?.datasetName ?? '');
-  const [removeDataset, setRemoveDataset] = useState(false);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  // Existing resources if present
+  const existingFileResource = assignment?.resources?.find((r) => r.resourceType === 'FILE');
+  const existingLinkResource = assignment?.resources?.find((r) => r.resourceType === 'LINK');
 
-  useEffect(() => {
-    if (state.success) {
-      router.refresh();
-      onDone?.();
+  const isExistingR2 =
+    assignment?.datasetUrl?.startsWith('r2://') || Boolean(existingFileResource?.storageKey);
+  const existingR2Key =
+    existingFileResource?.storageKey ||
+    (assignment?.datasetUrl?.startsWith('r2://') ? assignment.datasetUrl.slice(5) : null);
+  const existingExternalUrl =
+    existingLinkResource?.externalUrl || (!isExistingR2 ? (assignment?.datasetUrl ?? '') : '');
+
+  // Dataset attachment state
+  const [datasetUrl, setDatasetUrl] = useState(existingExternalUrl);
+  const [datasetName, setDatasetName] = useState(
+    assignment?.datasetName ?? existingFileResource?.label ?? existingLinkResource?.label ?? ''
+  );
+  const [removeDataset, setRemoveDataset] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [uploadedDatasetKey, setUploadedDatasetKey] = useState<string | null>(existingR2Key);
+
+  // Submission & diagnostic state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatusText, setUploadStatusText] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[] | undefined>>({});
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const submitLock = useRef(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
+
+    setIsSubmitting(true);
+    setFormError(null);
+    setFieldErrors({});
+    setSaveSuccess(false);
+    setUploadStatusText(null);
+    setUploadProgress(0);
+
+    // Client-side quick validation
+    const errs: Record<string, string[]> = {};
+    if (!title.trim()) {
+      errs.title = ['Assignment title is required.'];
     }
-  }, [state.success, router, onDone]);
+    if (!description.trim()) {
+      errs.description = ['Brief description is required.'];
+    }
+    if (!instructions.trim()) {
+      errs.instructions = ['Detailed instructions are required.'];
+    }
+    if (selectedFile && selectedFile.size > 4 * 1024 * 1024) {
+      errs.datasetFile = ['Dataset file exceeds the 4 MB maximum limit.'];
+    }
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      setFormError(Object.values(errs).flat()[0] || 'Please fix the errors below.');
+      setIsSubmitting(false);
+      submitLock.current = false;
+      return;
+    }
+
+    let finalUploadedKey = uploadedDatasetKey;
+
+    try {
+      // 1. Direct R2 upload if a new local file was selected and not yet uploaded
+      if (selectedFile && !finalUploadedKey && courseId) {
+        setUploadStatusText('Uploading dataset directly to Cloudflare R2...');
+        try {
+          const uploadRes = await uploadFileDirectToR2({
+            file: selectedFile,
+            courseId,
+            weekId,
+            resourceType: 'DATASET',
+            onStorageKey: (storageKey) => {
+              finalUploadedKey = storageKey;
+              setUploadedDatasetKey(storageKey);
+            },
+            onProgress: (percent) => {
+              setUploadProgress(percent);
+              setUploadStatusText(`Uploading dataset to Cloudflare R2 (${percent}%)...`);
+            },
+          });
+          finalUploadedKey = uploadRes.storageKey;
+          setUploadedDatasetKey(finalUploadedKey);
+          setUploadStatusText('Dataset uploaded to R2. Persisting assignment in database...');
+        } catch (uploadErr) {
+          console.error('Direct R2 upload error:', uploadErr);
+          throw new Error(
+            uploadErr instanceof Error
+              ? `Cloudflare R2 Upload Failed: ${uploadErr.message}`
+              : 'Failed to upload dataset to Cloudflare R2.'
+          );
+        }
+      }
+
+      // 2. Prepare payload
+      const formData = new FormData();
+      if (courseId) formData.set('courseId', courseId);
+      if (weekId) formData.set('weekId', weekId);
+      formData.set('title', title.trim());
+      formData.set('description', description.trim());
+      formData.set('instructions', instructions.trim());
+      formData.set('submissionType', submissionType);
+      formData.set('status', status);
+      if (dueDateDays) formData.set('dueDateDays', String(dueDateDays));
+      if (dueAt) formData.set('dueAt', dueAt);
+      if (maxScore !== '' && maxScore !== null && maxScore !== undefined) {
+        formData.set('maxScore', String(maxScore));
+      }
+      if (datasetName) formData.set('datasetName', datasetName.trim());
+      if (datasetUrl) formData.set('datasetUrl', datasetUrl.trim());
+      if (removeDataset) formData.set('removeDataset', 'true');
+      formData.set('submissionRequirements', '');
+
+      if (finalUploadedKey) {
+        formData.set('uploadedDatasetKey', finalUploadedKey);
+      } else if (selectedFile && !finalUploadedKey) {
+        // Fallback for cases where direct upload wasn't used
+        formData.set('datasetFile', selectedFile);
+      }
+
+      // Let the Server Action response determine save success. A client timer
+      // race can report failure while the database transaction later commits.
+      const res = await action({}, formData);
+
+      if (res.formError) {
+        setFormError(res.formError);
+        if (res.formError.includes('could not be verified in storage')) {
+          setUploadedDatasetKey(null);
+        }
+      } else if (res.fieldErrors && Object.keys(res.fieldErrors).length > 0) {
+        setFieldErrors(res.fieldErrors);
+        const firstMsg = Object.values(res.fieldErrors).flat()[0];
+        setFormError(firstMsg || 'Validation error while saving assignment.');
+      } else if (res.success) {
+        setSaveSuccess(true);
+        router.refresh();
+        onDone?.();
+      } else {
+        setFormError('Failed to save assignment. Please check entered fields and try again.');
+      }
+    } catch (err: unknown) {
+      console.error('Weekly assignment save failure:', err);
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred while saving the assignment.'
+      );
+    } finally {
+      submitLock.current = false;
+      setIsSubmitting(false);
+      setUploadStatusText(null);
+    }
+  };
 
   return (
     <form
-      action={formAction}
-      encType="multipart/form-data"
+      onSubmit={handleSubmit}
       className="space-y-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/40 p-5 shadow-xs"
     >
       <input type="hidden" name="removeDataset" value={removeDataset ? 'true' : 'false'} />
       <input type="hidden" name="submissionRequirements" value="" />
+      {courseId && <input type="hidden" name="courseId" value={courseId} />}
+      {weekId && <input type="hidden" name="weekId" value={weekId} />}
 
       <div className="flex items-center gap-2 border-b border-emerald-100 pb-3">
         <BookOpen className="h-5 w-5 text-emerald-600" />
@@ -1038,19 +1190,36 @@ export function WeeklyAssignmentForm({
         </h4>
       </div>
 
-      {state.formError && (
+      {formError && (
         <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-semibold text-red-800">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
           <div>
             <span className="font-bold">Error saving assignment: </span>
-            <span>{state.formError}</span>
+            <span>{formError}</span>
           </div>
         </div>
       )}
 
-      {state.success && (
+      {saveSuccess && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
           Assignment saved successfully!
+        </div>
+      )}
+
+      {uploadStatusText && (
+        <div className="space-y-1.5 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-900">
+          <div className="flex items-center justify-between font-bold">
+            <span>{uploadStatusText}</span>
+            {uploadProgress > 0 && <span>{uploadProgress}%</span>}
+          </div>
+          {uploadProgress > 0 && (
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-emerald-200">
+              <div
+                className="h-full bg-emerald-600 transition-all duration-200"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -1067,7 +1236,7 @@ export function WeeklyAssignmentForm({
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             required
           />
-          <FieldError errors={state.fieldErrors?.title} />
+          <FieldError errors={fieldErrors.title} />
         </div>
 
         <div className="sm:col-span-2">
@@ -1082,7 +1251,7 @@ export function WeeklyAssignmentForm({
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             required
           />
-          <FieldError errors={state.fieldErrors?.description} />
+          <FieldError errors={fieldErrors.description} />
         </div>
 
         <div className="sm:col-span-2">
@@ -1098,7 +1267,7 @@ export function WeeklyAssignmentForm({
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             required
           />
-          <FieldError errors={state.fieldErrors?.instructions} />
+          <FieldError errors={fieldErrors.instructions} />
         </div>
 
         <div>
@@ -1143,7 +1312,7 @@ export function WeeklyAssignmentForm({
             onChange={(e) => setDueDateDays(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
           />
-          <FieldError errors={state.fieldErrors?.dueDateDays} />
+          <FieldError errors={fieldErrors.dueDateDays} />
         </div>
 
         <div>
@@ -1157,7 +1326,7 @@ export function WeeklyAssignmentForm({
             onChange={(e) => setDueAt(e.target.value)}
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
           />
-          <FieldError errors={state.fieldErrors?.dueAt} />
+          <FieldError errors={fieldErrors.dueAt} />
         </div>
 
         <div>
@@ -1174,7 +1343,7 @@ export function WeeklyAssignmentForm({
             placeholder="e.g. 100 or 10 (leave blank for unranked feedback)"
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
           />
-          <FieldError errors={state.fieldErrors?.maxScore} />
+          <FieldError errors={fieldErrors.maxScore} />
         </div>
       </div>
 
@@ -1185,21 +1354,24 @@ export function WeeklyAssignmentForm({
             Assignment Dataset &amp; Resources (Upload File, External Link, or Both)
           </h5>
           <p className="mt-0.5 text-xs text-slate-500">
-            Attach supporting materials for this assignment. You can upload a starter file to Cloudflare R2, provide a Google Drive / Sheets link, or attach both.
+            Attach supporting materials for this assignment. You can upload a starter file to
+            Cloudflare R2, provide a Google Drive / Sheets link, or attach both.
           </p>
         </div>
 
         {/* Existing Dataset Notice */}
-        {assignment?.datasetUrl && !removeDataset && (
+        {((isExistingR2 && uploadedDatasetKey) || existingExternalUrl) && !removeDataset && (
           <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs">
             <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-emerald-700 shrink-0" />
+              <FileText className="h-4 w-4 shrink-0 text-emerald-700" />
               <div>
                 <span className="font-bold text-emerald-900">
-                  Current Resource: {assignment.datasetName || 'Attached Dataset'}
+                  Current Resource: {datasetName || 'Attached Dataset'}
                 </span>
                 <span className="ml-2 text-slate-500">
-                  ({isExistingR2 ? 'Uploaded file in Cloudflare R2' : 'Google Drive / External link'})
+                  (
+                  {uploadedDatasetKey ? 'File in Cloudflare R2' : 'Google Drive / External link'}
+                  )
                 </span>
               </div>
             </div>
@@ -1209,7 +1381,9 @@ export function WeeklyAssignmentForm({
                 setRemoveDataset(true);
                 setDatasetUrl('');
                 setDatasetName('');
+                setSelectedFile(null);
                 setSelectedFileName(null);
+                setUploadedDatasetKey(null);
               }}
               className="font-bold text-red-600 hover:text-red-800"
             >
@@ -1244,7 +1418,7 @@ export function WeeklyAssignmentForm({
                 placeholder="e.g. Sales_Data_Q1.xlsx or Patient Cohort Dataset"
                 className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
-              <FieldError errors={state.fieldErrors?.datasetName} />
+              <FieldError errors={fieldErrors.datasetName} />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1252,7 +1426,7 @@ export function WeeklyAssignmentForm({
               <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3.5">
                 <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase">
                   <Upload className="h-3.5 w-3.5 text-emerald-600" />
-                  Option A: Upload Dataset File (R2 Storage)
+                  Option A: Upload Dataset File (Cloudflare R2)
                 </label>
                 <p className="mt-0.5 text-[11px] text-slate-500">
                   Supports .csv, .xlsx, .xls, .zip, .json, .pdf, .pbix, .ipynb, .txt (Max 4 MB)
@@ -1262,8 +1436,12 @@ export function WeeklyAssignmentForm({
                   type="file"
                   accept=".csv,.xlsx,.xls,.zip,.json,.pdf,.pbix,.ipynb,.txt,.parquet"
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    setSelectedFileName(f ? `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)} MB)` : null);
+                    const f = e.target.files?.[0] || null;
+                    setSelectedFile(f);
+                    setSelectedFileName(
+                      f ? `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)} MB)` : null
+                    );
+                    setUploadedDatasetKey(null);
                     if (f && !datasetName) {
                       setDatasetName(f.name);
                     }
@@ -1271,10 +1449,22 @@ export function WeeklyAssignmentForm({
                   className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs file:mr-2 file:rounded-md file:border-0 file:bg-emerald-600 file:px-2.5 file:py-1 file:text-xs file:font-bold file:text-white hover:file:bg-emerald-700"
                 />
                 {selectedFileName && (
-                  <p className="mt-1.5 text-xs font-semibold text-emerald-700">
-                    Selected: {selectedFileName}
-                  </p>
+                  <div className="mt-1.5 flex items-center justify-between text-xs font-semibold text-emerald-700">
+                    <span>Selected: {selectedFileName}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedFile(null);
+                        setSelectedFileName(null);
+                        setUploadedDatasetKey(null);
+                      }}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 )}
+                <FieldError errors={fieldErrors.datasetFile} />
               </div>
 
               {/* Option B: External Google Drive / Sheets Link */}
@@ -1301,11 +1491,11 @@ export function WeeklyAssignmentForm({
                       rel="noreferrer"
                       className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
                     >
-                      <ExternalLink className="h-3 w-3" /> Test
+                      <ExternalLink className="h-3 w-3" /> Test Link
                     </a>
                   )}
                 </div>
-                <FieldError errors={state.fieldErrors?.datasetUrl} />
+                <FieldError errors={fieldErrors.datasetUrl} />
               </div>
             </div>
           </div>
@@ -1324,11 +1514,15 @@ export function WeeklyAssignmentForm({
         )}
         <button
           type="submit"
-          disabled={pending}
+          disabled={isSubmitting}
           className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-60"
         >
-          {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-          {pending ? 'Saving Assignment...' : 'Save Assignment'}
+          {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          {isSubmitting
+            ? uploadStatusText
+              ? 'Uploading & Saving...'
+              : 'Saving Assignment...'
+            : 'Save Assignment'}
         </button>
       </div>
     </form>

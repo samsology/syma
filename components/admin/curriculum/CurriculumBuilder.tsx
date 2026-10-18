@@ -25,6 +25,7 @@ import type {
   WeeklyAssignment,
   QuizQuestion,
   QuizOption,
+  AssignmentResource,
 } from '@prisma/client';
 import {
   createLessonAction,
@@ -67,7 +68,7 @@ type ModuleWithLessons = CourseModule & {
 };
 type WeekWithModules = CourseWeek & {
   modules: ModuleWithLessons[];
-  assignment: WeeklyAssignment | null;
+  assignment: (WeeklyAssignment & { resources?: AssignmentResource[] }) | null;
 };
 type CourseWithCurriculum = Course & { weeks: WeekWithModules[] };
 
@@ -791,6 +792,8 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                       {editingAssignment === week.id ? (
                         <WeeklyAssignmentForm
                           action={upsertWeeklyAssignmentAction.bind(null, course.id, week.id)}
+                          courseId={course.id}
+                          weekId={week.id}
                           assignment={week.assignment}
                           onDone={() => setEditingAssignment(null)}
                         />
@@ -827,7 +830,32 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                                     {week.assignment.status}
                                   </span>
                                 </span>
-                                {week.assignment.datasetUrl && (
+
+                                {/* Attached Resources: Cloudflare R2 File and/or External Google Link */}
+                                {week.assignment.resources && week.assignment.resources.length > 0 ? (
+                                  week.assignment.resources.map((res) =>
+                                    res.resourceType === 'FILE' ? (
+                                      <span
+                                        key={res.id}
+                                        className="inline-flex items-center gap-1 rounded bg-emerald-100/90 px-2 py-0.5 font-semibold text-emerald-900"
+                                      >
+                                        <BookOpen className="h-3 w-3" />
+                                        Dataset: {res.label}
+                                      </span>
+                                    ) : (
+                                      <a
+                                        key={res.id}
+                                        href={res.externalUrl || '#'}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 rounded border border-emerald-300 bg-white px-2 py-0.5 font-semibold text-emerald-700 hover:bg-emerald-50"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        Link: {res.label}
+                                      </a>
+                                    )
+                                  )
+                                ) : week.assignment.datasetUrl ? (
                                   week.assignment.datasetUrl.startsWith('r2://') ? (
                                     <span className="inline-flex items-center gap-1 rounded bg-emerald-100/90 px-2 py-0.5 font-semibold text-emerald-900">
                                       <BookOpen className="h-3 w-3" />
@@ -844,7 +872,7 @@ export function CurriculumBuilder({ course }: { course: CourseWithCurriculum }) 
                                       Dataset: {week.assignment.datasetName || 'Google Drive / Link'}
                                     </a>
                                   )
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           </div>

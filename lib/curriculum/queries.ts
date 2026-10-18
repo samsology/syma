@@ -17,7 +17,11 @@ export async function getCourseWithCurriculum(idOrSlug: string) {
   const weeks = await db.courseWeek.findMany({
     where: { courseId: course.id },
     orderBy: [{ sortOrder: 'asc' }, { weekNumber: 'asc' }],
-    include: { assignment: true },
+    include: {
+      assignment: {
+        include: { resources: true },
+      },
+    },
   });
 
   const weekIds = weeks.map((w) => w.id);

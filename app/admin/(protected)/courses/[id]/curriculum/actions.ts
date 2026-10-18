@@ -15,7 +15,12 @@ import { summarySchema } from '@/lib/validation/summary';
 import { quizSchema, quizQuestionSchema } from '@/lib/validation/quiz';
 import { assignmentSchema } from '@/lib/validation/assignment';
 import { r2Storage } from '@/lib/storage/r2Storage';
-import { validateAssignmentFile, ASSIGNMENT_DATASET_EXTENSIONS } from '@/lib/assignments/files';
+import {
+  ASSIGNMENT_DATASET_EXTENSIONS,
+  ASSIGNMENT_MAX_FILE_SIZE,
+  validateAssignmentFile,
+} from '@/lib/assignments/files';
+import { isR2KeyForCourseWeekAssignment } from '@/lib/resources/r2-upload-key';
 
 export type CurriculumFormState = {
   success?: boolean;
@@ -33,7 +38,6 @@ function refresh(courseId: string) {
   revalidatePath('/admin/assignments');
   revalidatePath(`/student/courses/${courseId}`);
 }
-
 
 function sanitizeUrl(val: unknown): string {
   if (!val || typeof val !== 'string') return '';
@@ -748,15 +752,24 @@ export async function upsertModuleQuizAction(
   const rawTime = formData.get('timeLimitMinutes');
   const rawStatus = formData.get('status');
 
-  const timeLimitMinutes =
-    rawTime !== null && String(rawTime).trim() !== '' ? rawTime : undefined;
+  const timeLimitMinutes = rawTime !== null && String(rawTime).trim() !== '' ? rawTime : undefined;
 
   const parsed = quizSchema.safeParse({
     title: rawTitle !== null && rawTitle !== undefined ? String(rawTitle) : undefined,
-    description: rawDesc !== null && rawDesc !== undefined && String(rawDesc).trim() !== '' ? String(rawDesc) : undefined,
-    instructions: rawInst !== null && rawInst !== undefined && String(rawInst).trim() !== '' ? String(rawInst) : undefined,
-    passingScore: rawPass !== null && rawPass !== undefined && String(rawPass).trim() !== '' ? rawPass : undefined,
-    maxAttempts: rawMax !== null && rawMax !== undefined && String(rawMax).trim() !== '' ? rawMax : undefined,
+    description:
+      rawDesc !== null && rawDesc !== undefined && String(rawDesc).trim() !== ''
+        ? String(rawDesc)
+        : undefined,
+    instructions:
+      rawInst !== null && rawInst !== undefined && String(rawInst).trim() !== ''
+        ? String(rawInst)
+        : undefined,
+    passingScore:
+      rawPass !== null && rawPass !== undefined && String(rawPass).trim() !== ''
+        ? rawPass
+        : undefined,
+    maxAttempts:
+      rawMax !== null && rawMax !== undefined && String(rawMax).trim() !== '' ? rawMax : undefined,
     timeLimitMinutes,
     randomizeQuestions:
       formData.get('randomizeQuestions') === 'true' || formData.get('randomizeQuestions') === 'on',
@@ -765,12 +778,19 @@ export async function upsertModuleQuizAction(
     showResults:
       formData.get('showResults') === 'true' ||
       formData.get('showResults') === 'on' ||
-      (formData.get('showResults') !== 'false' && formData.get('showResults') !== 'off' && formData.get('showResults') !== null),
+      (formData.get('showResults') !== 'false' &&
+        formData.get('showResults') !== 'off' &&
+        formData.get('showResults') !== null),
     showExplanations:
       formData.get('showExplanations') === 'true' ||
       formData.get('showExplanations') === 'on' ||
-      (formData.get('showExplanations') !== 'false' && formData.get('showExplanations') !== 'off' && formData.get('showExplanations') !== null),
-    status: rawStatus !== null && rawStatus !== undefined && String(rawStatus).trim() !== '' ? String(rawStatus) : 'DRAFT',
+      (formData.get('showExplanations') !== 'false' &&
+        formData.get('showExplanations') !== 'off' &&
+        formData.get('showExplanations') !== null),
+    status:
+      rawStatus !== null && rawStatus !== undefined && String(rawStatus).trim() !== ''
+        ? String(rawStatus)
+        : 'DRAFT',
   });
 
   if (!parsed.success) {
@@ -792,7 +812,9 @@ export async function upsertModuleQuizAction(
         passingScore: parsed.data.passingScore,
         maxAttempts: parsed.data.maxAttempts,
         timeLimitMinutes:
-          parsed.data.timeLimitMinutes === '' || parsed.data.timeLimitMinutes === undefined || parsed.data.timeLimitMinutes === null
+          parsed.data.timeLimitMinutes === '' ||
+          parsed.data.timeLimitMinutes === undefined ||
+          parsed.data.timeLimitMinutes === null
             ? null
             : Number(parsed.data.timeLimitMinutes),
         randomizeQuestions: parsed.data.randomizeQuestions,
@@ -808,7 +830,9 @@ export async function upsertModuleQuizAction(
         passingScore: parsed.data.passingScore,
         maxAttempts: parsed.data.maxAttempts,
         timeLimitMinutes:
-          parsed.data.timeLimitMinutes === '' || parsed.data.timeLimitMinutes === undefined || parsed.data.timeLimitMinutes === null
+          parsed.data.timeLimitMinutes === '' ||
+          parsed.data.timeLimitMinutes === undefined ||
+          parsed.data.timeLimitMinutes === null
             ? null
             : Number(parsed.data.timeLimitMinutes),
         randomizeQuestions: parsed.data.randomizeQuestions,
@@ -1015,12 +1039,41 @@ export async function moveQuizQuestionAction(formData: FormData) {
 }
 
 export async function upsertWeeklyAssignmentAction(
-  courseId: string,
-  weekId: string,
-  _state: CurriculumFormState,
-  formData: FormData
+  courseIdOrState: string | CurriculumFormState,
+  weekIdOrFormData: string | FormData,
+  maybeState?: CurriculumFormState,
+  maybeFormData?: FormData
 ): Promise<CurriculumFormState> {
+  let courseId: string;
+  let weekId: string;
+  let formData: FormData;
+
+  if (
+    typeof courseIdOrState === 'string' &&
+    typeof weekIdOrFormData === 'string' &&
+    maybeFormData instanceof FormData
+  ) {
+    courseId = courseIdOrState;
+    weekId = weekIdOrFormData;
+    formData = maybeFormData;
+  } else if (weekIdOrFormData instanceof FormData) {
+    formData = weekIdOrFormData;
+    courseId = String(formData.get('courseId') ?? (typeof courseIdOrState === 'string' ? courseIdOrState : ''));
+    weekId = String(formData.get('weekId') ?? '');
+  } else if (maybeFormData instanceof FormData) {
+    formData = maybeFormData;
+    courseId = String(formData.get('courseId') ?? (typeof courseIdOrState === 'string' ? courseIdOrState : ''));
+    weekId = String(formData.get('weekId') ?? (typeof weekIdOrFormData === 'string' ? weekIdOrFormData : ''));
+  } else {
+    return { formError: 'Invalid request parameters.' };
+  }
+
+  if (!courseId || !weekId) {
+    return { formError: 'Missing course or week reference.' };
+  }
+
   let uploadedStorageKey: string | null = null;
+  let datasetStorageKey: string | null = null;
   let assignmentPersisted = false;
 
   try {
@@ -1065,14 +1118,60 @@ export async function upsertWeeklyAssignmentAction(
       where: { weekId },
       include: { resources: true },
     });
+    const legacyStorageKey = existing?.datasetUrl?.startsWith('r2://')
+      ? existing.datasetUrl.replace(/^r2:\/\//, '')
+      : null;
+    const datasetStoragePrefix = `courses/${courseId}/weeks/${weekId}/assignment/datasets/`;
+    const existingDatasetFile = existing?.resources.find(
+      (resource) =>
+        resource.resourceType === 'FILE' &&
+        (resource.storageKey === legacyStorageKey || resource.storageKey?.startsWith(datasetStoragePrefix))
+    );
+    const existingDatasetLink = existing?.resources.find(
+      (resource) =>
+        resource.resourceType === 'LINK' &&
+        (resource.externalUrl === existing?.datasetUrl || !existing?.datasetUrl?.startsWith('r2://'))
+    );
+    const existingStorageKey = existing?.datasetUrl?.startsWith('r2://')
+      ? legacyStorageKey
+      : existingDatasetFile?.storageKey ?? null;
+    const existingExternalUrl = existingDatasetLink?.externalUrl ??
+      (existing?.datasetUrl && !existing.datasetUrl.startsWith('r2://') ? existing.datasetUrl : null);
 
     let finalDatasetUrl = existing?.datasetUrl ?? null;
     let finalDatasetName = existing?.datasetName ?? null;
 
+    const uploadedDatasetKeyRaw = formData.get('uploadedDatasetKey');
+    const uploadedDatasetKey = typeof uploadedDatasetKeyRaw === 'string' ? uploadedDatasetKeyRaw.trim() : '';
+
     const datasetFile = formData.get('datasetFile');
     const hasUploadedFile = datasetFile instanceof File && datasetFile.size > 0;
 
-    if (hasUploadedFile) {
+    if (removeDataset) {
+      finalDatasetUrl = null;
+      finalDatasetName = null;
+    } else if (uploadedDatasetKey) {
+      // Never trust a browser supplied object key without checking its course/week
+      // scope and confirming the object exists and satisfies the dataset limit.
+      const storageKey = uploadedDatasetKey.replace(/^r2:\/\//, '');
+      if (!isR2KeyForCourseWeekAssignment(storageKey, courseId, weekId)) {
+        return { formError: 'The uploaded dataset does not belong to this course week. Please upload it again.' };
+      }
+      const fileName = storageKey.split('/').pop() || '';
+      const extension = fileName.split('.').pop()?.toLowerCase() || '';
+      if (!ASSIGNMENT_DATASET_EXTENSIONS.has(extension)) {
+        return { formError: 'The uploaded dataset type is not supported.' };
+      }
+      const metadata = await r2Storage.getMetadata(storageKey);
+      if (!metadata || !metadata.size || metadata.size > ASSIGNMENT_MAX_FILE_SIZE) {
+        return { formError: 'The uploaded dataset could not be verified in storage or exceeds the 4 MB limit.' };
+      }
+      datasetStorageKey = storageKey;
+      if (existingStorageKey !== storageKey) uploadedStorageKey = storageKey;
+      finalDatasetUrl = `r2://${storageKey}`;
+      finalDatasetName = parsed.data.datasetName?.trim() || 'Uploaded Dataset File';
+    } else if (hasUploadedFile) {
+      // Fallback: binary upload streamed through server action
       const fileError = validateAssignmentFile(datasetFile, ASSIGNMENT_DATASET_EXTENSIONS);
       if (fileError) {
         return {
@@ -1092,6 +1191,7 @@ export async function upsertWeeklyAssignmentAction(
           contentType: datasetFile.type || 'application/octet-stream',
         });
         uploadedStorageKey = storageKey;
+        datasetStorageKey = storageKey;
       } catch (uploadErr) {
         return {
           formError:
@@ -1103,84 +1203,181 @@ export async function upsertWeeklyAssignmentAction(
 
       finalDatasetUrl = `r2://${storageKey}`;
       finalDatasetName = parsed.data.datasetName?.trim() || datasetFile.name;
-    } else if (removeDataset) {
-      finalDatasetUrl = null;
-      finalDatasetName = null;
     } else if (parsed.data.datasetUrl && parsed.data.datasetUrl.trim() !== '') {
       // User provided or updated an external link (e.g. Google Drive / Sheets)
       finalDatasetUrl = parsed.data.datasetUrl.trim();
       finalDatasetName = parsed.data.datasetName?.trim() || 'Google Drive / External Dataset';
-    } else if (formData.has('datasetUrl') && !parsed.data.datasetUrl && !existing?.datasetUrl?.startsWith('r2://')) {
+    } else if (
+      formData.has('datasetUrl') &&
+      !parsed.data.datasetUrl &&
+      !existing?.datasetUrl?.startsWith('r2://')
+    ) {
       finalDatasetUrl = null;
       finalDatasetName = null;
     }
 
-    const savedAssignment = await db.weeklyAssignment.upsert({
-      where: { weekId },
-      create: {
-        weekId,
-        title: parsed.data.title,
-        description: parsed.data.description,
-        instructions: parsed.data.instructions,
-        submissionType: parsed.data.submissionType,
-        submissionRequirements: parsed.data.submissionRequirements || null,
-        datasetUrl: finalDatasetUrl,
-        datasetName: finalDatasetName,
-        dueDateDays: parsed.data.dueDateDays ?? null,
-        dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
-        maxScore: parsed.data.maxScore ?? null,
-        status: parsed.data.status,
-      },
-      update: {
-        title: parsed.data.title,
-        description: parsed.data.description,
-        instructions: parsed.data.instructions,
-        submissionType: parsed.data.submissionType,
-        submissionRequirements: parsed.data.submissionRequirements || null,
-        datasetUrl: finalDatasetUrl,
-        datasetName: finalDatasetName,
-        dueDateDays: parsed.data.dueDateDays ?? null,
-        dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
-        maxScore: parsed.data.maxScore ?? null,
-        status: parsed.data.status,
-      },
+    await db.$transaction(async (tx) => {
+      const savedAssignment = await tx.weeklyAssignment.upsert({
+        where: { weekId },
+        create: {
+          weekId,
+          title: parsed.data.title,
+          description: parsed.data.description,
+          instructions: parsed.data.instructions,
+          submissionType: parsed.data.submissionType,
+          submissionRequirements: parsed.data.submissionRequirements || null,
+          datasetUrl: finalDatasetUrl,
+          datasetName: finalDatasetName,
+          dueDateDays: parsed.data.dueDateDays ?? null,
+          dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
+          maxScore: parsed.data.maxScore ?? null,
+          status: parsed.data.status,
+        },
+        update: {
+          title: parsed.data.title,
+          description: parsed.data.description,
+          instructions: parsed.data.instructions,
+          submissionType: parsed.data.submissionType,
+          submissionRequirements: parsed.data.submissionRequirements || null,
+          datasetUrl: finalDatasetUrl,
+          datasetName: finalDatasetName,
+          dueDateDays: parsed.data.dueDateDays ?? null,
+          dueAt: parsed.data.dueAt ? new Date(parsed.data.dueAt) : null,
+          maxScore: parsed.data.maxScore ?? null,
+          status: parsed.data.status,
+        },
+      });
+      if (datasetStorageKey && !removeDataset) {
+        const existingFileResource = existing?.resources?.find(
+          (r) => r.resourceType === 'FILE' && r.storageKey === datasetStorageKey
+        );
+        const resourceFileName = hasUploadedFile
+          ? datasetFile.name
+          : (finalDatasetName || 'dataset');
+        if (existingFileResource) {
+          await tx.assignmentResource.update({
+            where: { id: existingFileResource.id },
+            data: {
+              label: finalDatasetName || existingFileResource.label,
+            },
+          });
+        } else {
+          await tx.assignmentResource.create({
+            data: {
+              assignmentId: savedAssignment.id,
+              resourceType: 'FILE',
+              label: finalDatasetName || resourceFileName,
+              storageKey: datasetStorageKey,
+              originalFilename: resourceFileName,
+              mimeType: hasUploadedFile ? (datasetFile.type || null) : null,
+              fileSize: hasUploadedFile ? datasetFile.size : null,
+            },
+          });
+        }
+      }
+
+      const externalUrl = parsed.data.datasetUrl && !parsed.data.datasetUrl.startsWith('r2://')
+        ? parsed.data.datasetUrl.trim()
+        : null;
+
+      if (externalUrl && !removeDataset) {
+        const existingLink = existing?.resources?.find(
+          (resource) => resource.resourceType === 'LINK' && resource.externalUrl === externalUrl
+        );
+        const linkLabel = (parsed.data.datasetUrl && parsed.data.datasetName?.trim() && !uploadedStorageKey)
+          ? parsed.data.datasetName.trim()
+          : (parsed.data.datasetName?.trim() || 'Google Drive / External Dataset');
+
+        if (existingLink) {
+          await tx.assignmentResource.update({
+            where: { id: existingLink.id },
+            data: { label: linkLabel },
+          });
+        } else {
+          await tx.assignmentResource.create({
+            data: {
+              assignmentId: savedAssignment.id,
+              resourceType: 'LINK',
+              label: linkLabel,
+              externalUrl,
+            },
+          });
+        }
+      }
+
+      if (removeDataset) {
+        if (existingDatasetFile) {
+          await tx.assignmentResource.deleteMany({
+            where: { id: existingDatasetFile.id, assignmentId: savedAssignment.id },
+          });
+        } else if (existingStorageKey) {
+          await tx.assignmentResource.deleteMany({
+            where: { assignmentId: savedAssignment.id, resourceType: 'FILE', storageKey: existingStorageKey },
+          });
+        }
+        if (existingDatasetLink) {
+          await tx.assignmentResource.deleteMany({
+            where: { id: existingDatasetLink.id, assignmentId: savedAssignment.id },
+          });
+        } else if (existingExternalUrl) {
+          await tx.assignmentResource.deleteMany({
+            where: {
+              assignmentId: savedAssignment.id,
+              resourceType: 'LINK',
+              externalUrl: existingExternalUrl,
+            },
+          });
+        }
+      } else {
+        if (existingExternalUrl && existingExternalUrl !== externalUrl) {
+          await tx.assignmentResource.deleteMany({
+            where: {
+              assignmentId: savedAssignment.id,
+              resourceType: 'LINK',
+              externalUrl: existingExternalUrl,
+            },
+          });
+        }
+        if (existingStorageKey && `r2://${existingStorageKey}` !== finalDatasetUrl) {
+          await tx.assignmentResource.deleteMany({
+            where: {
+              assignmentId: savedAssignment.id,
+              resourceType: 'FILE',
+              storageKey: existingStorageKey,
+            },
+          });
+        }
+      }
+      return savedAssignment;
     });
     assignmentPersisted = true;
 
-    // Option C: Both uploaded file and external link on the same assignment
-    // If a file was uploaded AND an external link was provided in datasetUrl:
-    if (hasUploadedFile && parsed.data.datasetUrl && parsed.data.datasetUrl.trim() !== '') {
-      const linkLabel = parsed.data.datasetName?.trim() || 'Google Drive / External Dataset';
-      // Upsert resource for external dataset link
-      const existingLinkResource = existing?.resources?.find(
-        (r) => r.resourceType === 'LINK' && r.externalUrl === parsed.data.datasetUrl!.trim()
-      );
-      if (!existingLinkResource) {
-        await db.assignmentResource.create({
-          data: {
-            assignmentId: savedAssignment.id,
-            resourceType: 'LINK',
-            label: linkLabel,
-            externalUrl: parsed.data.datasetUrl.trim(),
-          },
-        });
-      }
-    }
-
     // Clean up previous R2 file if replaced or removed
-    if (
-      existing?.datasetUrl?.startsWith('r2://') &&
-      existing.datasetUrl !== finalDatasetUrl
-    ) {
-      const oldKey = existing.datasetUrl.replace(/^r2:\/\//, '');
-      await r2Storage.delete(oldKey).catch(() => false);
+    if (existingStorageKey && `r2://${existingStorageKey}` !== finalDatasetUrl) {
+      await r2Storage.delete(existingStorageKey).catch((cleanupError: unknown) => {
+        console.error('Assignment dataset cleanup pending after successful replacement.', {
+          courseId,
+          weekId,
+          storageKey: existingStorageKey,
+          errorName: cleanupError instanceof Error ? cleanupError.name : 'UnknownError',
+        });
+        return false;
+      });
     }
 
     refresh(courseId);
     return { success: true };
   } catch (error) {
     if (uploadedStorageKey && !assignmentPersisted) {
-      await r2Storage.delete(uploadedStorageKey).catch(() => false);
+      await r2Storage.delete(uploadedStorageKey).catch((cleanupError: unknown) => {
+        console.error('Failed to clean up an unassociated assignment dataset after save failure.', {
+          courseId,
+          weekId,
+          storageKey: uploadedStorageKey,
+          errorName: cleanupError instanceof Error ? cleanupError.name : 'UnknownError',
+        });
+        return false;
+      });
     }
     console.error('Error in upsertWeeklyAssignmentAction:', error);
     return {
@@ -1215,4 +1412,3 @@ export async function deleteWeeklyAssignmentAction(formData: FormData) {
   await db.weeklyAssignment.deleteMany({ where: { weekId } });
   refresh(courseId);
 }
-
