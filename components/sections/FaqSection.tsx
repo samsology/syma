@@ -1,26 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, HelpCircle } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { SectionHeading } from '@/components/ui/SectionHeading';
+import { cn } from '@/lib/utils';
 
 const faqs = [
   {
-    q: 'Do I need a coding or math background to enroll?',
-    a: 'No prior technical background is required for our foundational tracks. Introduction to Data Literacy and Introduction to Data Analytics start with practical data thinking and spreadsheets before progressing to Python, machine learning, and specialist healthcare analytics.',
+    q: 'Do I need a coding or mathematics background to enroll?',
+    a: 'No prior coding or advanced math background is required for our foundational tracks. Introduction to Data Literacy and Introduction to Data Analytics start with practical data hygiene, spreadsheet principles, and business interpretation before systematically progressing to Python, machine learning, and specialized healthcare analytics.',
   },
   {
     q: 'How does mentor and instructor support work?',
-    a: 'Students receive live and recorded lessons, weekly project reviews, and community access with instructor guidance throughout their 6 to 8-week programme.',
+    a: 'Students participate in live interactive cohorts with weekly scheduled code reviews, hands-on lab sessions, and direct community messaging channels. Our senior biostatisticians and engineers provide individualized feedback on every capstone submission.',
   },
   {
-    q: 'How are course tuition and payments handled?',
-    a: 'All courses have transparent, accessible USD pricing ($19.90 to $69.90). You can enroll directly with immediate access to materials upon cohort start.',
+    q: 'How are course tuition and payments processed?',
+    a: 'All courses feature transparent, one-time USD tuition ($19.90 to $69.90) with no hidden fees or subscription lock-ins. You receive immediate access to the student LMS portal and curriculum upon cohort start.',
   },
   {
-    q: 'What is the capstone project and certificate?',
-    a: 'Every course features practical exercises, real-world case studies, and capstone deliverables. Completing your track earns you an official Certificate of Completion to showcase in your portfolio.',
+    q: 'What is the capstone project and completion certificate?',
+    a: 'Every track concludes with an end-to-end practical project built on real sanitized datasets. Successfully completing and submitting your capstone earns you a verified Syma Tech Certificate of Completion to showcase in your portfolio and resume.',
   },
 ];
 
@@ -32,41 +33,56 @@ export default function FaqSection() {
   };
 
   return (
-    <section className="bg-white py-20 lg:py-28">
+    <section className="bg-white py-20 lg:py-28 border-t border-slate-200/80">
       <Container>
         <SectionHeading
-          theme="light"
-          badge="Common Inquiries"
-          title="Frequently Asked Questions"
-          description="Clear details on cohort schedules, learning support, and project expectations."
+          badge="Frequently Asked Questions"
+          title="Everything You Need to Know"
+          description="Clear details on cohort schedules, mentor support, tuition clarity, and project certification."
+          align="center"
         />
 
-        <div className="mx-auto max-w-4xl space-y-4">
-          {faqs.map((faq, i) => (
-            <div
-              key={faq.q}
-              className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all duration-200 hover:border-slate-300"
-            >
-              <button
-                type="button"
-                onClick={() => toggleFaq(i)}
-                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-bold text-slate-900 transition-colors hover:bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/25"
-                aria-expanded={openFaq === i}
-              >
-                <span className="font-heading">{faq.q}</span>
-                {openFaq === i ? (
-                  <Minus className="h-4 w-4 shrink-0 text-primary" />
-                ) : (
-                  <Plus className="h-4 w-4 shrink-0 text-primary" />
+        <div className="mx-auto max-w-3xl space-y-4">
+          {faqs.map((faq, i) => {
+            const isOpen = openFaq === i;
+            return (
+              <div
+                key={faq.q}
+                className={cn(
+                  'overflow-hidden rounded-3xl border transition-all duration-300',
+                  isOpen
+                    ? 'border-brand-cerulean/40 bg-slate-50/60 shadow-sm'
+                    : 'border-slate-200/90 bg-white hover:border-slate-300'
                 )}
-              </button>
-              {openFaq === i && (
-                <div className="border-t border-slate-100 px-6 pb-6 pt-4 text-sm leading-relaxed text-slate-500">
-                  {faq.a}
-                </div>
-              )}
-            </div>
-          ))}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleFaq(i)}
+                  className="flex w-full items-center justify-between gap-4 px-6 py-5 sm:px-8 text-left font-bold text-slate-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cerulean cursor-pointer"
+                  aria-expanded={isOpen}
+                >
+                  <span className="font-heading text-base sm:text-lg leading-snug">
+                    {faq.q}
+                  </span>
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors',
+                      isOpen
+                        ? 'bg-brand-cerulean text-white'
+                        : 'bg-slate-100 text-slate-600'
+                    )}
+                  >
+                    {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  </div>
+                </button>
+                {isOpen && (
+                  <div className="border-t border-slate-200/60 px-6 pb-6 pt-4 sm:px-8 text-sm leading-relaxed text-slate-600 font-sans">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Container>
     </section>

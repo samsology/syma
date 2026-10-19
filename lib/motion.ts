@@ -91,6 +91,13 @@ export const staggerContainerVariants: Variants = {
   },
 };
 
+// Convenient shorthand aliases
+export const fadeUp = fadeUpVariants;
+export const fadeIn = fadeInVariants;
+export const fadeDown = fadeDownVariants;
+export const scaleIn = scaleInVariants;
+export const staggerContainer = staggerContainerVariants;
+
 /**
  * Creates custom stagger container variants with specified timings.
  */

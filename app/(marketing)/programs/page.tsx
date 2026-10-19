@@ -4,9 +4,18 @@ import { db } from '@/lib/db';
 import { getCurrentStudent } from '@/lib/auth/student-session';
 
 export const metadata: Metadata = {
-  title: 'Practical-Based Data Programs | Syma Tech Solutions',
+  title: 'Practical-Based Data Programs',
   description:
-    'LEARN. PRACTICE. BUILD. APPLY. Practical-based data programs built to take you from beginners to specialist across Data Literacy, Data Analytics, Data Science, and Healthcare Analytics.',
+    'LEARN. PRACTICE. BUILD. APPLY. Four rigorous, practical-based data programs taking you from data literacy to advanced healthcare analytics and biostatistics.',
+  alternates: {
+    canonical: '/programs',
+  },
+  openGraph: {
+    title: 'Data & Healthcare Analytics Programs | Syma Tech Solutions',
+    description:
+      'Master data analytics, data science, and healthcare analytics with live labs, mentor code reviews, real datasets, and certified outcomes.',
+    url: '/programs',
+  },
 };
 
 export default async function ProgramsPage() {

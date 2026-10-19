@@ -8,7 +8,6 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/Button';
 import { springDrawer } from '@/lib/motion';
 
 const navLinks = [
@@ -25,6 +24,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
+  const toggleRef = React.useRef<HTMLButtonElement>(null);
 
   // Determine if the navbar is currently over the dark homepage hero
   const isDarkHero = pathname === '/' && !scrolled;
@@ -37,16 +37,12 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile drawer on route change
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
-
   // Handle escape key to close mobile drawer
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         setIsOpen(false);
+        toggleRef.current?.focus();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -68,7 +64,7 @@ export default function Navbar() {
         {/* Brand Logo & Name */}
         <Link
           href="/"
-          className="flex items-center gap-3 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cerulean rounded-lg"
+          className="flex items-center gap-3 rounded-lg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cerulean focus-visible:ring-offset-2"
           onClick={() => setIsOpen(false)}
         >
           <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-white/10 p-1 shadow-sm">
@@ -99,14 +95,15 @@ export default function Navbar() {
         {/* Desktop Navigation Links */}
         <nav
           className="hidden items-center gap-1 lg:flex"
-          aria-label="Main Navigation"
+          aria-label="Primary"
         >
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
+            const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(`${link.href}/`));
             return (
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cerulean',
                   isDarkHero
@@ -137,20 +134,16 @@ export default function Navbar() {
           >
             Student Login
           </Link>
-          <Link href="/consultation">
-            <Button
-              variant="cerulean"
-              size="sm"
-              className="rounded-full shadow-sm hover:shadow-cerulean-glow"
-            >
-              Discuss a Project
-            </Button>
+          <Link href="/consultation" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-brand-cerulean px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cerulean focus-visible:ring-offset-2">
+            Discuss a Project
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
 
         {/* Mobile Toggle Button */}
         <button
           type="button"
+          ref={toggleRef}
           onClick={() => setIsOpen((prev) => !prev)}
           className={cn(
             'inline-flex h-11 w-11 items-center justify-center rounded-xl border transition-colors lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cerulean',
@@ -179,11 +172,12 @@ export default function Navbar() {
           >
             <div className="mx-auto flex max-w-7xl flex-col gap-2">
               {navLinks.map((link) => {
-                const isActive = pathname === link.href;
+                const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(`${link.href}/`));
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
+                    aria-current={isActive ? 'page' : undefined}
                     onClick={() => setIsOpen(false)}
                     className={cn(
                       'rounded-xl px-4 py-3 text-base font-semibold transition-colors flex items-center justify-between',
@@ -213,14 +207,10 @@ export default function Navbar() {
                   onClick={() => setIsOpen(false)}
                   className="w-full"
                 >
-                  <Button
-                    variant="cerulean"
-                    size="lg"
-                    className="w-full rounded-xl text-center"
-                    rightIcon={<ArrowRight className="w-4 h-4" />}
-                  >
+                  <span className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-cerulean px-6 text-base font-semibold text-white transition-colors hover:bg-brand-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cerulean focus-visible:ring-offset-2">
                     Discuss a Project
-                  </Button>
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </span>
                 </Link>
               </div>
             </div>

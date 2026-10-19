@@ -1,6 +1,7 @@
 import * as React from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { MarketingMotion } from '@/components/layout/MarketingMotion';
 
 /**
  * MarketingLayout
@@ -13,10 +14,12 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-white selection:bg-brand-cerulean/20 selection:text-brand-navy">
-      <Navbar />
-      <main className="flex-grow">{children}</main>
-      <Footer />
-    </div>
+    <MarketingMotion>
+      <div className="flex min-h-screen flex-col bg-white selection:bg-brand-cerulean/20 selection:text-brand-navy">
+        <Navbar />
+        <main className="flex-grow">{children}</main>
+        <Footer />
+      </div>
+    </MarketingMotion>
   );
 }

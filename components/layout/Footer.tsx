@@ -105,22 +105,8 @@ export default function Footer() {
             <div>
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">Newsletter</h2>
               <p className="mt-2 text-xs leading-relaxed text-slate-400">
-                Receive the latest insights in healthcare analytics, bioinformatics, and data tools.
+                Email subscriptions are not available yet. Explore the insights library for current articles.
               </p>
-              <form className="mt-3 flex gap-2" onSubmit={(e) => e.preventDefault()}>
-                <input
-                  type="email"
-                  placeholder="Enter email"
-                  className="w-full min-h-[38px] rounded-lg border border-slate-200 px-3 text-xs focus:border-primary focus:outline-none bg-slate-50"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="rounded-lg bg-brand-cerulean px-4 text-xs font-bold text-white transition-colors hover:bg-brand-cerulean/90 cursor-pointer shadow-sm"
-                >
-                  Subscribe
-                </button>
-              </form>
             </div>
             <div className="space-y-2 text-xs border-t border-slate-100 pt-4">
               <p className="flex items-center gap-2">

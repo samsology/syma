@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, BarChart3, Code2, Activity, Clock, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, BarChart3, Code2, Activity } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -46,7 +46,7 @@ export function AcademySection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {OFFICIAL_COURSES.map((course) => {
+          {OFFICIAL_COURSES.slice(0, 3).map((course) => {
             const Icon = courseIcons[course.iconName] || BookOpen;
             return (
               <Card
@@ -71,18 +71,8 @@ export function AcademySection() {
                     {course.shortDescription}
                   </p>
 
-                  <div className="mt-6 flex items-center justify-between pt-4 border-t border-white/10">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Tuition</span>
-                      <span className="text-xl font-extrabold text-white font-heading">{course.price}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Duration</span>
-                      <span className="text-xs font-semibold text-slate-300 flex items-center gap-1 mt-0.5">
-                        <Clock className="w-3 h-3 text-brand-cerulean" />
-                        {course.duration}
-                      </span>
-                    </div>
+                  <div className="mt-6 border-t border-white/10 pt-4">
+                    <span className="text-xs text-slate-400">From the programme catalogue</span>
                   </div>
                 </div>
 
@@ -93,7 +83,7 @@ export function AcademySection() {
                       size="sm"
                       className="w-full rounded-xl font-bold"
                     >
-                      View Syllabus & Enroll
+                      View Programme Details
                     </Button>
                   </Link>
                 </div>

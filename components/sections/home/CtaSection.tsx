@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowRight, MessageSquare, PhoneCall } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 
@@ -27,7 +27,7 @@ export function CtaSection() {
             </h2>
 
             <p className="text-base sm:text-lg text-slate-300 font-sans leading-relaxed max-w-2xl mx-auto">
-              Whether you are optimizing hospital throughput, publishing clinical cohort research, or establishing automated Power BI reporting across an enterprise, we engineer systems that deliver clarity.
+              Tell us about your data questions, reporting needs, or analytics goals. We’ll discuss a practical next step for your team.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -53,13 +53,6 @@ export function CtaSection() {
               </Link>
             </div>
 
-            <div className="pt-8 border-t border-white/10 mt-8 flex flex-wrap items-center justify-center gap-8 text-xs text-slate-400">
-              <span>Technical consultation via secure video link</span>
-              <span className="hidden sm:inline">&bull;</span>
-              <span>Confidentiality agreements as standard</span>
-              <span className="hidden sm:inline">&bull;</span>
-              <span>Response within 24 business hours</span>
-            </div>
           </div>
         </div>
       </Container>

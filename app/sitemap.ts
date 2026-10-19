@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/consultation',
     '/contact',
     '/enroll',
+    '/solutions',
     '/portfolio',
     '/programs',
     '/insights',
@@ -23,6 +24,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${baseUrl}${route}`,
     lastModified: new Date().toISOString(),
     changeFrequency: 'weekly' as const,
-    priority: route === '' ? 1.0 : route.startsWith('/programs') ? 0.9 : 0.8,
+    priority: route === '' ? 1.0 : route.startsWith('/programs') || route === '/solutions' ? 0.9 : 0.8,
   }));
 }

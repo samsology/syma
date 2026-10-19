@@ -3,12 +3,11 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, ChevronRight, Database, LineChart, ShieldCheck, Activity } from 'lucide-react';
+import { ArrowRight, Database, LineChart, Activity } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow } from '@/components/ui/Eyebrow';
-import { TelemetryCard } from '@/components/ui/TelemetryCard';
-import { fadeUpVariants, springCard, springTactile } from '@/lib/motion';
+import { fadeUpVariants } from '@/lib/motion';
 
 export function HeroSection() {
   return (
@@ -55,7 +54,7 @@ export function HeroSection() {
               variants={fadeUpVariants}
               className="text-base sm:text-lg text-slate-300 font-sans leading-relaxed max-w-2xl mx-auto lg:mx-0"
             >
-              We engineer unified clinical data pipelines, biostatistical research models, and automated executive dashboards that empower healthcare providers and institutions to act with certainty.
+              We help healthcare teams, researchers, and businesses make better use of complex data through analytics, reporting, and practical data systems.
             </motion.p>
 
             <motion.div
@@ -84,76 +83,67 @@ export function HeroSection() {
               </Link>
             </motion.div>
 
-            {/* Micro Trust Indicators */}
+            {/* Capability cues */}
             <motion.div
               variants={fadeUpVariants}
               className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-center lg:justify-start gap-6 text-xs text-slate-400"
             >
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-brand-cerulean" />
-                <span>Strict Data Confidentiality</span>
-              </div>
-              <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-brand-yellow" />
-                <span>Clinical & Epidemiological Rigor</span>
+                <span>Health & research analytics</span>
               </div>
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-emerald-400" />
-                <span>Production SQL & Power BI Schemas</span>
+                <span>Data systems and reporting</span>
               </div>
             </motion.div>
           </motion.div>
 
-          {/* Right Column: Illustrative Telemetry Composition */}
+          {/* Right Column: illustrative, non-outcome system diagram */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
             className="lg:col-span-5 relative"
           >
-            {/* Background Halo */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-brand-cerulean/20 to-transparent rounded-3xl blur-2xl -z-10" />
-
-            <div className="space-y-4">
-              {/* Primary Telemetry Card */}
-              <TelemetryCard
-                title="Outpatient Throughput Velocity"
-                metric="94.6%"
-                trend="+18.4%"
-                category="Hospital Operations"
-                theme="dark"
-                sparklineData={[14, 20, 18, 28, 35, 30, 42, 50]}
-              />
-
-              {/* Secondary Companion Card */}
-              <motion.div
-                whileHover={{ y: -4 }}
-                transition={springCard}
-                className="rounded-2xl p-4 border border-white/10 bg-marketing-dark-surface/80 backdrop-blur-xl text-white shadow-xl"
-              >
-                <div className="flex items-center justify-between text-xs text-slate-400 pb-3 border-b border-white/10">
-                  <span className="flex items-center gap-1.5 font-bold text-slate-300">
-                    <LineChart className="w-3.5 h-3.5 text-brand-cerulean" />
-                    Cohort Biostatistics Pipeline
-                  </span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                    Validated
-                  </span>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 text-left">
-                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                    <p className="text-[10px] text-slate-400 uppercase font-bold">Data Latency</p>
-                    <p className="text-lg font-bold text-white font-heading mt-0.5">45ms query</p>
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-marketing-dark-surface/80 p-5 shadow-2xl shadow-black/20 sm:p-7">
+              <div className="absolute inset-0 bg-gradient-to-br from-brand-cerulean/10 via-transparent to-brand-yellow/5" aria-hidden="true" />
+              <div className="relative">
+                <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">From data to decisions</p>
+                    <p className="mt-1 text-xs text-slate-400">Illustrative system view</p>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                    <p className="text-[10px] text-slate-400 uppercase font-bold">Models Prepared</p>
-                    <p className="text-lg font-bold text-white font-heading mt-0.5">Multivariate</p>
-                  </div>
+                  <LineChart className="h-5 w-5 text-brand-cerulean" aria-hidden="true" />
                 </div>
-                <p className="mt-3 text-[9px] text-slate-500 leading-tight">
-                  *Illustrative clinical data model simulation for systems visualization.
+                <div className="mt-6 space-y-3">
+                  {[
+                    { number: '01', title: 'Data sources', detail: 'Records · surveys · operations', icon: Database },
+                    { number: '02', title: 'Clear structure', detail: 'Prepare · connect · analyze', icon: Activity },
+                    { number: '03', title: 'Useful insight', detail: 'Reports · measures · decisions', icon: LineChart },
+                  ].map(({ number, title, detail, icon: Icon }, index) => (
+                    <motion.div
+                      key={number}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.35, delay: 0.16 + index * 0.08 }}
+                      className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-cerulean/10 text-brand-cerulean">
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-white">{title}</span>
+                        <span className="mt-1 block text-xs text-slate-400">{detail}</span>
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500">{number}</span>
+                    </motion.div>
+                  ))}
+                </div>
+                <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
+                  A conceptual illustration of the work, not a client dashboard or measured result.
                 </p>
-              </motion.div>
+              </div>
             </div>
           </motion.div>
         </div>

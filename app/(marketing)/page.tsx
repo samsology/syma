@@ -10,9 +10,11 @@ import { InsightsSection } from '@/components/sections/home/InsightsSection';
 import { CtaSection } from '@/components/sections/home/CtaSection';
 
 export const metadata: Metadata = {
-  title: 'Health & Research Intelligence Systems | Syma Tech Solutions',
+  title: {
+    absolute: 'Syma Tech Solutions | Health & Research Intelligence Systems',
+  },
   description:
-    'We engineer unified clinical data pipelines, biostatistical research models, and automated executive dashboards that empower healthcare organizations and research institutions.',
+    'Syma Tech helps healthcare teams, researchers, and businesses make better use of complex data through analytics, reporting, and practical data systems.',
   alternates: {
     canonical: '/',
   },

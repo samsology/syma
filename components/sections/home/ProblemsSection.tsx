@@ -3,33 +3,32 @@
 import * as React from 'react';
 import { FileSpreadsheet, Clock, AlertTriangle, Layers } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
-import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 
 const problems = [
   {
     icon: FileSpreadsheet,
-    title: 'Disconnected Spreadsheets & Siloed EHRs',
+    title: 'Data spread across different sources',
     description:
-      'Patient records, drug inventories, and facility logs live in incompatible files, leaving directors without a unified source of truth.',
+      'When information lives in separate files and systems, teams may spend extra effort bringing it together for a clear view.',
   },
   {
     icon: Clock,
-    title: 'Multi-Week Reporting Latency',
+    title: 'Time-consuming reporting',
     description:
-      'Manual report compilation means operations decisions are made on stale numbers weeks after clinical events take place.',
+      'Manual steps in reporting can make it harder to prepare consistent information when teams need it.',
   },
   {
     icon: Layers,
-    title: 'Complex Research Data Wrangles',
+    title: 'Complex research data',
     description:
-      'Epidemiological surveys and cohort studies stall before publication due to inconsistent variable coding, missing data, and complex regression requirements.',
+      'Preparing survey and study data can involve careful coding, data checks, and analysis before results are ready to share.',
   },
   {
     icon: AlertTriangle,
-    title: 'Internal Analytics Capacity Gaps',
+    title: 'Building analytics skills',
     description:
-      'Teams are overwhelmed by raw data because staff lack practical training in modern relational schemas, SQL, and automated Power BI models.',
+      'Teams may need practical support to build confidence with data tools, analysis, and reporting workflows.',
   },
 ];
 
@@ -40,10 +39,10 @@ export function ProblemsSection() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <Eyebrow variant="navy">Operational Bottlenecks</Eyebrow>
           <h2 className="mt-3 text-3xl sm:text-4xl font-extrabold font-heading text-slate-900 tracking-tight">
-            The Data Challenges Slowing Down Health Systems
+            Making Complex Data Easier to Use
           </h2>
           <p className="mt-4 text-base text-slate-600 font-sans leading-relaxed">
-            Healthcare and research initiatives generate immense data, but critical decisions remain blocked by fragmented storage and manual reporting bottlenecks.
+            Different teams face different data and reporting needs. We help them clarify the problem and find an appropriate analytical approach.
           </p>
         </div>
 

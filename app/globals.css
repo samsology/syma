@@ -3,6 +3,17 @@
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
+
+  /* Marketing foundation: shared by light and dark sections inside the public layout. */
+  --marketing-content-sm: 48rem;
+  --marketing-content-md: 64rem;
+  --marketing-content-lg: 80rem;
+  --marketing-page-gutter: clamp(1rem, 4vw, 2rem);
+  --marketing-section-space: clamp(4rem, 8vw, 7rem);
+  --marketing-grid-gap: clamp(1rem, 2.5vw, 1.5rem);
+  --marketing-card-radius: 1.25rem;
+  --marketing-control-height: 2.75rem;
+  --marketing-focus: #1477bd;
 }
 
 @theme {
@@ -49,8 +60,16 @@
   --color-amber-500: #F59E0B;
 
   /* Typography */
-  --font-heading: var(--font-heading), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* No remote font is currently configured; use the system stack without a network request. */
+  --font-heading: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --text-marketing-display: clamp(2.75rem, 6vw, 5rem);
+  --text-marketing-page: clamp(2.25rem, 4.5vw, 3.75rem);
+  --text-marketing-section: clamp(1.875rem, 3vw, 2.75rem);
+  --text-marketing-card: 1.25rem;
+  --text-marketing-body: 1rem;
+  --text-marketing-support: 0.875rem;
+  --text-marketing-label: 0.75rem;
 
   /* Spacing overrides / extensions if needed */
   --spacing-18: 4.5rem;
@@ -247,6 +266,20 @@ input:focus, select:focus, textarea:focus {
 .marketing-dark-canvas {
   background-color: var(--color-marketing-dark-bg);
   color: #FFFFFF;
+}
+
+.marketing-section {
+  padding-block: var(--marketing-section-space);
+}
+
+.marketing-container {
+  width: min(100% - 2 * var(--marketing-page-gutter), var(--marketing-content-lg));
+  margin-inline: auto;
+}
+
+.marketing-focus:focus-visible {
+  outline: 3px solid var(--marketing-focus);
+  outline-offset: 3px;
 }
 
 .marketing-light-canvas {

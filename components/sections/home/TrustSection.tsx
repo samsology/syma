@@ -4,26 +4,26 @@ import * as React from 'react';
 import { Hospital, Microscope, Globe2, Building2 } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 
-const capabilities = [
+const audiences = [
   {
     icon: Hospital,
-    title: 'Healthcare Facilities',
-    desc: 'Unifying outpatient registers, patient records, and operational KPIs into automated clinic scorecards.',
+    title: 'Healthcare teams',
+    desc: 'Explore ways to organize health data and make reporting more useful.',
   },
   {
     icon: Microscope,
-    title: 'Clinical Research Groups',
-    desc: 'Structuring epidemiological survey databases, cohort regression models, and biostatistical tables.',
+    title: 'Researchers',
+    desc: 'Get support with research data, analysis, and clear communication of findings.',
   },
   {
     icon: Globe2,
-    title: 'Public Health Programs',
-    desc: 'Designing monitoring frameworks and indicators tracking regional healthcare intervention outcomes.',
+    title: 'Public health programmes',
+    desc: 'Build practical approaches to data, monitoring, and programme reporting.',
   },
   {
     icon: Building2,
-    title: 'Enterprise Teams',
-    desc: 'Deploying automated Power BI architecture, SQL data pipelines, and internal team capacity training.',
+    title: 'Businesses and teams',
+    desc: 'Improve reporting workflows and grow analytics skills across your team.',
   },
 ];
 
@@ -33,18 +33,18 @@ export function TrustSection() {
       <Container>
         <div className="text-center max-w-3xl mx-auto mb-10">
           <p className="text-xs font-bold uppercase tracking-widest text-brand-navy">
-            Institutional Analytics Domains
+            Who We Work With
           </p>
           <h2 className="mt-2 text-2xl sm:text-3xl font-extrabold font-heading text-slate-900 tracking-tight">
-            Engineered for High-Stakes Health and Operational Data
+            Intelligence for Health, Research, and Business
           </h2>
           <p className="mt-3 text-sm text-slate-500 font-sans leading-relaxed">
-            Our founding team pairs biomedical science and bioinformatics with software architecture discipline to deliver verified, audit-ready data systems.
+            We bring data analytics, research support, reporting, and practical training together around the needs of each team.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {capabilities.map((item) => {
+          {audiences.map((item) => {
             const Icon = item.icon;
             return (
               <div
