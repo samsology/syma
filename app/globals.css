@@ -6,7 +6,24 @@
 }
 
 @theme {
-  /* Colors */
+  /* Confirmed Brand Palette — Option A */
+  --color-brand-navy: #033D6B;
+  --color-brand-cerulean: #3B9AE4;
+  --color-brand-yellow: #FFDE59;
+  --color-brand-coral: #FF5757;
+
+  /* Marketing Semantic Surfaces & Borders */
+  --color-marketing-dark-bg: #031428;
+  --color-marketing-dark-surface: #071E3D;
+  --color-marketing-dark-surface-elevated: #0B2B54;
+  --color-marketing-dark-border: rgba(255, 255, 255, 0.1);
+  --color-marketing-dark-border-glow: rgba(59, 154, 228, 0.25);
+
+  --color-marketing-light-bg: #FAFCFF;
+  --color-marketing-light-surface: #FFFFFF;
+  --color-marketing-light-border: #E2E8F0;
+
+  /* Existing Application Tokens (Preserved for LMS, Admin & Backwards Compatibility) */
   --color-primary: #022A9D;
   --color-secondary: #1D4ED8;
   --color-accent: #38BDF8;
@@ -42,6 +59,10 @@
   /* Hover and shadow styles */
   --shadow-accent: 0 0 15px rgba(56, 189, 248, 0.24);
   --shadow-primary-glow: 0 0 25px rgba(2, 42, 157, 0.22);
+  --shadow-cerulean-glow: 0 0 24px rgba(59, 154, 228, 0.28);
+  --shadow-yellow-glow: 0 0 20px rgba(255, 222, 89, 0.25);
+  --shadow-coral-glow: 0 0 20px rgba(255, 87, 87, 0.25);
+  --shadow-card-elevated: 0 10px 30px -10px rgba(3, 20, 40, 0.08);
 
   /* Animation presets */
   --animate-fade-in: fade-in 0.3s ease-out;
@@ -211,3 +232,59 @@ input:focus, select:focus, textarea:focus {
 .hover-lift, .hover-glow {
   border-top: 3px solid var(--color-accent) !important;
 }
+
+/* ----------------------------------------------------
+   Marketing Design System Utilities (Surfaces & Typography)
+   ---------------------------------------------------- */
+.display-text {
+  font-family: var(--font-heading);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.marketing-dark-canvas {
+  background-color: var(--color-marketing-dark-bg);
+  color: #FFFFFF;
+}
+
+.marketing-light-canvas {
+  background-color: var(--color-marketing-light-bg);
+  color: #0F172A;
+}
+
+.marketing-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.marketing-glass-dark {
+  background: rgba(7, 30, 61, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.focus-ring-cerulean {
+  outline: none;
+}
+.focus-ring-cerulean:focus-visible {
+  outline: 2px solid var(--color-brand-cerulean);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------
+   Accessibility: Reduced Motion Handling
+   ---------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

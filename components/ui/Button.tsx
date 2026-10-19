@@ -5,8 +5,10 @@ import { motion, HTMLMotionProps } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import { springTactile } from '@/lib/motion';
+
 export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'children'> {
-  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost' | 'cerulean' | 'navy' | 'yellow' | 'coral';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
@@ -18,7 +20,7 @@ export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'children'>
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, leftIcon, rightIcon, children, theme = 'light', ...props }, ref) => {
     
-    const baseStyles = 'inline-flex items-center justify-center font-sans font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
+    const baseStyles = 'inline-flex items-center justify-center font-sans font-semibold rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cerulean focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none';
     
     const isDark = theme === 'dark';
 
@@ -26,6 +28,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       primary: 'bg-primary text-white hover:bg-secondary hover:shadow-primary-glow',
       secondary: 'bg-white border-2 border-primary text-primary hover:bg-surface-light',
       accent: 'bg-accent text-neutral-dark hover:bg-accent/80 hover:shadow-accent',
+      cerulean: 'bg-brand-cerulean text-white hover:bg-brand-cerulean/90 hover:shadow-cerulean-glow font-bold',
+      navy: 'bg-brand-navy text-white hover:bg-brand-navy/90 hover:shadow-primary-glow font-bold',
+      yellow: 'bg-brand-yellow text-slate-950 hover:bg-brand-yellow/90 hover:shadow-yellow-glow font-bold',
+      coral: 'bg-brand-coral text-white hover:bg-brand-coral/90 hover:shadow-coral-glow font-bold',
       outline: isDark
         ? 'bg-transparent border-2 border-slate-700 text-white hover:bg-slate-800 hover:border-slate-500'
         : 'bg-transparent border-2 border-slate-300 text-slate-800 hover:bg-slate-50 hover:border-slate-400',
@@ -44,6 +50,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <motion.button
         ref={ref}
         whileTap={{ scale: 0.98 }}
+        transition={springTactile}
         className={cn(baseStyles, variants[variant], sizes[size], className)}
         disabled={isLoading || props.disabled}
         {...props}

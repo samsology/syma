@@ -116,7 +116,7 @@ export default function Footer() {
                 />
                 <button
                   type="submit"
-                  className="rounded-lg bg-primary px-3 text-xs font-bold text-white transition-colors hover:bg-primary/95"
+                  className="rounded-lg bg-brand-cerulean px-4 text-xs font-bold text-white transition-colors hover:bg-brand-cerulean/90 cursor-pointer shadow-sm"
                 >
                   Subscribe
                 </button>
@@ -125,9 +125,9 @@ export default function Footer() {
             <div className="space-y-2 text-xs border-t border-slate-100 pt-4">
               <p className="flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                Abuja,Nigeria
+                Abuja, Nigeria
               </p>
-              <a href="mailto:symatechs@gmail.com" className="flex items-center gap-2 hover:text-primary">
+              <a href="mailto:symatechs@gmail.com" className="flex items-center gap-2 hover:text-brand-cerulean transition-colors font-semibold">
                 <Mail className="h-3.5 w-3.5 text-slate-400" />
                 symatechs@gmail.com
               </a>

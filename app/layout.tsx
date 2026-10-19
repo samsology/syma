@@ -1,9 +1,6 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import './globals.css';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
-
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://symatechs.com';
 
@@ -121,9 +118,7 @@ export default function RootLayout({
           </Script>
         )}
 
-        <Navbar />
-        <main className="flex-grow">{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );

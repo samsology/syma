@@ -4,6 +4,8 @@ import * as React from 'react';
 import { motion, HTMLMotionProps } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
+import { springSmooth } from '@/lib/motion';
+
 export interface SectionHeadingProps extends Omit<HTMLMotionProps<'div'>, 'title'> {
   title: string;
   badge?: string;
@@ -48,7 +50,7 @@ export const SectionHeading = React.forwardRef<HTMLDivElement, SectionHeadingPro
               'inline-flex items-center gap-2 px-3.5 py-1 rounded-full border text-xs font-bold uppercase tracking-wider',
               align === 'center' ? 'mx-auto' : '',
               isDark
-                ? 'border-primary/20 bg-primary/5 text-accent shadow-sm shadow-primary/5'
+                ? 'border-brand-cerulean/30 bg-brand-cerulean/10 text-brand-cerulean shadow-sm shadow-brand-cerulean/10'
                 : 'border-primary/20 bg-primary/5 text-primary shadow-sm shadow-primary/5'
             )}
           >
@@ -87,10 +89,7 @@ export const SectionHeading = React.forwardRef<HTMLDivElement, SectionHeadingPro
               visible: {
                 opacity: 1,
                 y: 0,
-                transition: {
-                  duration: 0.5,
-                  staggerChildren: 0.1,
-                },
+                transition: springSmooth,
               },
             }
           }
