@@ -176,16 +176,16 @@ export function PdfViewer({
       const container = containerRef.current;
       const containerWidth = container.clientWidth || 800;
 
-      // Mobile padding: 16px; Desktop padding: 48px
+      // Mobile padding: 8px; Desktop padding: 16px
       const isMobile = containerWidth < 640;
-      const padding = isMobile ? 16 : 48;
+      const padding = isMobile ? 8 : 16;
       const availableWidth = Math.max(containerWidth - padding, 260);
 
       // In fullscreen, also consider available height
       const containerHeight = container.clientHeight || 600;
       const availableHeight = isFullscreen
-        ? Math.max(containerHeight - 140, 300)
-        : Math.max(Math.min(containerHeight, 700), 300);
+        ? Math.max(containerHeight - 120, 300)
+        : Math.max(Math.min(containerHeight, 850), 300);
 
       const unscaledViewport = page.getViewport({ scale: 1 });
 
@@ -196,7 +196,7 @@ export function PdfViewer({
       // For slide presentation, fit within container bounds while maintaining aspect ratio
       const chosenScale = isFullscreen
         ? Math.min(widthScale, heightScale)
-        : Math.min(widthScale, 1.8);
+        : Math.min(widthScale, 2.5);
 
       const viewport = page.getViewport({ scale: chosenScale });
 
@@ -508,7 +508,7 @@ export function PdfViewer({
       </div>
 
       {/* Main Slide Canvas */}
-      <div className="relative flex flex-1 items-center justify-center bg-slate-950 p-2 sm:p-6 min-h-[320px] sm:min-h-[480px]">
+      <div className="relative flex flex-1 items-center justify-center bg-slate-950 p-1 sm:p-2 min-h-[320px] sm:min-h-[480px]">
         {isRenderingPage && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/40 backdrop-blur-xs">
             <RefreshCw className="h-6 w-6 animate-spin text-indigo-400" />
@@ -518,7 +518,7 @@ export function PdfViewer({
         <div className="relative flex items-center justify-center overflow-hidden rounded-xl bg-black/60 shadow-2xl">
           <canvas
             ref={canvasRef}
-            className="block max-h-[75vh] max-w-full object-contain mx-auto"
+            className="block max-h-[82vh] max-w-full object-contain mx-auto"
           />
         </div>
 

@@ -118,15 +118,22 @@ export async function recordQuizAttemptAction(formData: FormData) {
         include: { options: true },
         orderBy: { order: 'asc' },
       },
+      overrides: {
+        where: { studentId: student.id },
+      },
     },
   });
   if (!quiz) redirect(`/student/courses/${courseId}`);
+
+  const override = quiz.overrides[0] ?? null;
+  const isUnlimited = quiz.attemptPolicy === 'UNLIMITED';
+  const maxAllowedAttempts = quiz.maxAttempts + (override?.additionalAttempts ?? 0);
 
   const previousAttempts = await db.quizAttempt.count({
     where: { studentId: student.id, quizId },
   });
 
-  if (previousAttempts >= quiz.maxAttempts) {
+  if (!isUnlimited && previousAttempts >= maxAllowedAttempts) {
     redirect(`/student/courses/${courseId}/modules/${moduleId}/quiz`);
   }
 
@@ -206,6 +213,40 @@ export async function recordQuizAttemptAction(formData: FormData) {
   revalidatePath(`/student/courses/${courseId}`);
   revalidatePath(`/student/courses/${courseId}/modules/${moduleId}/quiz`);
   redirect(`/student/courses/${courseId}/modules/${moduleId}/quiz`);
+}
+
+export async function requestAdditionalQuizAttemptAction(formData: FormData) {
+  const student = await requireStudent();
+  const courseId = String(formData.get('courseId') ?? '');
+  const moduleId = String(formData.get('moduleId') ?? '');
+  const quizId = String(formData.get('quizId') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
+
+  if (!courseId || !moduleId || !quizId) redirect('/student');
+
+  const quiz = await db.moduleQuiz.findFirst({
+    where: { id: quizId, moduleId, status: 'PUBLISHED', module: { week: { courseId } } },
+  });
+  if (!quiz || !quiz.allowAttemptRequests) {
+    redirect(`/student/courses/${courseId}/modules/${moduleId}/quiz`);
+  }
+
+  await db.quizStudentOverride.upsert({
+    where: { quizId_studentId: { quizId, studentId: student.id } },
+    create: {
+      quizId,
+      studentId: student.id,
+      isRequestPending: true,
+      requestNote: note || 'Student requested an additional quiz attempt.',
+    },
+    update: {
+      isRequestPending: true,
+      requestNote: note || 'Student requested an additional quiz attempt.',
+    },
+  });
+
+  revalidatePath(`/student/courses/${courseId}/modules/${moduleId}/quiz`);
+  redirect(`/student/courses/${courseId}/modules/${moduleId}/quiz?requested=true`);
 }
 
 export async function submitWeeklyAssignmentAction(formData: FormData) {

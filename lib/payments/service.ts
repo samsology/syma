@@ -20,7 +20,12 @@ export function getCanonicalAppUrl(): URL {
   const configuredUrl =
     process.env.APP_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL;
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined) ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+    (process.env.NODE_ENV === 'production' ? 'https://symatechs.com' : 'http://localhost:3000');
   if (!configuredUrl) throw new Error('PAYMENT_APP_URL_UNCONFIGURED');
 
   let url: URL;

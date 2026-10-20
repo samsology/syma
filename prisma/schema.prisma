@@ -180,6 +180,7 @@ model Student {
   progress              LessonProgress[]
   summaryProgress       ModuleSummaryProgress[]
   quizAttempts          QuizAttempt[]
+  quizOverrides         QuizStudentOverride[]
   assignmentSubmissions AssignmentSubmission[]
   applications          StudentApplication[]
   passwordResetTokens   StudentPasswordResetToken[]
@@ -464,25 +465,30 @@ model ModuleSummaryProgress {
 }
 
 model ModuleQuiz {
-  id                 String         @id @default(cuid())
-  moduleId           String         @unique
-  title              String
-  description        String?
-  instructions       String?
-  passingScore       Int            @default(70)
-  maxAttempts        Int            @default(2)
-  timeLimitMinutes   Int?
-  randomizeQuestions Boolean        @default(false)
-  randomizeOptions   Boolean        @default(false)
-  showResults        Boolean        @default(true)
-  showExplanations   Boolean        @default(true)
-  status             CourseStatus   @default(DRAFT)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                          String                @id @default(cuid())
+  moduleId                    String                @unique
+  title                       String
+  description                 String?
+  instructions                String?
+  passingScore                Int                   @default(70)
+  maxAttempts                 Int                   @default(2)
+  attemptPolicy               String                @default("UNLIMITED")
+  requirePassingToProgress    Boolean               @default(true)
+  allowLearningAfterExhausted Boolean               @default(true)
+  allowAttemptRequests        Boolean               @default(true)
+  timeLimitMinutes            Int?
+  randomizeQuestions          Boolean               @default(false)
+  randomizeOptions            Boolean               @default(false)
+  showResults                 Boolean               @default(true)
+  showExplanations            Boolean               @default(true)
+  status                      CourseStatus          @default(DRAFT)
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
 
-  module             CourseModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  attempts           QuizAttempt[]
-  questions          QuizQuestion[]
+  module                      CourseModule          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  attempts                    QuizAttempt[]
+  questions                   QuizQuestion[]
+  overrides                   QuizStudentOverride[]
 
   @@index([moduleId])
 }
@@ -559,6 +565,28 @@ model QuizAnswer {
   @@unique([attemptId, questionId])
   @@index([attemptId])
   @@index([questionId])
+}
+
+model QuizStudentOverride {
+  id                 String     @id @default(cuid())
+  quizId             String
+  studentId          String
+  additionalAttempts Int        @default(0)
+  progressionGranted Boolean    @default(false)
+  isRequestPending   Boolean    @default(false)
+  requestNote        String?
+  reason             String?
+  grantedById        String?
+  grantedAt          DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  quiz               ModuleQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student            Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, studentId])
+  @@index([studentId])
+  @@index([quizId])
 }
 
 model WeeklyAssignment {

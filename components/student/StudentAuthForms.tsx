@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import Link from 'next/link';
+import { Mail, CheckCircle2 } from 'lucide-react';
 import {
   loginStudentAction,
   registerStudentAction,
@@ -110,6 +111,38 @@ export function StudentLoginForm({
 
 export function StudentRegisterForm({ courseId }: { courseId?: string }) {
   const [state, formAction, pending] = useActionState(registerStudentAction, initialState);
+
+  if (state.success) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-8 text-center space-y-4 shadow-xs">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+          <Mail className="h-7 w-7" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-slate-900">Check Your Email</h3>
+          <p className="mt-2 text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+            We&apos;ve sent a continuation link to{' '}
+            <strong className="text-slate-900">{state.values?.email || 'your email'}</strong>.
+            Please check your inbox (and spam folder) and click the link to continue your registration and activate your student account.
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href={courseId ? `/student/login?courseId=${courseId}` : '/student/login'}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+          >
+            Return to Sign In
+          </Link>
+          <Link
+            href="/student/registration/resend"
+            className="rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary/90 transition shadow-xs"
+          >
+            Resend Registration Link
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="space-y-4">

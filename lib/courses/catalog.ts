@@ -8,7 +8,7 @@ export type OfficialCourse = {
   duration: string;
   price: string;
   priceMinor: number;
-  currency: 'USD';
+  currency: 'NGN' | 'USD';
   description: string;
   shortDescription: string;
   category: 'Data Literacy' | 'Data Analytics' | 'Data Science' | 'Healthcare Analytics';
@@ -27,9 +27,9 @@ export const OFFICIAL_COURSES: OfficialCourse[] = [
     title: 'Introduction to Data Literacy',
     slug: 'introduction-to-data-literacy',
     duration: '8 Weeks',
-    price: '$19.90',
-    priceMinor: 1990,
-    currency: 'USD',
+    price: '₦19,900',
+    priceMinor: 1990000,
+    currency: 'NGN',
     description:
       'Build the confidence to understand, interpret and communicate data in everyday decisions.',
     shortDescription:
@@ -57,9 +57,9 @@ export const OFFICIAL_COURSES: OfficialCourse[] = [
     title: 'Introduction to Data Analytics',
     slug: 'introduction-to-data-analytics',
     duration: '8 Weeks',
-    price: '$39.90',
-    priceMinor: 3990,
-    currency: 'USD',
+    price: '₦39,900',
+    priceMinor: 3990000,
+    currency: 'NGN',
     description:
       'Learn how to turn raw data into meaningful insights and solve real-world problems.',
     shortDescription:
@@ -87,9 +87,9 @@ export const OFFICIAL_COURSES: OfficialCourse[] = [
     title: 'Introduction to Data Science',
     slug: 'introduction-to-data-science',
     duration: '8 Weeks',
-    price: '$49.90',
-    priceMinor: 4990,
-    currency: 'USD',
+    price: '₦49,900',
+    priceMinor: 4990000,
+    currency: 'NGN',
     description:
       'Build the foundations of data science, machine learning and predictive analytics using Python.',
     shortDescription:
@@ -117,9 +117,9 @@ export const OFFICIAL_COURSES: OfficialCourse[] = [
     title: 'Healthcare Analytics',
     slug: 'healthcare-analytics',
     duration: '8 Weeks',
-    price: '$69.90',
-    priceMinor: 6990,
-    currency: 'USD',
+    price: '₦69,900',
+    priceMinor: 6990000,
+    currency: 'NGN',
     description:
       'Apply data analytics to healthcare and solve real-world problems in the health industry.',
     shortDescription:
@@ -190,12 +190,18 @@ export function getCourseBySlug(slug: string): OfficialCourse | undefined {
   return OFFICIAL_COURSES.find((course) => course.slug === slug);
 }
 
-export function formatCoursePrice(priceMinor: number, currency: string = 'USD'): string {
+export function formatCoursePrice(
+  priceMinor: number,
+  currency: 'NGN' | 'USD' | string = 'NGN',
+  options?: { showDecimals?: boolean }
+): string {
   if (currency === 'USD') {
-    return `$${(priceMinor / 100).toFixed(2)}`;
+    return options?.showDecimals === false && priceMinor % 100 === 0
+      ? `$${(priceMinor / 100).toLocaleString('en-US')}`
+      : `$${(priceMinor / 100).toFixed(2)}`;
   }
   if (currency === 'NGN') {
-    return formatMoney(priceMinor, 'NGN');
+    return formatMoney(priceMinor, 'NGN', options);
   }
   throw new Error('Unsupported launch catalogue currency.');
 }

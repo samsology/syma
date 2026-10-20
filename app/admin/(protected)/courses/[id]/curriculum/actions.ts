@@ -749,6 +749,7 @@ export async function upsertModuleQuizAction(
   const rawInst = formData.get('instructions');
   const rawPass = formData.get('passingScore');
   const rawMax = formData.get('maxAttempts');
+  const rawPolicy = formData.get('attemptPolicy');
   const rawTime = formData.get('timeLimitMinutes');
   const rawStatus = formData.get('status');
 
@@ -770,6 +771,17 @@ export async function upsertModuleQuizAction(
         : undefined,
     maxAttempts:
       rawMax !== null && rawMax !== undefined && String(rawMax).trim() !== '' ? rawMax : undefined,
+    attemptPolicy: rawPolicy === 'LIMITED' ? 'LIMITED' : 'UNLIMITED',
+    requirePassingToProgress:
+      formData.get('requirePassingToProgress') === 'true' ||
+      formData.get('requirePassingToProgress') === 'on' ||
+      formData.get('requirePassingToProgress') === null,
+    allowLearningAfterExhausted:
+      formData.get('allowLearningAfterExhausted') !== 'false' &&
+      formData.get('allowLearningAfterExhausted') !== 'off',
+    allowAttemptRequests:
+      formData.get('allowAttemptRequests') !== 'false' &&
+      formData.get('allowAttemptRequests') !== 'off',
     timeLimitMinutes,
     randomizeQuestions:
       formData.get('randomizeQuestions') === 'true' || formData.get('randomizeQuestions') === 'on',
@@ -811,6 +823,10 @@ export async function upsertModuleQuizAction(
         instructions: parsed.data.instructions || null,
         passingScore: parsed.data.passingScore,
         maxAttempts: parsed.data.maxAttempts,
+        attemptPolicy: parsed.data.attemptPolicy,
+        requirePassingToProgress: parsed.data.requirePassingToProgress,
+        allowLearningAfterExhausted: parsed.data.allowLearningAfterExhausted,
+        allowAttemptRequests: parsed.data.allowAttemptRequests,
         timeLimitMinutes:
           parsed.data.timeLimitMinutes === '' ||
           parsed.data.timeLimitMinutes === undefined ||
@@ -829,6 +845,10 @@ export async function upsertModuleQuizAction(
         instructions: parsed.data.instructions || null,
         passingScore: parsed.data.passingScore,
         maxAttempts: parsed.data.maxAttempts,
+        attemptPolicy: parsed.data.attemptPolicy,
+        requirePassingToProgress: parsed.data.requirePassingToProgress,
+        allowLearningAfterExhausted: parsed.data.allowLearningAfterExhausted,
+        allowAttemptRequests: parsed.data.allowAttemptRequests,
         timeLimitMinutes:
           parsed.data.timeLimitMinutes === '' ||
           parsed.data.timeLimitMinutes === undefined ||
@@ -846,6 +866,51 @@ export async function upsertModuleQuizAction(
     return { success: true, quizId: savedQuiz.id };
   } catch (error) {
     return { formError: error instanceof Error ? error.message : 'Unable to save module quiz.' };
+  }
+}
+
+export async function grantQuizStudentOverrideAction(
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  const quizId = String(formData.get('quizId') ?? '');
+  const studentId = String(formData.get('studentId') ?? '');
+  const courseId = String(formData.get('courseId') ?? '');
+  const additionalAttempts = Number(formData.get('additionalAttempts') ?? 1);
+  const progressionGranted =
+    formData.get('progressionGranted') === 'true' || formData.get('progressionGranted') === 'on';
+  const reason = String(formData.get('reason') ?? 'Instructor grant');
+
+  if (!quizId || !studentId) {
+    return { success: false, error: 'Quiz and Student IDs are required.' };
+  }
+
+  try {
+    await db.quizStudentOverride.upsert({
+      where: { quizId_studentId: { quizId, studentId } },
+      create: {
+        quizId,
+        studentId,
+        additionalAttempts: Math.max(0, additionalAttempts),
+        progressionGranted,
+        isRequestPending: false,
+        reason,
+        grantedAt: new Date(),
+      },
+      update: {
+        additionalAttempts: { increment: Math.max(0, additionalAttempts) },
+        progressionGranted,
+        isRequestPending: false,
+        reason,
+        grantedAt: new Date(),
+      },
+    });
+
+    if (courseId) {
+      refresh(courseId);
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to grant override.' };
   }
 }
 

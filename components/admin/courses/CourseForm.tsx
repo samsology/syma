@@ -233,7 +233,7 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
             type="number"
             step="0.01"
             min="0"
-            defaultValue={course ? (course.priceMinor / 100).toFixed(2) : ''}
+            defaultValue={course ? (course.priceMinor % 100 === 0 ? String(course.priceMinor / 100) : (course.priceMinor / 100).toFixed(2)) : ''}
             disabled={isFree}
             className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
             placeholder="Enter amount"

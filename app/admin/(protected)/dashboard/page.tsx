@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth/authorization';
+import { formatMoney } from '@/lib/payments/rules';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { RecentCourses } from '@/components/admin/RecentCourses';
 
@@ -122,8 +123,8 @@ export default async function AdminDashboardPage() {
         <StatsCard label="Active Enrollments" value={activeEnrollments} icon={ClipboardList} />
         <StatsCard label="Completed" value={completedEnrollments} icon={CheckCircle2} />
         <StatsCard
-          label="Revenue (USD)"
-          value={totalRevenueMinor / 100}
+          label="Revenue (NGN)"
+          value={formatMoney(totalRevenueMinor, 'NGN')}
           icon={Banknote}
         />
         <StatsCard label="Paid Orders" value={paidOrders} icon={CheckCircle2} />

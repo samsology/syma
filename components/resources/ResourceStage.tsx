@@ -117,34 +117,34 @@ export function ResourceStage({
       {activeMedia && (
         <section
           id="in-portal-resource-stage"
-          className="border-primary/20 rounded-2xl border-2 bg-slate-900/5 p-4 shadow-sm transition sm:p-6"
+          className="border-primary/20 rounded-xl sm:rounded-2xl border bg-slate-900/5 p-2 sm:p-3 shadow-xs transition"
         >
-          <div className="mb-4 flex items-center justify-between border-b border-slate-200/80 pb-3">
+          <div className="mb-2.5 flex items-center justify-between border-b border-slate-200/80 pb-2">
             <div className="flex items-center gap-2">
-              <span className="bg-primary flex h-7 w-7 items-center justify-center rounded-lg text-white">
+              <span className="bg-primary flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg text-white">
                 {activeMedia.resourceType === 'VIDEO' ? (
-                  <Video className="h-4 w-4" />
+                  <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 ) : activeMedia.resourceType === 'DOCUMENT' ? (
-                  <Presentation className="h-4 w-4" />
+                  <Presentation className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 ) : (
-                  <FileText className="h-4 w-4" />
+                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 )}
               </span>
               <div>
                 <span className="text-primary text-[10px] font-black tracking-wider uppercase">
                   In-Portal Learning Viewer
                 </span>
-                <h3 className="text-base font-bold text-slate-950">{activeMedia.title}</h3>
+                <h3 className="text-xs sm:text-sm md:text-base font-bold text-slate-950 truncate max-w-[200px] sm:max-w-md">{activeMedia.title}</h3>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => setActiveMedia(null)}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] sm:text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
               title="Close viewer"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               <span>Hide Viewer</span>
             </button>
           </div>

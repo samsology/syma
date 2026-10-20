@@ -42,16 +42,24 @@ export function parseMajorAmountToMinor(value: unknown, currency: Currency): num
   }
 }
 
-export function formatMinorAmount(amountMinor: number, currency: Currency): string {
+export function formatMinorAmount(
+  amountMinor: number,
+  currency: Currency,
+  options?: { showDecimals?: boolean }
+): string {
   const exponent = CURRENCY_MINOR_UNIT_EXPONENT[currency];
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 0 || exponent === undefined) {
     throw new Error('Invalid monetary amount.');
   }
 
+  const hasFractions = amountMinor % (10 ** exponent) !== 0;
+  const showDecimals = options?.showDecimals ?? true;
+  const decimals = showDecimals ? exponent : (hasFractions ? exponent : 0);
+
   return new Intl.NumberFormat(currency === 'USD' ? 'en-US' : 'en-NG', {
     style: 'currency',
     currency,
-    minimumFractionDigits: exponent,
+    minimumFractionDigits: decimals,
     maximumFractionDigits: exponent,
   }).format(amountMinor / 10 ** exponent);
 }

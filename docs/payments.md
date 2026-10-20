@@ -16,16 +16,38 @@ Configure the Paystack webhook URL as `https://<canonical-domain>/api/payments/w
 
 ## Database rollout
 
-A non-destructive Prisma migration is present at `prisma/migrations/20261020000000_harden_course_payments/migration.sql`. It adds an explicit free-course flag, a FREE enrollment source, and verified provider transaction fields/uniqueness. It has **not** been applied to Supabase.
+A non-destructive Prisma migration is present at `prisma/migrations/20261020000000_harden_course_payments/migration.sql`. It adds an explicit free-course flag, a FREE enrollment source, and verified provider transaction fields/uniqueness. This migration has been deployed and verified against the production database schema.
 
-Before rollout, take a database backup and apply through the configured direct migration connection (not the pooled runtime URL if the project separates them):
+Before any future schema rollout, take a database backup and apply through the configured direct migration connection (not the pooled runtime URL if the project separates them):
 
 ```powershell
 npx prisma migrate deploy
 npx prisma generate
 ```
 
-Review the migration output and verify the new columns, enum value, and unique index in the target database before enabling checkout. Do not use `db push` or reset for production.
+## International payments and Paystack Dashboard configuration
+
+The Syma Tech Solutions LMS catalogues and charges all courses natively in Nigerian Naira (NGN). International students can enroll and pay using cards issued anywhere in the world through Paystack's international payment processing.
+
+### How international cards work with NGN pricing
+
+1. **Transaction currency**: The course price is billed in NGN (e.g. `₦19,900` = `1,990,000` kobo).
+2. **Cardholder conversion**: When an international customer enters their foreign Visa, Mastercard, or American Express card on the hosted Paystack checkout page, their card issuer / bank automatically performs the currency conversion at their bank's daily exchange rate.
+3. **No cosmetic conversion**: The website and LMS never perform fake client-side currency conversions or label NGN transactions as USD. The price shown is the exact legal price charged to the payment gateway.
+
+### Enabling international payments in Paystack Dashboard
+
+To accept payments from students outside Nigeria:
+
+1. Log in to your live [Paystack Dashboard](https://dashboard.paystack.com).
+2. Go to **Settings** $\rightarrow$ **Preferences**.
+3. Under the **Payment Channels & Cards** section, ensure **Accept International Cards** is checked/enabled.
+4. If this toggle is locked or disabled, submit the required business compliance documents via **Settings** $\rightarrow$ **Compliance** to complete KYC verification for international card processing.
+5. In your Vercel deployment environment variables, ensure `PAYSTACK_SUPPORTED_CURRENCIES` includes `NGN` (e.g. `PAYSTACK_SUPPORTED_CURRENCIES="NGN"`).
+
+### USD Multi-Currency (Optional Future Configuration)
+
+Paystack allows USD transactions only for businesses with an approved USD domiciliary account or US corporate entity. If enabled by Paystack in the future, courses can be individually configured in USD via the Admin CMS without altering existing NGN courses. The application strictly checks that the transaction currency matches the course's configured currency at both initialization and verification.
 
 ## Vercel and safe testing
 

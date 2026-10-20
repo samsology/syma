@@ -90,21 +90,28 @@ export async function registerStudentAction(
   }
   await recordStudentLoginAttempt(registrationKey);
 
+  let selectedCourse: { id: string; title: string; slug: string; status: string; isFree: boolean; priceMinor: number; currency: any } | null = null;
   if (parsed.data.courseId) {
-    const course = await db.course.findUnique({ where: { id: parsed.data.courseId }, select: { status: true, isFree: true, priceMinor: true, currency: true } });
-    if (!course || course.status !== 'PUBLISHED' || (!course.isFree && (course.priceMinor <= 0 || !isPaystackCurrencyEnabled(course.currency)))) {
+    selectedCourse = await db.course.findFirst({
+      where: {
+        OR: [{ id: parsed.data.courseId }, { slug: parsed.data.courseId }],
+        status: 'PUBLISHED',
+      },
+      select: { id: true, title: true, slug: true, status: true, isFree: true, priceMinor: true, currency: true },
+    });
+    if (!selectedCourse || (!selectedCourse.isFree && (selectedCourse.priceMinor <= 0 || !isPaystackCurrencyEnabled(selectedCourse.currency)))) {
       return { formError: 'That course is unavailable. Your details have not been submitted.', values: { firstName: parsed.data.firstName, lastName: parsed.data.lastName, email: parsed.data.email, phone: parsed.data.phone ?? '' } };
     }
   }
 
   const existingStudent = await db.student.findUnique({
     where: { email: parsed.data.email },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
-  if (existingStudent) {
+  if (existingStudent && existingStudent.status === 'ACTIVE') {
     return {
-      formError: 'An account with this email already exists.',
+      formError: 'An account with this email already exists. Please sign in.',
       values: {
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
@@ -115,17 +122,39 @@ export async function registerStudentAction(
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  let student: Awaited<ReturnType<typeof db.student.create>>;
+  const { generateRegistrationToken, getContinuationUrl } = await import('@/lib/auth/registration-token');
+  const { rawToken, tokenHash, expiresAt } = generateRegistrationToken();
+  const continuationUrl = getContinuationUrl(rawToken);
+
+  let studentId: string;
   try {
-    student = await db.student.create({
-    data: {
-      firstName: parsed.data.firstName,
-      lastName: parsed.data.lastName,
-      email: parsed.data.email,
-      phone: parsed.data.phone || null,
-      passwordHash,
-    },
-    });
+    if (existingStudent) {
+      const updated = await db.student.update({
+        where: { id: existingStudent.id },
+        data: {
+          firstName: parsed.data.firstName,
+          lastName: parsed.data.lastName,
+          phone: parsed.data.phone || null,
+          passwordHash,
+          status: 'INACTIVE',
+        },
+        select: { id: true },
+      });
+      studentId = updated.id;
+    } else {
+      const created = await db.student.create({
+        data: {
+          firstName: parsed.data.firstName,
+          lastName: parsed.data.lastName,
+          email: parsed.data.email,
+          phone: parsed.data.phone || null,
+          passwordHash,
+          status: 'INACTIVE',
+        },
+        select: { id: true },
+      });
+      studentId = created.id;
+    }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { formError: 'An account with this email already exists.', values: { firstName: parsed.data.firstName, lastName: parsed.data.lastName, email: parsed.data.email, phone: parsed.data.phone ?? '' } };
@@ -133,17 +162,73 @@ export async function registerStudentAction(
     throw error;
   }
 
-  await clearStudentLoginAttempts(registrationKey);
+  // Record/update StudentApplication with continuation token
+  const programValue = selectedCourse ? selectedCourse.id : 'General Enrollment';
+  try {
+    const existingApp = await db.studentApplication.findFirst({
+      where: {
+        OR: [
+          { email: parsed.data.email },
+          ...(studentId ? [{ studentId }] : []),
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
 
-  await createStudentSession(student.id);
-
-  if (parsed.data.courseId) {
-    const result = await createOrReuseOrder(student.id, parsed.data.courseId);
-    if ('alreadyEnrolled' in result || 'freeEnrollment' in result) redirect(`/student/courses/${parsed.data.courseId}`);
-    if (result.order) redirect(`/checkout/${result.order.orderNumber}`);
+    if (existingApp) {
+      await db.studentApplication.update({
+        where: { id: existingApp.id },
+        data: {
+          fullName: `${parsed.data.firstName} ${parsed.data.lastName}`.trim(),
+          phone: parsed.data.phone || '',
+          program: programValue,
+          registrationTokenHash: tokenHash,
+          registrationTokenExpiresAt: expiresAt,
+          registrationTokenUsedAt: null,
+          status: 'PENDING',
+          studentId,
+        },
+      });
+    } else {
+      await db.studentApplication.create({
+        data: {
+          fullName: `${parsed.data.firstName} ${parsed.data.lastName}`.trim(),
+          email: parsed.data.email,
+          phone: parsed.data.phone || '',
+          program: programValue,
+          experience: 'Portal Account Creation',
+          motivation: 'Student Registration',
+          registrationTokenHash: tokenHash,
+          registrationTokenExpiresAt: expiresAt,
+          status: 'PENDING',
+          studentId,
+        },
+      });
+    }
+  } catch (appErr) {
+    console.error('Failed to save StudentApplication for registration:', appErr);
   }
 
-  redirect('/student');
+  await clearStudentLoginAttempts(registrationKey);
+
+  // Send registration confirmation email with continuation link
+  try {
+    const { sendEnrollmentConfirmation } = await import('@/lib/email/email');
+    await sendEnrollmentConfirmation({
+      fullName: `${parsed.data.firstName} ${parsed.data.lastName}`.trim(),
+      email: parsed.data.email,
+      program: selectedCourse ? selectedCourse.title : 'Syma Tech Solutions',
+      continuationUrl,
+    });
+  } catch (emailErr) {
+    console.error('Failed to send registration confirmation email:', emailErr);
+  }
+
+  return {
+    success: `We have sent a verification link to ${parsed.data.email}. Please check your inbox and click the link to continue your registration.`,
+    values: { email: parsed.data.email },
+  };
 }
 
 export async function loginStudentAction(
@@ -411,15 +496,39 @@ export async function changeStudentPasswordAction(
 
 export async function enrollCurrentStudentAction(formData: FormData) {
   const student = await requireStudent();
-  const parsed = studentEnrollSchema.safeParse({ courseId: formData.get('courseId') });
+  const rawCourseId = String(formData.get('courseId') ?? '').trim();
 
-  if (!parsed.success) {
+  if (!rawCourseId) {
     redirect('/programs');
   }
 
-  const result = await createOrReuseOrder(student.id, parsed.data.courseId);
-  if ('alreadyEnrolled' in result) redirect(`/student/courses/${parsed.data.courseId}`);
-  if ('freeEnrollment' in result) redirect(`/student/courses/${parsed.data.courseId}`);
-  if (result.order) redirect(`/checkout/${result.order.orderNumber}`);
+  const course = await db.course.findFirst({
+    where: {
+      OR: [{ id: rawCourseId }, { slug: rawCourseId }],
+      status: 'PUBLISHED',
+    },
+    select: { id: true, isFree: true, priceMinor: true },
+  });
+
+  if (!course) {
+    redirect('/programs');
+  }
+
+  const result = await createOrReuseOrder(student.id, course.id);
+  if ('alreadyEnrolled' in result || 'freeEnrollment' in result) {
+    redirect(`/student/courses/${course.id}`);
+  }
+
+  if (result.order) {
+    const { initializeOrderPayment } = await import('@/lib/payments/service');
+    const paymentInit = await initializeOrderPayment(student.id, result.order.orderNumber);
+    if (paymentInit.redirectUrl) {
+      redirect(paymentInit.redirectUrl);
+    }
+    redirect(
+      `/checkout/${result.order.orderNumber}?error=${encodeURIComponent(paymentInit.error || 'provider')}`
+    );
+  }
+
   redirect('/programs');
 }

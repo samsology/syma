@@ -237,7 +237,7 @@ export function ResourceRenderer({
     const videoSrc = effectiveUrl || descriptor.embedUrl;
     return (
       <div className={`space-y-3 ${className}`}>
-        <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black shadow-md">
+        <div className="relative aspect-video w-full max-w-5xl mx-auto overflow-hidden rounded-xl sm:rounded-2xl bg-black shadow-md">
           <video
             src={videoSrc}
             controls

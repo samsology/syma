@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Apply to Syma Tech Academy | Data & Health Intelligence',
     description:
-      'Enroll in 8-week project-based tracks. Transparent USD tuition, weekly live labs, and dedicated mentor code reviews.',
+      'Enroll in 8-week project-based tracks. Transparent tuition, weekly live labs, and dedicated mentor code reviews.',
     url: '/enroll',
   },
 };
@@ -106,10 +106,10 @@ export default function EnrollPage() {
             <div className="p-6 rounded-3xl bg-slate-900 text-white space-y-3 shadow-lg shadow-slate-900/10">
               <div className="flex items-center gap-2 text-brand-cerulean font-bold text-xs uppercase tracking-wider">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Transparent USD Tuition</span>
+                <span>Transparent Tuition</span>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                Accessible pricing from $19.90 to $69.90 USD with zero recurring subscription traps. Instant access to the student LMS upon enrollment confirmation.
+                Accessible pricing from ₦19,900 to ₦69,900 with zero recurring subscription traps. Instant access to the student LMS upon enrollment confirmation.
               </p>
             </div>
           </div>

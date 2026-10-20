@@ -31,7 +31,7 @@ type EnrollmentInput = z.infer<typeof enrollmentSchema>;
 export const programs = [
   ...OFFICIAL_COURSES.map((c) => ({
     id: c.slug,
-    label: `${c.number}. ${c.title} — ${c.duration} (${c.price} ${c.currency})`,
+    label: `${c.number}. ${c.title} — ${c.duration} (${c.price})`,
   })),
   { id: 'Corporate-Analytics-Training', label: 'Institutional & Team Training (Custom Scoping)' },
 ];

@@ -19,25 +19,39 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
 
   const { enrollment, lesson, previousLesson, nextLesson, isCompleted, progress } = result;
 
-  const [completedLessonProgress, completedSummaryProgress, passedAttempts, assignmentSubmissions] =
-    await Promise.all([
-      db.lessonProgress.findMany({
-        where: { studentId: student.id, isCompleted: true },
-        select: { lessonId: true },
-      }),
-      db.moduleSummaryProgress.findMany({
-        where: { studentId: student.id, isCompleted: true },
-        select: { moduleSummaryId: true },
-      }),
-      db.quizAttempt.findMany({
-        where: { studentId: student.id, passed: true },
-        select: { quizId: true },
-      }),
-      db.assignmentSubmission.findMany({
-        where: { studentId: student.id },
-        select: { assignmentId: true },
-      }),
-    ]);
+  const [
+    completedLessonProgress,
+    completedSummaryProgress,
+    passedAttempts,
+    assignmentSubmissions,
+    studentOverrides,
+    allQuizAttempts,
+  ] = await Promise.all([
+    db.lessonProgress.findMany({
+      where: { studentId: student.id, isCompleted: true },
+      select: { lessonId: true },
+    }),
+    db.moduleSummaryProgress.findMany({
+      where: { studentId: student.id, isCompleted: true },
+      select: { moduleSummaryId: true },
+    }),
+    db.quizAttempt.findMany({
+      where: { studentId: student.id, passed: true },
+      select: { quizId: true },
+    }),
+    db.assignmentSubmission.findMany({
+      where: { studentId: student.id },
+      select: { assignmentId: true },
+    }),
+    db.quizStudentOverride.findMany({
+      where: { studentId: student.id, progressionGranted: true },
+      select: { quizId: true },
+    }),
+    db.quizAttempt.findMany({
+      where: { studentId: student.id },
+      select: { quizId: true },
+    }),
+  ]);
 
   const { isItemUnlocked } = await import('@/lib/student-course/drip-progression');
   const unlocked = isItemUnlocked(enrollment.course, lessonId, {
@@ -45,6 +59,8 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
     completedSummaryIds: completedSummaryProgress.map((p: { moduleSummaryId: string }) => p.moduleSummaryId),
     passedQuizIds: passedAttempts.map((a: { quizId: string }) => a.quizId),
     submittedAssignmentIds: assignmentSubmissions.map((a: { assignmentId: string }) => a.assignmentId),
+    progressionGrantedQuizIds: studentOverrides.map((o: { quizId: string }) => o.quizId),
+    attemptedQuizIds: allQuizAttempts.map((a: { quizId: string }) => a.quizId),
   });
 
   if (!unlocked) {
@@ -52,29 +68,29 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
   }
 
   return (
-    <article className="space-y-6">
+    <article className="space-y-4 sm:space-y-5">
       <Link
         href={`/student/courses/${courseId}`}
-        className="text-primary inline-flex items-center gap-2 text-sm font-black"
+        className="text-primary inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         Back to Curriculum
       </Link>
-      <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-primary text-sm font-bold tracking-wide uppercase">
+      <header className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-xs">
+        <p className="text-primary text-[11px] sm:text-xs font-bold tracking-wide uppercase">
           {enrollment.course.title} · Week {lesson.weekNumber} · {lesson.moduleTitle}
         </p>
-        <h1 className="mt-2 text-3xl font-black text-slate-950">{lesson.title}</h1>
-        <div className="mt-5 max-w-xl">
-          <div className="flex items-center justify-between text-xs font-black tracking-wide text-slate-500 uppercase">
+        <h1 className="mt-1 text-lg sm:text-xl md:text-2xl font-bold text-slate-950">{lesson.title}</h1>
+        <div className="mt-2.5 max-w-sm">
+          <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-bold tracking-wide text-slate-500 uppercase">
             <span>{progress.percentage}% complete</span>
             <span>
               {progress.completedLessons}/{progress.totalLessons} lessons
             </span>
           </div>
-          <div className="mt-2 h-2 rounded-full bg-slate-100">
+          <div className="mt-1.5 h-1.5 rounded-full bg-slate-100">
             <div
-              className="bg-primary h-2 rounded-full"
+              className="bg-primary h-1.5 rounded-full"
               style={{ width: `${progress.percentage}%` }}
             />
           </div>
@@ -90,14 +106,14 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
       />
 
       {lesson.content && (
-        <section className="rounded-lg border border-slate-200 bg-white p-6 leading-7 text-slate-700 shadow-sm space-y-3">
-          <h2 className="text-lg font-black text-slate-950">Lesson Notes &amp; Instructions</h2>
-          <div className="whitespace-pre-wrap">{lesson.content}</div>
+        <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 leading-relaxed text-slate-700 shadow-xs space-y-2">
+          <h2 className="text-sm sm:text-base font-bold text-slate-950">Lesson Notes &amp; Instructions</h2>
+          <div className="whitespace-pre-wrap text-xs sm:text-sm">{lesson.content}</div>
         </section>
       )}
       <form
         action={setLessonProgressAction}
-        className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+        className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-xs"
       >
         <input type="hidden" name="courseId" value={courseId} />
         <input type="hidden" name="lessonId" value={lessonId} />
@@ -105,21 +121,21 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
         <button
           className={
             isCompleted
-              ? 'hover:border-primary hover:text-primary rounded-lg border border-slate-200 px-4 py-2 text-sm font-black text-slate-700'
-              : 'bg-primary hover:bg-primary/90 rounded-lg px-4 py-2 text-sm font-black text-white'
+              ? 'hover:border-primary hover:text-primary rounded-lg border border-slate-200 px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-700'
+              : 'bg-primary hover:bg-primary/90 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-bold text-white'
           }
         >
           {isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
         </button>
       </form>
       <nav
-        className="flex flex-col gap-3 sm:flex-row sm:justify-between"
+        className="flex flex-col gap-2.5 sm:flex-row sm:justify-between"
         aria-label="Lesson navigation"
       >
         {previousLesson ? (
           <Link
             href={`/student/courses/${courseId}/lessons/${previousLesson.id}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Previous Lesson
@@ -130,7 +146,7 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
         {nextLesson ? (
           <Link
             href={`/student/courses/${courseId}/lessons/${nextLesson.id}`}
-            className="bg-primary inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black text-white"
+            className="bg-primary inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-bold text-white hover:bg-primary/90 transition"
           >
             Next Lesson
             <ArrowRight className="h-4 w-4" aria-hidden="true" />

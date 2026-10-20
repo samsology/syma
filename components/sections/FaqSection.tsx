@@ -17,7 +17,7 @@ const faqs = [
   },
   {
     q: 'How are course tuition and payments processed?',
-    a: 'All courses feature transparent, one-time USD tuition ($19.90 to $69.90) with no hidden fees or subscription lock-ins. You receive immediate access to the student LMS portal and curriculum upon cohort start.',
+    a: 'All courses feature transparent, one-time tuition (₦19,900 to ₦69,900) with no hidden fees or subscription lock-ins. You receive immediate access to the student LMS portal and curriculum upon cohort start.',
   },
   {
     q: 'What is the capstone project and completion certificate?',

@@ -124,7 +124,7 @@ export default async function CourseDetailPage({ params }: Props) {
   const duration = course?.duration || official.duration;
   const priceMinor = course?.priceMinor ?? official.priceMinor;
   const priceCurrency = course?.currency ?? official.currency;
-  const priceFormatted = formatCoursePrice(priceMinor, priceCurrency);
+  const priceFormatted = formatCoursePrice(priceMinor, priceCurrency, { showDecimals: false });
   const benefits =
     course?.benefits && course.benefits.length > 0 ? course.benefits : (official?.benefits ?? []);
   const cta = course?.cta || official?.cta || 'Apply for Cohort';
@@ -230,7 +230,9 @@ export default async function CourseDetailPage({ params }: Props) {
                     <span className="text-4xl font-black font-heading text-slate-950">
                       {priceFormatted}
                     </span>
-                    <span className="text-xs font-bold text-slate-400 uppercase">{priceCurrency}</span>
+                    {priceCurrency !== 'NGN' && (
+                      <span className="text-xs font-bold text-slate-400 uppercase">{priceCurrency}</span>
+                    )}
                   </div>
                   <p className="mt-1 text-xs text-slate-500">
                     Transparent, one-time enrollment fee covering all curriculum modules and mentor reviews.

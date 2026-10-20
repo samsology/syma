@@ -239,12 +239,12 @@ test('money formatting uses integer minor units', () => {
   assert.equal(formatMoney(6990, 'USD'), '$69.90');
 });
 
-test('canonical catalogue contains exactly the 4 official courses in USD', () => {
+test('canonical catalogue contains exactly the 4 official courses in NGN', () => {
   const expected = [
-    { slug: 'introduction-to-data-literacy', price: '$19.90', priceMinor: 1990 },
-    { slug: 'introduction-to-data-analytics', price: '$39.90', priceMinor: 3990 },
-    { slug: 'introduction-to-data-science', price: '$49.90', priceMinor: 4990 },
-    { slug: 'healthcare-analytics', price: '$69.90', priceMinor: 6990 },
+    { slug: 'introduction-to-data-literacy', price: '₦19,900', priceMinor: 1990000 },
+    { slug: 'introduction-to-data-analytics', price: '₦39,900', priceMinor: 3990000 },
+    { slug: 'introduction-to-data-science', price: '₦49,900', priceMinor: 4990000 },
+    { slug: 'healthcare-analytics', price: '₦69,900', priceMinor: 6990000 },
   ];
 
   assert.equal(OFFICIAL_COURSES.length, expected.length);
@@ -252,10 +252,10 @@ test('canonical catalogue contains exactly the 4 official courses in USD', () =>
   for (const [index, item] of expected.entries()) {
     const course = OFFICIAL_COURSES[index];
     assert.equal(course.slug, item.slug);
-    assert.equal(course.currency, 'USD');
+    assert.equal(course.currency, 'NGN');
     assert.equal(course.priceMinor, item.priceMinor);
     assert.equal(course.price, item.price);
-    assert.equal(formatCoursePrice(course.priceMinor, course.currency), item.price);
+    assert.equal(formatCoursePrice(course.priceMinor, course.currency, { showDecimals: false }), item.price);
   }
 });
 

@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 
 type StatsCardProps = {
   label: string;
-  value: number;
+  value: number | string;
   icon: LucideIcon;
 };
 
@@ -15,7 +15,9 @@ export function StatsCard({ label, value, icon: Icon }: StatsCardProps) {
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
       </div>
-      <p className="mt-4 text-3xl font-bold text-slate-950">{value.toLocaleString()}</p>
+      <p className="mt-4 text-3xl font-bold text-slate-950">
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </p>
     </div>
   );
 }

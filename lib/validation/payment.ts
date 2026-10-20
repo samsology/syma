@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const currencySchema = z.enum(['USD']);
+export const currencySchema = z.enum(['NGN', 'USD']);
 export const orderStatusSchema = z.enum([
   'PENDING',
   'PAID',

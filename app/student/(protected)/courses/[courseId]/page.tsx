@@ -28,33 +28,50 @@ export default async function StudentCoursePage({ params }: StudentCoursePagePro
       .map((quiz) => quiz.id)
   );
 
-  const [completedLessonProgress, completedSummaryProgress, quizAttempts, assignmentSubmissions] =
-    await Promise.all([
-      lessonIds.length
-        ? db.lessonProgress.findMany({
-            where: { studentId: student.id, lessonId: { in: lessonIds }, isCompleted: true },
-            select: { lessonId: true },
-          })
-        : [],
-      db.moduleSummaryProgress.findMany({
-        where: { studentId: student.id, isCompleted: true },
-        select: { moduleSummaryId: true },
-      }),
-      db.quizAttempt.findMany({
-        where: { studentId: student.id, quizId: { in: quizIds } },
-        orderBy: { createdAt: 'desc' },
-      }),
-      db.assignmentSubmission.findMany({
-        where: { studentId: student.id },
-        orderBy: { attemptNumber: 'desc' },
-        select: { assignmentId: true, status: true, submittedAt: true },
-      }),
-    ]);
+  const [
+    completedLessonProgress,
+    completedSummaryProgress,
+    quizAttempts,
+    assignmentSubmissions,
+    studentOverrides,
+  ] = await Promise.all([
+    lessonIds.length
+      ? db.lessonProgress.findMany({
+          where: { studentId: student.id, lessonId: { in: lessonIds }, isCompleted: true },
+          select: { lessonId: true },
+        })
+      : [],
+    db.moduleSummaryProgress.findMany({
+      where: { studentId: student.id, isCompleted: true },
+      select: { moduleSummaryId: true },
+    }),
+    db.quizAttempt.findMany({
+      where: { studentId: student.id, quizId: { in: quizIds } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    db.assignmentSubmission.findMany({
+      where: { studentId: student.id },
+      orderBy: { attemptNumber: 'desc' },
+      select: { assignmentId: true, status: true, submittedAt: true },
+    }),
+    db.quizStudentOverride.findMany({
+      where: { studentId: student.id, quizId: { in: quizIds } },
+    }),
+  ]);
 
   const completedLessonIds = new Set(completedLessonProgress.map((p) => p.lessonId));
   const completedSummaryIds = new Set(completedSummaryProgress.map((p) => p.moduleSummaryId));
   const passedQuizIds = new Set(quizAttempts.filter((a) => a.passed).map((a) => a.quizId));
   const submittedAssignmentIds = new Set(assignmentSubmissions.map((a) => a.assignmentId));
+  const progressionGrantedQuizIds = new Set(
+    studentOverrides.filter((o) => o.progressionGranted).map((o) => o.quizId)
+  );
+  const attemptedQuizIds = new Set(quizAttempts.map((a) => a.quizId));
+
+  const overrideMap = new Map<string, (typeof studentOverrides)[number]>();
+  for (const ov of studentOverrides) {
+    overrideMap.set(ov.quizId, ov);
+  }
 
   const submissionMap = new Map<string, (typeof assignmentSubmissions)[number]>();
   for (const submission of assignmentSubmissions) {
@@ -68,6 +85,8 @@ export default async function StudentCoursePage({ params }: StudentCoursePagePro
     completedSummaryIds,
     passedQuizIds,
     submittedAssignmentIds,
+    progressionGrantedQuizIds,
+    attemptedQuizIds,
   });
 
   const progress = summarizeLessonProgress(lessonIds, completedLessonIds);
@@ -361,6 +380,12 @@ export default async function StudentCoursePage({ params }: StudentCoursePagePro
                           );
                         }
 
+                        const quizOverride = overrideMap.get(visibleQuiz.id);
+                        const isUnlimitedQuiz = visibleQuiz.attemptPolicy === 'UNLIMITED';
+                        const maxAllowed = visibleQuiz.maxAttempts + (quizOverride?.additionalAttempts ?? 0);
+                        const isExhausted = !isQuizPassed && !isUnlimitedQuiz && moduleQuizAttempts.length >= maxAllowed;
+                        const isOverridden = Boolean(quizOverride?.progressionGranted);
+
                         return (
                           <Link
                             href={`/student/courses/${course.id}/modules/${module.id}/quiz`}
@@ -370,7 +395,8 @@ export default async function StudentCoursePage({ params }: StudentCoursePagePro
                               <Award className="h-4 w-4 shrink-0 text-amber-700" />
                               <div>
                                 <span className="block text-[10px] font-black tracking-wider text-amber-800 uppercase">
-                                  Module Quiz · Pass Mark: {visibleQuiz.passingScore}%
+                                  Module Quiz · Pass Mark: {visibleQuiz.passingScore}% ·{' '}
+                                  {isUnlimitedQuiz ? 'Unlimited Attempts' : `Max ${maxAllowed} Attempts`}
                                 </span>
                                 <span className="text-xs font-bold text-amber-950">
                                   {visibleQuiz.title}
@@ -386,16 +412,26 @@ export default async function StudentCoursePage({ params }: StudentCoursePagePro
                               className={
                                 isQuizPassed
                                   ? 'text-xs font-black tracking-wide text-emerald-700 uppercase'
-                                  : moduleQuizAttempts.length > 0
-                                    ? 'text-xs font-black tracking-wide text-amber-800 uppercase'
-                                    : 'text-xs font-black tracking-wide text-amber-700 uppercase'
+                                  : isOverridden
+                                    ? 'text-xs font-black tracking-wide text-indigo-700 uppercase'
+                                    : isExhausted
+                                      ? 'text-xs font-black tracking-wide text-red-700 uppercase'
+                                      : moduleQuizAttempts.length > 0
+                                        ? 'text-xs font-black tracking-wide text-amber-800 uppercase'
+                                        : 'text-xs font-black tracking-wide text-amber-700 uppercase'
                               }
                             >
                               {isQuizPassed
                                 ? 'Passed'
-                                : moduleQuizAttempts.length > 0
-                                  ? `${moduleQuizAttempts.length}/${visibleQuiz.maxAttempts} Attempts`
-                                  : 'Take Quiz'}
+                                : isOverridden
+                                  ? 'Progression Granted'
+                                  : isExhausted
+                                    ? 'Attempts Exhausted'
+                                    : moduleQuizAttempts.length > 0
+                                      ? isUnlimitedQuiz
+                                        ? `${moduleQuizAttempts.length} Attempts (Unlimited)`
+                                        : `${moduleQuizAttempts.length}/${maxAllowed} Attempts`
+                                      : 'Take Quiz'}
                             </span>
                           </Link>
                         );

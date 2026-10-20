@@ -26,7 +26,11 @@ export function canTransitionPaymentStatus(from: PaymentStatus, to: PaymentStatu
   return from === to || paymentTransitions[from].includes(to);
 }
 
-export function formatMoney(amountMinor: number, currency = 'USD') {
+export function formatMoney(
+  amountMinor: number,
+  currency: 'NGN' | 'USD' | string = 'NGN',
+  options?: { showDecimals?: boolean }
+) {
   if (currency !== 'USD' && currency !== 'NGN') throw new Error('Unsupported payment currency.');
-  return formatMinorAmount(amountMinor, currency);
+  return formatMinorAmount(amountMinor, currency, options);
 }

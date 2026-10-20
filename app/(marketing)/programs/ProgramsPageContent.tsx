@@ -75,7 +75,7 @@ export default function ProgramsPageContent({
       ? publishedCourses.map((course, idx) => {
           const official = getCourseBySlug(course.slug);
           const isEnrolled = enrolledCourseIdSet.has(course.id);
-          const formattedPrice = formatCoursePrice(course.priceMinor, course.currency);
+          const formattedPrice = formatCoursePrice(course.priceMinor, course.currency, { showDecimals: false });
 
           return {
             id: course.id,
@@ -203,8 +203,8 @@ export default function ProgramsPageContent({
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white leading-tight">Transparent USD</p>
-                  <p className="text-[11px] text-slate-400">$19.90 – $69.90</p>
+                  <p className="text-xs font-bold text-white leading-tight">Transparent Pricing</p>
+                  <p className="text-[11px] text-slate-400">₦19,900 – ₦69,900</p>
                 </div>
               </div>
             </motion.div>
@@ -328,9 +328,11 @@ export default function ProgramsPageContent({
                               <span className="text-2xl font-black font-heading text-slate-950">
                                 {course.price}
                               </span>
-                              <span className="text-xs font-bold text-slate-400 uppercase">
-                                USD
-                              </span>
+                              {course.currency !== 'NGN' && (
+                                <span className="text-xs font-bold text-slate-400 uppercase">
+                                  {course.currency}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <span className="text-[10px] font-bold text-brand-navy bg-brand-navy/10 px-2.5 py-1 rounded-lg">

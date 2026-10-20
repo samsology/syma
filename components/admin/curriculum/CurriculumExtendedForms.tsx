@@ -320,19 +320,36 @@ export function ModuleQuizForm({
 
           <div>
             <label className="block text-xs font-bold text-slate-600 uppercase">
-              Max Attempts Allowed
+              Attempt Policy
+            </label>
+            <select
+              name="attemptPolicy"
+              defaultValue={(quiz as any)?.attemptPolicy ?? 'UNLIMITED'}
+              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+            >
+              <option value="UNLIMITED">Unlimited Attempts (Recommended)</option>
+              <option value="LIMITED">Limited Attempts (Custom Max)</option>
+            </select>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Control student retry allowances
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase">
+              Max Attempts (If Limited)
             </label>
             <input
               name="maxAttempts"
               type="number"
               min={1}
-              max={10}
+              max={50}
               defaultValue={quiz?.maxAttempts ?? 2}
               className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
               required
             />
             <p className="mt-1 text-[11px] text-slate-500">
-              Benchmark requirement: maximum 2 attempts
+              Enforced only when policy is Limited Attempts
             </p>
             <FieldError errors={state.fieldErrors?.maxAttempts} />
           </div>
@@ -424,6 +441,36 @@ export function ModuleQuizForm({
                 className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
               />
               <span>Show Explanations to Students</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2.5 text-xs font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                name="requirePassingToProgress"
+                value="true"
+                defaultChecked={(quiz as any)?.requirePassingToProgress ?? true}
+                className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+              />
+              <span>Require Passing Score to Unlock Next Module</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2.5 text-xs font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                name="allowLearningAfterExhausted"
+                value="true"
+                defaultChecked={(quiz as any)?.allowLearningAfterExhausted ?? true}
+                className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+              />
+              <span>Allow Lesson Reviews After Attempts Exhausted</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2.5 text-xs font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                name="allowAttemptRequests"
+                value="true"
+                defaultChecked={(quiz as any)?.allowAttemptRequests ?? true}
+                className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+              />
+              <span>Allow Students to Request Extra Attempts</span>
             </label>
           </div>
         </div>

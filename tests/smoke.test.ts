@@ -20,7 +20,7 @@ import { moduleSchema } from '../lib/validation/module';
 import { lessonSchema } from '../lib/validation/lesson';
 import { createSessionToken, hashToken } from '../lib/auth/crypto';
 
-test('1. Public Catalogue contains exactly 4 official courses in USD', () => {
+test('1. Public Catalogue contains exactly 4 official courses in NGN', () => {
   assert.equal(OFFICIAL_COURSES.length, 4);
 
   const slugs = OFFICIAL_COURSES.map((c) => c.slug);
@@ -35,18 +35,19 @@ test('1. Public Catalogue contains exactly 4 official courses in USD', () => {
   assert.equal(slugs.includes('advanced-data-analytics'), false);
 
   // Validate pricing and duration for each course
-  const expectedPrices = ['$19.90', '$39.90', '$49.90', '$69.90'];
+  const expectedPrices = ['₦19,900', '₦39,900', '₦49,900', '₦69,900'];
   const expectedDurations = ['8 Weeks', '8 Weeks', '8 Weeks', '8 Weeks'];
 
   OFFICIAL_COURSES.forEach((course, i) => {
-    assert.equal(course.currency, 'USD');
-    assert.equal(formatCoursePrice(course.priceMinor, course.currency), expectedPrices[i]);
+    assert.equal(course.currency, 'NGN');
+    assert.equal(formatCoursePrice(course.priceMinor, course.currency, { showDecimals: false }), expectedPrices[i]);
     assert.equal(course.duration, expectedDurations[i]);
   });
 });
 
-test('2. Currency display strictly renders USD and never NGN', () => {
-  assert.equal(formatMoney(1990, 'USD'), '$19.90');
+test('2. Currency display accurately renders NGN and USD without mixing', () => {
+  assert.equal(formatMoney(1990000, 'NGN'), '₦19,900.00');
+  assert.equal(formatMoney(1990000, 'NGN', { showDecimals: false }), '₦19,900');
   assert.equal(formatMoney(3990, 'USD'), '$39.90');
   assert.equal(formatMoney(4990, 'USD'), '$49.90');
   assert.equal(formatMoney(6990, 'USD'), '$69.90');

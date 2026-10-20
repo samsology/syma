@@ -80,13 +80,13 @@ export async function completeStudentRegistrationAction(
     };
   }
 
-  // Check if an existing student account exists with this email
+  // Check if an active student account already exists with this email
   const existingStudent = await db.student.findUnique({
     where: { email: application.email.toLowerCase() },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
-  if (existingStudent) {
+  if (existingStudent && existingStudent.status === 'ACTIVE') {
     // Link the application and mark the token as used
     await db.studentApplication.update({
       where: { id: application.id },
@@ -106,20 +106,37 @@ export async function completeStudentRegistrationAction(
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
   let newStudentId: string;
+  let enrolledCourseId: string | null = null;
 
   try {
     const createdStudent = await db.$transaction(async (tx) => {
-      // 1. Create Student account
-      const student = await tx.student.create({
-        data: {
-          firstName: parsed.data.firstName,
-          lastName: parsed.data.lastName,
-          email: application.email.toLowerCase(),
-          phone: parsed.data.phone || application.phone || null,
-          passwordHash,
-          status: 'ACTIVE',
-        },
-      });
+      // 1. Create or Activate Student account
+      let student: { id: string };
+      if (existingStudent) {
+        student = await tx.student.update({
+          where: { id: existingStudent.id },
+          data: {
+            firstName: parsed.data.firstName,
+            lastName: parsed.data.lastName,
+            phone: parsed.data.phone || application.phone || null,
+            passwordHash,
+            status: 'ACTIVE',
+          },
+          select: { id: true },
+        });
+      } else {
+        student = await tx.student.create({
+          data: {
+            firstName: parsed.data.firstName,
+            lastName: parsed.data.lastName,
+            email: application.email.toLowerCase(),
+            phone: parsed.data.phone || application.phone || null,
+            passwordHash,
+            status: 'ACTIVE',
+          },
+          select: { id: true },
+        });
+      }
 
       // 2. Mark StudentApplication as used and link to student
       await tx.studentApplication.update({
@@ -131,18 +148,21 @@ export async function completeStudentRegistrationAction(
         },
       });
 
-      // 3. Check for matching course by slug or title
+      // 3. Check for matching course by ID, slug, or title
       const course = await tx.course.findFirst({
         where: {
           OR: [
+            { id: application.program },
             { slug: application.program },
             { title: { equals: application.program, mode: 'insensitive' } },
           ],
+          status: 'PUBLISHED',
         },
         select: { id: true },
       });
 
       if (course) {
+        enrolledCourseId = course.id;
         const existingEnrollment = await tx.enrollment.findUnique({
           where: {
             studentId_courseId: {
@@ -182,8 +202,13 @@ export async function completeStudentRegistrationAction(
   // Automatically authenticate new student and establish session
   await createStudentSession(newStudentId);
 
-  // Redirect into the authenticated student dashboard
-  redirect('/student');
+  // If a course is associated, redirect straight to course enrollment & payment
+  if (enrolledCourseId) {
+    redirect(`/student/enroll?courseId=${enrolledCourseId}`);
+  }
+
+  // Otherwise redirect to courses catalog
+  redirect('/programs');
 }
 
 const resendSchema = z.object({

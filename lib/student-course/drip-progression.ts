@@ -7,6 +7,8 @@ export type CourseItem = {
   weekId: string;
   moduleId?: string;
   weekNumber: number;
+  requirePassingToProgress?: boolean;
+  allowLearningAfterExhausted?: boolean;
 };
 
 export type CourseItemStatus = {
@@ -21,6 +23,8 @@ export type StudentCompletions = {
   completedSummaryIds: Set<string> | Iterable<string>;
   passedQuizIds: Set<string> | Iterable<string>;
   submittedAssignmentIds: Set<string> | Iterable<string>;
+  progressionGrantedQuizIds?: Set<string> | Iterable<string>;
+  attemptedQuizIds?: Set<string> | Iterable<string>;
 };
 
 /**
@@ -38,7 +42,13 @@ export function buildCourseItemSequence(course: {
       sortOrder: number;
       lessons: Array<{ id: string; title: string; sortOrder: number }>;
       summary?: { id: string; title: string } | null;
-      quiz?: { id: string; title: string; status: string } | null;
+      quiz?: {
+        id: string;
+        title: string;
+        status: string;
+        requirePassingToProgress?: boolean;
+        allowLearningAfterExhausted?: boolean;
+      } | null;
     }>;
   }>;
 }): CourseItem[] {
@@ -87,6 +97,8 @@ export function buildCourseItemSequence(course: {
           weekId: week.id,
           moduleId: mod.id,
           weekNumber: week.weekNumber,
+          requirePassingToProgress: mod.quiz.requirePassingToProgress ?? true,
+          allowLearningAfterExhausted: mod.quiz.allowLearningAfterExhausted ?? true,
         });
       }
     }
@@ -119,6 +131,8 @@ export function calculateDripUnlockStatus(
   const summarySet = new Set(completions.completedSummaryIds);
   const quizSet = new Set(completions.passedQuizIds);
   const assignmentSet = new Set(completions.submittedAssignmentIds);
+  const progressionSet = new Set(completions.progressionGrantedQuizIds ?? []);
+  const attemptedSet = new Set(completions.attemptedQuizIds ?? []);
 
   const statusMap = new Map<string, CourseItemStatus>();
 
@@ -135,7 +149,11 @@ export function calculateDripUnlockStatus(
     } else if (item.type === 'SUMMARY') {
       isCompleted = summarySet.has(item.id);
     } else if (item.type === 'QUIZ') {
-      isCompleted = quizSet.has(item.id);
+      const isPassed = quizSet.has(item.id);
+      const isOverridden = progressionSet.has(item.id);
+      const notRequired = item.requirePassingToProgress === false;
+      const isAttempted = attemptedSet.has(item.id);
+      isCompleted = isPassed || isOverridden || (notRequired && isAttempted);
     } else if (item.type === 'ASSIGNMENT') {
       isCompleted = assignmentSet.has(item.id);
     }

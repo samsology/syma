@@ -41,3 +41,14 @@ test('course pricing requires explicit paid price or an explicitly free zero pri
   assert.equal(createCourseSchema.safeParse({ ...base, isFree: true, priceMinor: 0 }).success, true);
   assert.equal(createCourseSchema.safeParse({ ...base, isFree: true, priceMinor: 100 }).success, false);
 });
+
+test('NGN currency formatting supports clean catalogue display without decimals and never appends USD', () => {
+  assert.equal(formatMinorAmount(1990000, Currency.NGN, { showDecimals: false }), '₦19,900');
+  assert.equal(formatMinorAmount(3990000, Currency.NGN, { showDecimals: false }), '₦39,900');
+  assert.equal(formatMinorAmount(12550, Currency.NGN, { showDecimals: false }), '₦125.50');
+  assert.equal(formatMinorAmount(1990000, Currency.NGN), '₦19,900.00');
+
+  const formatted = formatMinorAmount(1990000, Currency.NGN, { showDecimals: false });
+  assert.ok(formatted.startsWith('₦'));
+  assert.equal(formatted.includes('USD'), false);
+});
