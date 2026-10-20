@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
-import { initializePaymentSchema } from '@/lib/validation/payment';
+import { initializePaymentSchema, verifyPaymentSchema } from '@/lib/validation/payment';
 import {
   createOrReuseOrder,
   initializeOrderPayment,
@@ -18,16 +18,26 @@ export async function initializePaymentAction(formData: FormData) {
   const orderNumber = parsed.data.orderNumber;
   const result = await initializeOrderPayment(student.id, orderNumber);
   if (result.redirectUrl) redirect(result.redirectUrl);
-  redirect(`/checkout/${orderNumber}?error=provider`);
+  if ('alreadyEnrolled' in result) redirect(`/student/courses/${result.courseId}`);
+  redirect(`/checkout/${orderNumber}?error=${encodeURIComponent(result.error || 'provider')}`);
 }
 
 export async function verifyPaymentAction(formData: FormData) {
-  const parsed = { reference: String(formData.get('reference') ?? '') };
-  if (!parsed.reference) redirect('/student/orders');
+  const student = await requireStudent();
+  const parsed = verifyPaymentSchema.safeParse({ reference: formData.get('reference') });
+  if (!parsed.success) redirect('/student/orders');
 
-  const result = await verifyAndSettlePayment(parsed.reference);
-  if (result.order) redirect(`/checkout/${result.order.orderNumber}/status`);
-  redirect('/student/orders');
+  const payment = await db.payment.findUnique({
+    where: { provider_providerReference: { provider: 'PAYSTACK', providerReference: parsed.data.reference } },
+    select: { order: { select: { studentId: true, orderNumber: true } } },
+  });
+  if (!payment || payment.order.studentId !== student.id) redirect('/student/orders');
+
+  await verifyAndSettlePayment(parsed.data.reference, {
+    studentId: student.id,
+    orderNumber: payment.order.orderNumber,
+  });
+  redirect(`/checkout/${payment.order.orderNumber}/status?reference=${encodeURIComponent(parsed.data.reference)}`);
 }
 
 export async function retryOrderPaymentAction(formData: FormData) {

@@ -67,7 +67,7 @@ export async function GET(request: Request) {
           OR: [
             { storageKey: key },
             { fileUrl: key },
-            { fileUrl: { contains: key } },
+            { fileUrl: { endsWith: key } },
           ],
           isActive: true,
         },
@@ -93,9 +93,9 @@ export async function GET(request: Request) {
             where: {
               OR: [
                 { videoUrl: key },
-                { videoUrl: { contains: key } },
+                { videoUrl: { endsWith: key } },
                 { slideUrl: key },
-                { slideUrl: { contains: key } },
+                { slideUrl: { endsWith: key } },
               ],
             },
             select: {
@@ -116,6 +116,9 @@ export async function GET(request: Request) {
         resource?.lesson?.module?.week?.courseId ||
         lesson?.module?.week?.courseId;
 
+      if (!courseId) {
+        return NextResponse.json({ success: false, error: 'Resource is not available to students.' }, { status: 403 });
+      }
       if (courseId) {
         const enrollment = await db.enrollment.findFirst({
           where: {

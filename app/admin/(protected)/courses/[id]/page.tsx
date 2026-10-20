@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { CourseStatusBadge } from '@/components/admin/courses/CourseStatusBadge';
 import { CourseActionForm } from '@/components/admin/courses/CourseActionForm';
 import { archiveCourseAction, publishCourseAction, restoreCourseAction, unpublishCourseAction } from '../actions';
+import { formatMoney } from '@/lib/payments/rules';
 
 type CourseDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -123,7 +124,7 @@ export default async function CourseDetailPage({ params, searchParams }: CourseD
           <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="text-lg font-bold text-slate-950">Course Information</h3>
             <dl className="mt-4 space-y-3 text-sm">
-              <div><dt className="font-semibold text-slate-500">Price</dt><dd className="mt-1 font-bold text-slate-900">${(course.priceMinor / 100).toFixed(2)} {course.currency}</dd></div>
+              <div><dt className="font-semibold text-slate-500">Price</dt><dd className="mt-1 font-bold text-slate-900">{course.isFree ? 'Free' : formatMoney(course.priceMinor, course.currency)}</dd></div>
               <div><dt className="font-semibold text-slate-500">CTA Label</dt><dd className="mt-1 text-slate-900">{course.cta || 'Apply Today'}</dd></div>
               <div><dt className="font-semibold text-slate-500">Programme Order</dt><dd className="mt-1 text-slate-900">{course.sortOrder}</dd></div>
               <div><dt className="font-semibold text-slate-500">Category</dt><dd className="mt-1 text-slate-900">{course.category}</dd></div>

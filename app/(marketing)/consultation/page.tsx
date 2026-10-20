@@ -135,10 +135,10 @@ export default function ConsultationPage() {
                 <div className="flex items-center gap-2">
                   <Mail className="w-3.5 h-3.5 text-brand-cerulean shrink-0" />
                   <a
-                    href="mailto:solutions@symatechsolutions.com"
+                    href="mailto:symatechsolutions@gmail.com"
                     className="hover:text-brand-cerulean font-medium transition-colors"
                   >
-                    solutions@symatechsolutions.com
+                    symatechsolutions@gmail.com
                   </a>
                 </div>
                 <div className="flex items-center gap-2">

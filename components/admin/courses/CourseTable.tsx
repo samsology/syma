@@ -5,6 +5,7 @@ import { BookOpen, Eye, Pencil, Plus } from 'lucide-react';
 import { CourseStatusBadge } from './CourseStatusBadge';
 import { CourseActionForm } from './CourseActionForm';
 import { archiveCourseAction, publishCourseAction, restoreCourseAction, unpublishCourseAction } from '@/app/admin/(protected)/courses/actions';
+import { formatMoney } from '@/lib/payments/rules';
 
 type CourseRow = Course & {
   instructor: Pick<Admin, 'id' | 'name' | 'email'> | null;
@@ -78,7 +79,7 @@ export function CourseTable({ courses, hasFilters }: CourseTableProps) {
                 <td className="whitespace-nowrap px-4 py-4 text-slate-600">{course.level}</td>
                 <td className="whitespace-nowrap px-4 py-4 text-slate-600">
                   <div>{course.duration}</div>
-                  <div className="text-xs font-bold text-slate-900 mt-0.5">${(course.priceMinor / 100).toFixed(2)} USD</div>
+                  <div className="text-xs font-bold text-slate-900 mt-0.5">{course.isFree ? 'Free' : formatMoney(course.priceMinor, course.currency)}</div>
                 </td>
                 <td className="whitespace-nowrap px-4 py-4">
                   <CourseStatusBadge status={course.status} />

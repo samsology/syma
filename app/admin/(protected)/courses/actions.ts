@@ -7,6 +7,7 @@ import { requireAdmin } from '@/lib/auth/authorization';
 import { db } from '@/lib/db';
 import { createCourseSchema, updateCourseSchema } from '@/lib/validation/course';
 import { validateCourseForPublishing } from '@/lib/courses/publishing';
+import { parseMajorAmountToMinor } from '@/lib/payments/currency';
 
 export type CourseFormState = {
   fieldErrors?: Record<string, string[] | undefined>;
@@ -18,15 +19,10 @@ const duplicateSlugMessage = 'A course with this slug already exists.';
 function courseDataFromForm(formData: FormData) {
   const instructorId = String(formData.get('instructorId') ?? '').trim();
   const rawPrice = formData.get('price');
-  let priceMinor = 0;
-  if (rawPrice !== null && rawPrice !== '') {
-    const num = parseFloat(String(rawPrice));
-    if (!isNaN(num)) {
-      priceMinor = Math.round(num * 100);
-    }
-  } else if (formData.get('priceMinor')) {
-    priceMinor = parseInt(String(formData.get('priceMinor')), 10) || 0;
-  }
+  const rawCurrency = String(formData.get('currency') ?? '').toUpperCase();
+  const currency = rawCurrency === 'USD' || rawCurrency === 'NGN' ? rawCurrency : undefined;
+  const isFree = formData.get('isFree') === 'on' || formData.get('isFree') === 'true';
+  const priceMinor = isFree ? 0 : parseMajorAmountToMinor(rawPrice, currency ?? 'NGN') ?? Number.NaN;
 
   const rawBenefits = String(formData.get('benefits') ?? '');
   const benefits = rawBenefits
@@ -43,7 +39,8 @@ function courseDataFromForm(formData: FormData) {
     level: formData.get('level'),
     duration: formData.get('duration'),
     priceMinor,
-    currency: (String(formData.get('currency') ?? '').toUpperCase() === 'USD' ? 'USD' : 'NGN') as 'USD' | 'NGN',
+    currency: rawCurrency,
+    isFree,
     benefits,
     cta: String(formData.get('cta') ?? 'Apply Today').trim() || 'Apply Today',
     sortOrder: parseInt(String(formData.get('sortOrder') ?? '0'), 10) || 0,
@@ -79,6 +76,7 @@ export async function createCourseAction(
         duration: parsed.data.duration,
         priceMinor: parsed.data.priceMinor,
         currency: parsed.data.currency,
+        isFree: parsed.data.isFree,
         benefits: parsed.data.benefits,
         cta: parsed.data.cta,
         sortOrder: parsed.data.sortOrder,
@@ -92,6 +90,7 @@ export async function createCourseAction(
     revalidatePath('/admin/courses');
     redirect(`/admin/courses/${course.id}?success=created`);
   } catch (error) {
+    if (error instanceof Error && 'digest' in error && String(error.digest).startsWith('NEXT_REDIRECT')) throw error;
     if (isDuplicateSlugError(error)) {
       return { fieldErrors: { slug: [duplicateSlugMessage] } };
     }
@@ -131,6 +130,7 @@ export async function updateCourseAction(
         duration: parsed.data.duration,
         priceMinor: parsed.data.priceMinor,
         currency: parsed.data.currency,
+        isFree: parsed.data.isFree,
         benefits: parsed.data.benefits,
         cta: parsed.data.cta,
         sortOrder: parsed.data.sortOrder,
@@ -144,6 +144,7 @@ export async function updateCourseAction(
     revalidatePath('/programs');
     redirect(`/admin/courses/${courseId}?success=updated`);
   } catch (error) {
+    if (error instanceof Error && 'digest' in error && String(error.digest).startsWith('NEXT_REDIRECT')) throw error;
     if (isDuplicateSlugError(error)) {
       return { fieldErrors: { slug: [duplicateSlugMessage] } };
     }

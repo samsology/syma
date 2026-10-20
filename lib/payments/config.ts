@@ -19,15 +19,15 @@ export function getPaystackPublicKey(): string | undefined {
 
 export function isPaystackConfigured(): boolean {
   const key = getPaystackSecretKey();
-  return Boolean(key && key.length > 0);
+  return Boolean(key && (key.startsWith('sk_test_') || key.startsWith('sk_live_')));
 }
 
 export function getPaystackEnvironment(): PaystackEnvironment {
   const key = getPaystackSecretKey();
-  if (!key) return 'unconfigured';
+  if (!key || !isPaystackConfigured()) return 'unconfigured';
   if (key.startsWith('sk_test_')) return 'test';
   if (key.startsWith('sk_live_')) return 'live';
-  return 'test';
+  return 'unconfigured';
 }
 
 export function maskKey(key?: string | null): string | null {

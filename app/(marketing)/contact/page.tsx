@@ -96,10 +96,10 @@ export default function ContactPage() {
                       Official Inbound Email
                     </strong>
                     <a
-                      href="mailto:solutions@symatechsolutions.com"
+                      href="mailto:symatechsolutions@gmail.com"
                       className="hover:text-brand-cerulean font-semibold text-slate-700 transition-colors"
                     >
-                      solutions@symatechsolutions.com
+                      symatechsolutions@gmail.com
                     </a>
                   </div>
                 </div>

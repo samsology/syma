@@ -2,10 +2,16 @@ import Link from 'next/link';
 import { ArrowRight, BookOpen } from 'lucide-react';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { getStudentDashboard } from '@/lib/student-course/queries';
+import { db } from '@/lib/db';
+import { formatMoney } from '@/lib/payments/rules';
 
 export default async function StudentDashboardPage() {
   const student = await requireStudent();
   const enrollments = await getStudentDashboard(student.id);
+  const [courses, pendingOrders] = await Promise.all([
+    db.course.findMany({ where: { status: 'PUBLISHED' }, select: { id: true, title: true, shortDescription: true, priceMinor: true, currency: true, isFree: true }, orderBy: { sortOrder: 'asc' }, take: 12 }),
+    db.order.findMany({ where: { studentId: student.id, status: 'PENDING' }, include: { course: { select: { title: true } } }, orderBy: { createdAt: 'desc' }, take: 5 }),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -85,6 +91,8 @@ export default async function StudentDashboardPage() {
           </div>
         )}
       </section>
+      {pendingOrders.length ? <section className="space-y-3"><h2 className="text-xl font-black text-slate-950">Payments to finish</h2>{pendingOrders.map((order) => <Link key={order.id} href={`/checkout/${order.orderNumber}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"><span className="font-bold">{order.course.title} · {formatMoney(order.amountMinor, order.currency)}</span><span className="text-sm font-black text-primary">Continue checkout</span></Link>)}</section> : null}
+      <section className="space-y-4"><h2 className="text-xl font-black text-slate-950">Available Courses</h2><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{courses.map((course) => <article key={course.id} className="rounded-lg border border-slate-200 bg-white p-5"><h3 className="font-black text-slate-950">{course.title}</h3><p className="mt-2 text-sm text-slate-600">{course.shortDescription}</p><p className="mt-3 font-bold text-primary">{course.isFree ? 'Free' : formatMoney(course.priceMinor, course.currency)}</p><Link href={`/student/enroll?courseId=${encodeURIComponent(course.id)}`} className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-black text-white">{course.isFree ? 'Enroll' : 'View checkout'}</Link></article>)}</div></section>
     </div>
   );
 }

@@ -26,6 +26,7 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
   const [title, setTitle] = useState(course?.title ?? '');
   const [slug, setSlug] = useState(course?.slug ?? '');
   const [slugTouched, setSlugTouched] = useState(Boolean(course));
+  const [isFree, setIsFree] = useState(course?.isFree ?? false);
   const originalSlug = course?.slug;
   const showSlugWarning = course?.status === 'PUBLISHED' && originalSlug && slug !== originalSlug;
 
@@ -206,8 +207,25 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
 
       <div className="grid gap-5 md:grid-cols-3">
         <div>
+          <label htmlFor="currency" className="block text-sm font-semibold text-slate-700">
+            Payment Currency
+          </label>
+          <select
+            id="currency"
+            name="currency"
+            defaultValue={course?.currency ?? 'NGN'}
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
+            required
+          >
+            <option value="NGN">NGN — Nigerian Naira</option>
+            <option value="USD">USD — US Dollar</option>
+          </select>
+          <FieldError errors={state.fieldErrors?.currency} />
+        </div>
+
+        <div>
           <label htmlFor="price" className="block text-sm font-semibold text-slate-700">
-            Price (USD)
+            Course Price
           </label>
           <input
             id="price"
@@ -215,14 +233,30 @@ export function CourseForm({ action, course, admins }: CourseFormProps) {
             type="number"
             step="0.01"
             min="0"
-            defaultValue={course ? (course.priceMinor / 100).toFixed(2) : '19.90'}
+            defaultValue={course ? (course.priceMinor / 100).toFixed(2) : ''}
+            disabled={isFree}
             className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm"
-            placeholder="19.90"
-            required
+            placeholder="Enter amount"
+            required={!isFree}
           />
+          <p className="mt-1 text-xs text-slate-500">Enter a major-unit amount. It is stored in the currency’s minor units.</p>
           <FieldError errors={state.fieldErrors?.priceMinor} />
         </div>
 
+        <div className="flex items-start gap-3 pt-7">
+          <input
+            id="isFree"
+            name="isFree"
+            type="checkbox"
+            checked={isFree}
+            onChange={(event) => setIsFree(event.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300"
+          />
+          <label htmlFor="isFree" className="text-sm font-semibold text-slate-700">Free course</label>
+        </div>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
         <div>
           <label htmlFor="cta" className="block text-sm font-semibold text-slate-700">
             CTA Button Text

@@ -25,9 +25,11 @@ export type VerifiedPayment = {
   provider: PaymentProvider;
   providerReference: string;
   status: PaymentStatus;
-  amountMinor: number;
-  currency: Currency;
+  providerTransactionId: string | null;
+  amountMinor: number | null;
+  currency: Currency | null;
   paidAt: Date | null;
+  metadata?: unknown;
   failureReason?: string;
 };
 

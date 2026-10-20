@@ -113,9 +113,9 @@ export default function Footer() {
                 <MapPin className="h-3.5 w-3.5 text-slate-400" />
                 Abuja, Nigeria
               </p>
-              <a href="mailto:symatechs@gmail.com" className="flex items-center gap-2 hover:text-brand-cerulean transition-colors font-semibold">
+              <a href="mailto:symatechsolutions@gmail.com" className="flex items-center gap-2 hover:text-brand-cerulean transition-colors font-semibold">
                 <Mail className="h-3.5 w-3.5 text-slate-400" />
-                symatechs@gmail.com
+                symatechsolutions@gmail.com
               </a>
             </div>
           </div>

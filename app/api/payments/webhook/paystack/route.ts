@@ -19,8 +19,17 @@ export async function POST(request: NextRequest) {
   }
 
   if (event.event === 'charge.success' && event.data?.reference) {
-    console.info(`[Paystack Webhook] Processing charge.success for reference: ${event.data.reference}`);
-    await verifyAndSettlePayment(event.data.reference);
+    try {
+      const result = await verifyAndSettlePayment(event.data.reference);
+      if ('error' in result && result.error !== 'PAYMENT_NOT_FOUND') {
+        return NextResponse.json({ received: false, error: 'Temporary processing failure' }, { status: 503 });
+      }
+      if ('pending' in result && result.pending) {
+        return NextResponse.json({ received: false, error: 'Verification is still pending' }, { status: 503 });
+      }
+    } catch {
+      return NextResponse.json({ received: false, error: 'Temporary processing failure' }, { status: 503 });
+    }
   }
 
   return NextResponse.json({ received: true });

@@ -1,6 +1,7 @@
 'use server';
 
 import bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -29,6 +30,7 @@ import {
   validatePasswordResetToken,
 } from '@/lib/auth/password-reset-token';
 import { sendPasswordResetEmail } from '@/lib/email/email';
+import { isPaystackCurrencyEnabled } from '@/lib/payments/currency';
 
 type FieldErrors = Record<string, string[] | undefined>;
 
@@ -82,6 +84,19 @@ export async function registerStudentAction(
     };
   }
 
+  const registrationKey = `register:${await rateLimitKey(parsed.data.email)}`;
+  if (await isStudentLoginRateLimited(registrationKey)) {
+    return { formError: 'Too many registration attempts. Please try again later.', values: { firstName: parsed.data.firstName, lastName: parsed.data.lastName, email: parsed.data.email, phone: parsed.data.phone ?? '' } };
+  }
+  await recordStudentLoginAttempt(registrationKey);
+
+  if (parsed.data.courseId) {
+    const course = await db.course.findUnique({ where: { id: parsed.data.courseId }, select: { status: true, isFree: true, priceMinor: true, currency: true } });
+    if (!course || course.status !== 'PUBLISHED' || (!course.isFree && (course.priceMinor <= 0 || !isPaystackCurrencyEnabled(course.currency)))) {
+      return { formError: 'That course is unavailable. Your details have not been submitted.', values: { firstName: parsed.data.firstName, lastName: parsed.data.lastName, email: parsed.data.email, phone: parsed.data.phone ?? '' } };
+    }
+  }
+
   const existingStudent = await db.student.findUnique({
     where: { email: parsed.data.email },
     select: { id: true },
@@ -100,7 +115,9 @@ export async function registerStudentAction(
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  const student = await db.student.create({
+  let student: Awaited<ReturnType<typeof db.student.create>>;
+  try {
+    student = await db.student.create({
     data: {
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
@@ -108,7 +125,15 @@ export async function registerStudentAction(
       phone: parsed.data.phone || null,
       passwordHash,
     },
-  });
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return { formError: 'An account with this email already exists.', values: { firstName: parsed.data.firstName, lastName: parsed.data.lastName, email: parsed.data.email, phone: parsed.data.phone ?? '' } };
+    }
+    throw error;
+  }
+
+  await clearStudentLoginAttempts(registrationKey);
 
   await createStudentSession(student.id);
 

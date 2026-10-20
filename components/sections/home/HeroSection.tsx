@@ -61,14 +61,14 @@ export function HeroSection() {
               variants={fadeUpVariants}
               className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-2"
             >
-              <Link href="/consultation">
+              <Link href="/student/register">
                 <Button
                   variant="cerulean"
                   size="lg"
                   className="w-full sm:w-auto shadow-lg shadow-brand-cerulean/20 hover:shadow-cerulean-glow font-bold"
                   rightIcon={<ArrowRight className="w-4 h-4" />}
                 >
-                  Discuss a Project
+                  Enroll Now
                 </Button>
               </Link>
               <Link href="/solutions">

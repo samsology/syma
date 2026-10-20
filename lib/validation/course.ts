@@ -33,8 +33,9 @@ const editableCourseFields = {
   category: z.enum(courseCategories, { message: 'Select a valid category.' }),
   level: z.enum(courseLevels, { message: 'Select a valid level.' }),
   duration: z.string().trim().min(1, 'Duration is required.').max(40, 'Keep the duration concise.'),
-  priceMinor: z.coerce.number().int().min(0, 'Price must be non-negative.').default(0),
-  currency: z.nativeEnum(Currency).default(Currency.USD),
+  priceMinor: z.coerce.number().int().min(0, 'Price must be non-negative.'),
+  currency: z.nativeEnum(Currency),
+  isFree: z.boolean().default(false),
   benefits: z.array(z.string().trim()).default([]),
   cta: z.string().trim().max(80, 'Keep CTA under 80 characters.').default('Apply Today'),
   sortOrder: z.coerce.number().int().min(0).default(0),
@@ -49,8 +50,17 @@ export const courseSchema = z.object({
 
 export type CourseInput = z.infer<typeof courseSchema>;
 
-export const createCourseSchema = z.object(editableCourseFields);
-export const updateCourseSchema = z.object(editableCourseFields);
+const editableCourseSchema = z.object(editableCourseFields).superRefine((course, context) => {
+  if (course.isFree && course.priceMinor !== 0) {
+    context.addIssue({ code: 'custom', path: ['priceMinor'], message: 'Free courses must have a zero price.' });
+  }
+  if (!course.isFree && course.priceMinor <= 0) {
+    context.addIssue({ code: 'custom', path: ['priceMinor'], message: 'Paid courses need a price greater than zero.' });
+  }
+});
+
+export const createCourseSchema = editableCourseSchema;
+export const updateCourseSchema = editableCourseSchema;
 
 export type CreateCourseInput = z.infer<typeof createCourseSchema>;
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;

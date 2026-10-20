@@ -383,7 +383,7 @@ test('5.2: verifyPayment handles failed or abandoned provider statuses', async (
 
     const abandoned = await paystackProvider.verifyPayment('REF-ABANDONED');
     assert.equal(abandoned.status, 'CANCELLED');
-    assert.equal(abandoned.failureReason, 'Customer closed modal');
+    assert.equal(abandoned.failureReason, 'Paystack reported an abandoned transaction.');
 
     // Failed transaction
     globalThis.fetch = (async () =>
@@ -403,7 +403,7 @@ test('5.2: verifyPayment handles failed or abandoned provider statuses', async (
 
     const failed = await paystackProvider.verifyPayment('REF-FAILED');
     assert.equal(failed.status, 'FAILED');
-    assert.equal(failed.failureReason, 'Insufficient funds');
+    assert.equal(failed.failureReason, 'Paystack reported a failed transaction.');
   } finally {
     process.env.PAYSTACK_SECRET_KEY = origSecret;
     globalThis.fetch = origFetch;

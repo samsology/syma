@@ -1,4 +1,5 @@
 import type { OrderStatus, PaymentStatus } from '@prisma/client';
+import { formatMinorAmount } from './currency';
 
 const orderTransitions: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ['PAID', 'FAILED', 'CANCELLED', 'EXPIRED'],
@@ -26,10 +27,6 @@ export function canTransitionPaymentStatus(from: PaymentStatus, to: PaymentStatu
 }
 
 export function formatMoney(amountMinor: number, currency = 'USD') {
-  const locale = currency === 'USD' ? 'en-US' : 'en-NG';
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amountMinor / 100);
+  if (currency !== 'USD' && currency !== 'NGN') throw new Error('Unsupported payment currency.');
+  return formatMinorAmount(amountMinor, currency);
 }

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum AdminRole {
@@ -61,6 +62,7 @@ enum PaymentProvider {
 enum EnrollmentSource {
   MANUAL
   PAYMENT
+  FREE
 }
 
 enum LessonType {
@@ -138,6 +140,7 @@ model Course {
   duration         String
   priceMinor       Int          @default(0)
   currency         Currency     @default(USD)
+  isFree           Boolean      @default(false)
   benefits         String[]     @default([])
   cta              String       @default("Enroll Now")
   sortOrder        Int          @default(0)
@@ -299,6 +302,7 @@ model Payment {
   orderId           String
   provider          PaymentProvider
   providerReference String
+  providerTransactionId String?
   authorizationUrl  String?
   amountMinor       Int
   currency          Currency        @default(USD)
@@ -306,12 +310,14 @@ model Payment {
   providerEventId   String?
   failureReason     String?
   paidAt            DateTime?
+  verifiedAt        DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
 
   @@unique([provider, providerReference])
+  @@unique([provider, providerTransactionId])
   @@index([orderId])
   @@index([status])
   @@index([createdAt])
