@@ -19,6 +19,7 @@ export type InitializedPayment = {
   provider: PaymentProvider;
   providerReference: string;
   authorizationUrl: string;
+  accessCode?: string;
 };
 
 export type VerifiedPayment = {

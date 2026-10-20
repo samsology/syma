@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { db } from '@/lib/db';
 import {
   changeStudentPasswordSchema,
@@ -494,41 +495,187 @@ export async function changeStudentPasswordAction(
   redirect('/student/login?passwordChanged=1');
 }
 
-export async function enrollCurrentStudentAction(formData: FormData) {
-  const student = await requireStudent();
-  const rawCourseId = String(formData.get('courseId') ?? '').trim();
+export type StudentCheckoutPreparationResult =
+  | {
+      success: true;
+      orderNumber: string;
+      reference: string;
+      accessCode?: string;
+      authorizationUrl: string;
+      publicKey: string;
+      email: string;
+      studentName: string;
+      amountMinor: number;
+      currency: string;
+      courseId: string;
+      courseTitle: string;
+    }
+  | { alreadyEnrolled: true; courseId: string }
+  | { freeEnrollment: true; courseId: string }
+  | { error: string };
 
-  if (!rawCourseId) {
-    redirect('/programs');
-  }
+export async function prepareStudentCheckoutAction(courseId: string): Promise<StudentCheckoutPreparationResult> {
+  try {
+    const student = await requireStudent();
+    const rawCourseId = String(courseId ?? '').trim();
+    if (!rawCourseId) {
+      return { error: 'Course ID is required.' };
+    }
 
-  const course = await db.course.findFirst({
-    where: {
-      OR: [{ id: rawCourseId }, { slug: rawCourseId }],
-      status: 'PUBLISHED',
-    },
-    select: { id: true, isFree: true, priceMinor: true },
-  });
+    const course = await db.course.findFirst({
+      where: {
+        OR: [{ id: rawCourseId }, { slug: rawCourseId }],
+        status: 'PUBLISHED',
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        isFree: true,
+        priceMinor: true,
+        currency: true,
+      },
+    });
 
-  if (!course) {
-    redirect('/programs');
-  }
+    if (!course) {
+      return { error: 'Course not found or unavailable.' };
+    }
 
-  const result = await createOrReuseOrder(student.id, course.id);
-  if ('alreadyEnrolled' in result || 'freeEnrollment' in result) {
-    redirect(`/student/courses/${course.id}`);
-  }
+    const result = await createOrReuseOrder(student.id, course.id);
+    if ('alreadyEnrolled' in result) {
+      return { alreadyEnrolled: true, courseId: course.id };
+    }
+    if ('freeEnrollment' in result) {
+      return { freeEnrollment: true, courseId: course.id };
+    }
+    if ('error' in result && result.error) {
+      return { error: result.error };
+    }
 
-  if (result.order) {
+    if (!result.order) {
+      return { error: 'Could not create or retrieve order for checkout.' };
+    }
+
     const { initializeOrderPayment } = await import('@/lib/payments/service');
     const paymentInit = await initializeOrderPayment(student.id, result.order.orderNumber);
-    if (paymentInit.redirectUrl) {
-      redirect(paymentInit.redirectUrl);
-    }
-    redirect(
-      `/checkout/${result.order.orderNumber}?error=${encodeURIComponent(paymentInit.error || 'provider')}`
-    );
-  }
 
-  redirect('/programs');
+    if ('alreadyEnrolled' in paymentInit) {
+      return { alreadyEnrolled: true, courseId: course.id };
+    }
+
+    if (!paymentInit.redirectUrl) {
+      return { error: paymentInit.error || 'Could not initialize payment checkout. Please retry.' };
+    }
+
+    const { getPaystackPublicKey } = await import('@/lib/payments/config');
+    const publicKey = getPaystackPublicKey() || '';
+
+    return {
+      success: true,
+      orderNumber: result.order.orderNumber,
+      reference: paymentInit.reference || '',
+      accessCode: paymentInit.accessCode,
+      authorizationUrl: paymentInit.redirectUrl,
+      publicKey,
+      email: student.email,
+      studentName: `${student.firstName} ${student.lastName}`.trim(),
+      amountMinor: result.order.amountMinor,
+      currency: result.order.currency,
+      courseId: course.id,
+      courseTitle: course.title,
+    };
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    console.error('Error preparing student checkout:', error);
+    return {
+      error: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
+    };
+  }
+}
+
+export async function verifyStudentPaymentAndEnrollAction(params: {
+  reference: string;
+  orderNumber: string;
+}) {
+  try {
+    const student = await requireStudent();
+    const reference = String(params.reference ?? '').trim();
+    const orderNumber = String(params.orderNumber ?? '').trim();
+
+    if (!reference || !orderNumber) {
+      return { error: 'Missing payment reference or order number.' };
+    }
+
+    const { verifyAndSettlePayment } = await import('@/lib/payments/service');
+    const verification = await verifyAndSettlePayment(reference, {
+      studentId: student.id,
+      orderNumber,
+    });
+
+    if ('error' in verification) {
+      return { error: verification.error };
+    }
+
+    const order = await db.order.findUnique({
+      where: { orderNumber },
+      select: { status: true, courseId: true },
+    });
+
+    if (order?.status === 'PAID') {
+      return { success: true, courseId: order.courseId };
+    }
+
+    return { pending: true, courseId: order?.courseId };
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    console.error('Error verifying student payment:', error);
+    return {
+      error: error instanceof Error ? error.message : 'Failed to verify payment.',
+    };
+  }
+}
+
+export async function enrollCurrentStudentAction(formData: FormData) {
+  const rawCourseId = String(formData.get('courseId') ?? '').trim();
+  try {
+    const student = await requireStudent();
+
+    if (!rawCourseId) {
+      redirect('/programs');
+    }
+
+    const course = await db.course.findFirst({
+      where: {
+        OR: [{ id: rawCourseId }, { slug: rawCourseId }],
+        status: 'PUBLISHED',
+      },
+      select: { id: true, isFree: true, priceMinor: true },
+    });
+
+    if (!course) {
+      redirect('/programs');
+    }
+
+    const result = await createOrReuseOrder(student.id, course.id);
+    if ('alreadyEnrolled' in result || 'freeEnrollment' in result) {
+      redirect(`/student/courses/${course.id}`);
+    }
+
+    if (result.order) {
+      const { initializeOrderPayment } = await import('@/lib/payments/service');
+      const paymentInit = await initializeOrderPayment(student.id, result.order.orderNumber);
+      if (paymentInit.redirectUrl) {
+        redirect(paymentInit.redirectUrl);
+      }
+      redirect(
+        `/checkout/${result.order.orderNumber}?error=${encodeURIComponent(paymentInit.error || 'provider')}`
+      );
+    }
+
+    redirect('/programs');
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    console.error('Unhandled error in enrollCurrentStudentAction:', error);
+    redirect(`/student/enroll?courseId=${encodeURIComponent(rawCourseId)}&error=PAYMENT_INITIALIZATION_FAILED`);
+  }
 }

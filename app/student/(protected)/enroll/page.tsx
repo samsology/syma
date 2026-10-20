@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ShieldCheck, Clock, Award, BookOpen, CreditCard, ArrowLeft, AlertCircle } from 'lucide-react';
-import { enrollCurrentStudentAction } from '../../actions';
+import { ShieldCheck, Clock, Award, BookOpen, ArrowLeft, AlertCircle } from 'lucide-react';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { formatMoney } from '@/lib/payments/rules';
+import { PaystackEnrollCheckout } from '@/components/checkout/PaystackEnrollCheckout';
 
 type StudentEnrollPageProps = {
   searchParams: Promise<{ courseId?: string; error?: string }>;
@@ -153,23 +153,11 @@ export default async function StudentEnrollPage({ searchParams }: StudentEnrollP
                 : 'Click below to securely proceed to Paystack checkout. You can pay with your Nigerian Debit Card, Bank Transfer, or USSD. Access is unlocked immediately upon payment confirmation.'}
             </p>
 
-            <form action={enrollCurrentStudentAction} className="pt-1">
-              <input type="hidden" name="courseId" value={course.id} />
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-black text-white hover:bg-primary/90 transition shadow-sm cursor-pointer"
-              >
-                <CreditCard className="h-4 w-4" />
-                <span>
-                  {isFree ? 'Enroll Now & Start Learning' : `Pay ${formattedPrice} with Paystack`}
-                </span>
-              </button>
-            </form>
-          </div>
-
-          <div className="flex items-center justify-center gap-2 text-center text-xs text-slate-500">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-            <span>256-bit TLS encrypted &amp; verified payment gateway</span>
+            <PaystackEnrollCheckout
+              courseId={course.id}
+              isFree={isFree}
+              formattedPrice={formattedPrice}
+            />
           </div>
         </section>
       </div>

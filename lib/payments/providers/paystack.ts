@@ -16,6 +16,7 @@ type PaystackResponse = {
   status?: boolean;
   data?: {
     authorization_url?: string;
+    access_code?: string;
     reference?: string;
     id?: number | string;
     status?: string;
@@ -78,7 +79,10 @@ export const paystackProvider: PaymentProviderAdapter = {
     } catch {
       throw new Error('PAYMENT_PROVIDER_INVALID_RESPONSE');
     }
-    if (authorizationUrl.protocol !== 'https:' || authorizationUrl.hostname !== 'checkout.paystack.com') {
+    if (
+      authorizationUrl.protocol !== 'https:' ||
+      (!authorizationUrl.hostname.endsWith('paystack.com') && !authorizationUrl.hostname.endsWith('paystack.co'))
+    ) {
       throw new Error('PAYMENT_PROVIDER_INVALID_RESPONSE');
     }
 
@@ -86,6 +90,7 @@ export const paystackProvider: PaymentProviderAdapter = {
       provider: 'PAYSTACK',
       providerReference: json.data.reference,
       authorizationUrl: authorizationUrl.toString(),
+      accessCode: json.data.access_code,
     };
   },
 

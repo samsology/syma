@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { initializePaymentSchema, verifyPaymentSchema } from '@/lib/validation/payment';
@@ -11,15 +12,25 @@ import {
 } from '@/lib/payments/service';
 
 export async function initializePaymentAction(formData: FormData) {
-  const student = await requireStudent();
-  const parsed = initializePaymentSchema.safeParse({ orderNumber: formData.get('orderNumber') });
-  if (!parsed.success) redirect('/student/orders');
+  let orderNumber = '';
+  try {
+    const student = await requireStudent();
+    const parsed = initializePaymentSchema.safeParse({ orderNumber: formData.get('orderNumber') });
+    if (!parsed.success) redirect('/student/orders');
 
-  const orderNumber = parsed.data.orderNumber;
-  const result = await initializeOrderPayment(student.id, orderNumber);
-  if (result.redirectUrl) redirect(result.redirectUrl);
-  if ('alreadyEnrolled' in result) redirect(`/student/courses/${result.courseId}`);
-  redirect(`/checkout/${orderNumber}?error=${encodeURIComponent(result.error || 'provider')}`);
+    orderNumber = parsed.data.orderNumber;
+    const result = await initializeOrderPayment(student.id, orderNumber);
+    if (result.redirectUrl) redirect(result.redirectUrl);
+    if ('alreadyEnrolled' in result) redirect(`/student/courses/${result.courseId}`);
+    redirect(`/checkout/${orderNumber}?error=${encodeURIComponent(result.error || 'provider')}`);
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    console.error('Unhandled error in initializePaymentAction:', error);
+    if (orderNumber) {
+      redirect(`/checkout/${orderNumber}?error=PAYMENT_INITIALIZATION_FAILED`);
+    }
+    redirect('/student/orders');
+  }
 }
 
 export async function verifyPaymentAction(formData: FormData) {

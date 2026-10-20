@@ -53,7 +53,7 @@ function getCallbackUrl(orderNumber: string) {
 
 export async function createOrReuseOrder(studentId: string, courseId: string) {
   return db.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`course-order:${studentId}:${courseId}`}))`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`course-order:${studentId}:${courseId}`}))`;
 
     const [student, course, enrollment] = await Promise.all([
       tx.student.findUnique({ where: { id: studentId }, select: { id: true, status: true } }),
@@ -120,7 +120,7 @@ export async function createOrReuseOrder(studentId: string, courseId: string) {
 }
 
 type InitializationResult =
-  | { kind: 'redirect'; redirectUrl: string }
+  | { kind: 'redirect'; redirectUrl: string; reference?: string }
   | { kind: 'wait' }
   | { kind: 'initialize'; paymentId: string; reference: string };
 
@@ -161,14 +161,14 @@ export async function initializeOrderPayment(studentId: string, orderNumber: str
   }
 
   const initialization = await db.$transaction<InitializationResult>(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${`payment-init:${order.id}`}))`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`payment-init:${order.id}`}))`;
 
     const latestPending = await tx.payment.findFirst({
       where: { orderId: order.id, status: 'PENDING' },
       orderBy: { createdAt: 'desc' },
     });
     if (latestPending?.authorizationUrl) {
-      return { kind: 'redirect', redirectUrl: latestPending.authorizationUrl };
+      return { kind: 'redirect', redirectUrl: latestPending.authorizationUrl, reference: latestPending.providerReference };
     }
     if (latestPending && Date.now() - latestPending.createdAt.getTime() < staleInitializationMs) {
       return { kind: 'wait' };
@@ -194,7 +194,12 @@ export async function initializeOrderPayment(studentId: string, orderNumber: str
     return { kind: 'initialize', paymentId: payment.id, reference };
   });
 
-  if (initialization.kind === 'redirect') return { redirectUrl: initialization.redirectUrl } as const;
+  if (initialization.kind === 'redirect') {
+    return {
+      redirectUrl: initialization.redirectUrl,
+      reference: initialization.reference,
+    } as const;
+  }
   if (initialization.kind === 'wait') return { error: 'PAYMENT_INITIALIZATION_PENDING' } as const;
 
   try {
@@ -217,7 +222,11 @@ export async function initializeOrderPayment(studentId: string, orderNumber: str
       where: { id: initialization.paymentId, status: 'PENDING' },
       data: { authorizationUrl: initialized.authorizationUrl },
     });
-    return { redirectUrl: initialized.authorizationUrl } as const;
+    return {
+      redirectUrl: initialized.authorizationUrl,
+      accessCode: initialized.accessCode,
+      reference: initialization.reference,
+    } as const;
   } catch (error) {
     const code = error instanceof Error ? error.message : 'PAYMENT_PROVIDER_UNAVAILABLE';
     const definitiveFailure = code === 'PAYMENT_INITIALIZATION_FAILED' || code === 'PAYMENT_REFERENCE_MISMATCH';

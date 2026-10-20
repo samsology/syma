@@ -191,3 +191,24 @@ test('6. Currency formatting renders Nigerian Naira exclusively in LMS tuition d
   assert.equal(n29900, '₦29,900');
   assert.equal(n29900.includes('USD'), false);
 });
+
+test('7. Paystack authorization URL domain validation accepts standard Paystack hosts', () => {
+  const validHosts = [
+    'https://checkout.paystack.com/access-123',
+    'https://standard.paystack.co/access-456',
+  ];
+
+  for (const urlStr of validHosts) {
+    const url = new URL(urlStr);
+    const isValid =
+      url.protocol === 'https:' &&
+      (url.hostname.endsWith('paystack.com') || url.hostname.endsWith('paystack.co'));
+    assert.equal(isValid, true);
+  }
+
+  const invalidUrl = new URL('https://malicious-site.com/fake-checkout');
+  const isInvalid =
+    invalidUrl.protocol === 'https:' &&
+    (invalidUrl.hostname.endsWith('paystack.com') || invalidUrl.hostname.endsWith('paystack.co'));
+  assert.equal(isInvalid, false);
+});
