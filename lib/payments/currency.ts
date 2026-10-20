@@ -9,7 +9,12 @@ const MAX_MINOR_AMOUNT = 2_147_483_647;
 
 export function getConfiguredPaystackCurrencies(): Currency[] {
   const configured = process.env.PAYSTACK_SUPPORTED_CURRENCIES;
-  if (!configured) return [];
+  if (!configured) {
+    if (process.env.NODE_ENV === 'production') {
+      return [Currency.NGN];
+    }
+    return [];
+  }
 
   const accepted = new Set<string>(Object.values(Currency));
   return [...new Set(configured.split(',').map((value) => value.trim().toUpperCase()))]
