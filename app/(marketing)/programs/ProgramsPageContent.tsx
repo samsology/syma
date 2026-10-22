@@ -204,7 +204,7 @@ export default function ProgramsPageContent({
                 </div>
                 <div>
                   <p className="text-xs font-bold text-white leading-tight">Transparent Pricing</p>
-                  <p className="text-[11px] text-slate-400">₦19,900 – ₦69,900</p>
+                  <p className="text-[11px] text-slate-400">₦19,900 – ₦89,900</p>
                 </div>
               </div>
             </motion.div>

@@ -10,7 +10,19 @@ import {
   Minimize2,
   RefreshCw,
 } from 'lucide-react';
-import { extractR2StorageKey } from '@/lib/resources/embed';
+import {
+  extractR2StorageKey,
+  getR2ProxyUrl,
+} from '@/lib/resources/embed';
+import {
+  getCachedDocument,
+  setCachedDocument,
+  invalidateDocumentCache,
+  type CachedDocumentEntry,
+} from '@/lib/resources/pdf-cache';
+
+export { getCachedDocument, setCachedDocument, invalidateDocumentCache };
+export type { CachedDocumentEntry };
 
 interface PdfViewerProps {
   fileUrl: string;
@@ -29,6 +41,26 @@ function formatBytes(bytes?: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// Preload & singleton promise for pdfjs-dist
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pdfjsPromise: Promise<any> | null = null;
+function getPdfjs() {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import('pdfjs-dist')
+      .then((pdfjs) => {
+        if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions?.workerSrc) {
+          pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+        }
+        return pdfjs;
+      })
+      .catch((err) => {
+        pdfjsPromise = null;
+        throw err;
+      });
+  }
+  return pdfjsPromise;
+}
+
 export function PdfViewer({
   fileUrl,
   storageKey,
@@ -44,7 +76,8 @@ export function PdfViewer({
   const [totalPages, setTotalPages] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRenderingPage, setIsRenderingPage] = useState<boolean>(false);
-  const [loadingProgress, setLoadingProgress] = useState<string>('Connecting to learning resource...');
+  const [firstSlideRendered, setFirstSlideRendered] = useState<boolean>(false);
+  const [loadingProgress, setLoadingProgress] = useState<string>('Preparing presentation...');
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [thumbnails, setThumbnails] = useState<(string | null)[]>([]);
@@ -53,102 +86,206 @@ export function PdfViewer({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderTaskRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const activeLoadingTaskRef = useRef<any>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
   const resolvedKey =
     extractR2StorageKey(storageKey) ||
     extractR2StorageKey(fileUrl) ||
-    storageKey ||
-    null;
+    (storageKey && !storageKey.startsWith('http') ? storageKey : null);
 
-  // 1. Fetch PDF binary and initialize PDF.js
+  // Stable cache key
+  const cacheKey = resolvedKey || fileUrl;
+
+  // Compute best direct stream URL. For R2 storage, the same-origin proxy route provides:
+  // 1. Full session authorization (verifying student enrollment)
+  // 2. HTTP 206 Byte-Range streaming (allowing PDF.js to fetch only page 1 first)
+  // 3. Zero CORS failures
+  const preferredStreamUrl = resolvedKey
+    ? getR2ProxyUrl(resolvedKey, false) || `/api/resources/proxy?key=${encodeURIComponent(resolvedKey)}`
+    : fileUrl;
+
+  // 1. Fetch PDF binary and initialize PDF.js with Range Streaming
   const loadPdf = useCallback(async () => {
+    // Check in-memory cache first (0ms restoration on tab/page revisit)
+    const cached = getCachedDocument(cacheKey);
+    if (cached) {
+      setPdfDoc(cached.doc);
+      setTotalPages(cached.totalPages);
+      setCurrentPage((prev) => (prev >= 1 && prev <= cached.totalPages ? prev : 1));
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
-    setLoadingProgress('Connecting to secure storage...');
+    setLoadingProgress('Connecting to presentation engine...');
+
+    // Cancel any ongoing loading task
+    if (activeLoadingTaskRef.current) {
+      try {
+        activeLoadingTaskRef.current.destroy();
+      } catch {
+        // ignore
+      }
+      activeLoadingTaskRef.current = null;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortCtrl = new AbortController();
+    abortControllerRef.current = abortCtrl;
+
+    // Safety timeout to prevent indefinite loading spinners
+    const timeoutId = setTimeout(() => {
+      abortCtrl.abort();
+      if (activeLoadingTaskRef.current) {
+        try {
+          activeLoadingTaskRef.current.destroy();
+        } catch {
+          // ignore
+        }
+      }
+      setIsLoading(false);
+      setError('Presentation took too long to load. Please check your connection and retry.');
+    }, 25_000);
 
     try {
-      let response: Response;
+      // Concurrently initialize PDF.js engine while setting up stream
+      const pdfjs = await getPdfjs();
+      if (abortCtrl.signal.aborted) return;
 
-      // Try direct fetch first
+      setLoadingProgress('Reading presentation stream...');
+
+      let doc = null;
+
+      // Primary strategy: Progressive HTTP Range-Request Streaming via PDF.js URL
+      // PDF.js requests the xref table and only the byte range needed for page 1 first,
+      // avoiding downloading the entire multi-megabyte file upfront.
       try {
-        response = await fetch(fileUrl);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-      } catch (directErr) {
-        console.warn('[PdfViewer] Direct fetch failed or restricted, attempting proxy fallback:', directErr);
+        const loadingTask = pdfjs.getDocument({
+          url: preferredStreamUrl,
+          withCredentials: true,
+          rangeChunkSize: 65536,
+          cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version || '6.4.299'}/cmaps/`,
+          cMapPacked: true,
+          standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version || '6.4.299'}/standard_fonts/`,
+          disableAutoFetch: false,
+          disableStream: false,
+        });
+
+        activeLoadingTaskRef.current = loadingTask;
+
+        loadingTask.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
+          if (total > 0) {
+            const pct = Math.min(100, Math.round((loaded / total) * 100));
+            setLoadingProgress(`Reading presentation (${pct}%)...`);
+          } else if (loaded > 0) {
+            setLoadingProgress(`Reading presentation (${formatBytes(loaded)})...`);
+          }
+        };
+
+        doc = await loadingTask.promise;
+      } catch (streamErr: unknown) {
+        if (abortCtrl.signal.aborted) return;
+        console.warn('[PdfViewer] Direct range-stream loading error, falling back to buffered fetch:', streamErr);
+
         setLoadingProgress('Authorizing secure document stream...');
 
-        const keyToUse =
-          resolvedKey ||
-          (fileUrl.includes('courses/') ? 'courses/' + fileUrl.split('courses/')[1]?.split('?')[0] : fileUrl);
+        // Fallback strategy: Direct or Proxy buffer fetch with magic byte validation
+        let response: Response;
+        try {
+          response = await fetch(preferredStreamUrl, { signal: abortCtrl.signal });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+        } catch (fetchErr) {
+          if (abortCtrl.signal.aborted) return;
+          console.warn('[PdfViewer] Primary URL fetch failed, trying proxy fallback:', fetchErr);
 
-        const proxyUrl = `/api/resources/proxy?key=${encodeURIComponent(keyToUse)}`;
-        response = await fetch(proxyUrl);
+          const keyToUse =
+            resolvedKey ||
+            (fileUrl.includes('courses/') ? 'courses/' + fileUrl.split('courses/')[1]?.split('?')[0] : fileUrl);
 
-        if (!response.ok) {
-          const errJson = await response.json().catch(() => ({}));
-          throw new Error(errJson.error || `Failed to fetch document file (HTTP ${response.status}).`);
+          const proxyFallback = `/api/resources/proxy?key=${encodeURIComponent(keyToUse)}`;
+          response = await fetch(proxyFallback, { signal: abortCtrl.signal });
+
+          if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.error || `Failed to fetch document file (HTTP ${response.status}).`);
+          }
         }
-      }
 
-      // Verify content is not an error JSON/HTML
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const json = await response.json().catch(() => ({}));
-        throw new Error(json.error || 'Server returned an error instead of document data.');
-      }
-
-      setLoadingProgress('Reading document data...');
-      const arrayBuffer = await response.arrayBuffer();
-
-      // Verify valid PDF magic bytes (%PDF)
-      const headerBytes = new Uint8Array(arrayBuffer.slice(0, 5));
-      const headerStr = String.fromCharCode(...headerBytes);
-      if (!headerStr.startsWith('%PDF')) {
-        throw new Error('Received resource is not a valid PDF document.');
-      }
-
-      setLoadingProgress('Initializing slide presentation engine...');
-
-      // Dynamic import of pdfjs-dist for client-only execution
-      const pdfjs = await import('pdfjs-dist');
-
-      if (typeof window !== 'undefined') {
-        if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-          pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const json = await response.json().catch(() => ({}));
+          throw new Error(json.error || 'Server returned an error instead of document data.');
         }
+
+        setLoadingProgress('Processing document bytes...');
+        const arrayBuffer = await response.arrayBuffer();
+
+        const headerBytes = new Uint8Array(arrayBuffer.slice(0, 5));
+        const headerStr = String.fromCharCode(...headerBytes);
+        if (!headerStr.startsWith('%PDF')) {
+          throw new Error('Received resource is not a valid PDF document.');
+        }
+
+        const bufferedTask = pdfjs.getDocument({
+          data: new Uint8Array(arrayBuffer),
+          cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version || '6.4.299'}/cmaps/`,
+          cMapPacked: true,
+          standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version || '6.4.299'}/standard_fonts/`,
+        });
+
+        activeLoadingTaskRef.current = bufferedTask;
+        doc = await bufferedTask.promise;
       }
 
-      const loadingTask = pdfjs.getDocument({
-        data: new Uint8Array(arrayBuffer),
-        cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version || '6.4.299'}/cmaps/`,
-        cMapPacked: true,
-        standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version || '6.4.299'}/standard_fonts/`,
-      });
+      clearTimeout(timeoutId);
 
-      const doc = await loadingTask.promise;
+      if (abortCtrl.signal.aborted || !doc) return;
+
+      // Cache document for session reuse
+      setCachedDocument(cacheKey, doc, doc.numPages);
+
       setPdfDoc(doc);
       setTotalPages(doc.numPages);
       setCurrentPage((prev) => (prev >= 1 && prev <= doc.numPages ? prev : 1));
       setIsLoading(false);
+      setError(null);
     } catch (err: unknown) {
+      clearTimeout(timeoutId);
+      if (abortCtrl.signal.aborted) return;
       console.error('[PdfViewer] Error loading PDF:', err);
       setError((err as Error).message || 'Unable to load slide presentation.');
       setIsLoading(false);
     }
-  }, [fileUrl, resolvedKey]);
+  }, [cacheKey, preferredStreamUrl, resolvedKey, fileUrl]);
 
   useEffect(() => {
     loadPdf();
     return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (activeLoadingTaskRef.current) {
+        try {
+          activeLoadingTaskRef.current.destroy();
+        } catch {
+          // ignore
+        }
+      }
       if (renderTaskRef.current) {
         try {
           renderTaskRef.current.cancel();
         } catch {
-          // ignore cancellation on unmount
+          // ignore
         }
       }
     };
@@ -224,6 +361,7 @@ export function PdfViewer({
 
       await renderTask.promise;
       setIsRenderingPage(false);
+      setFirstSlideRendered(true);
     } catch (err: unknown) {
       const errorObj = err as { name?: string };
       if (errorObj?.name !== 'RenderingCancelledException') {
@@ -262,19 +400,42 @@ export function PdfViewer({
     };
   }, [pdfDoc, isLoading, renderCurrentPage]);
 
-  // 3. Lazy thumbnail generation for the bottom filmstrip
+  // 3. Deferred thumbnail generation for the bottom filmstrip
+  // Crucial: Thumbnails only begin rendering AFTER the primary slide has rendered,
+  // preventing main-thread and canvas context contention.
   useEffect(() => {
-    if (!pdfDoc || totalPages === 0) return;
+    if (!pdfDoc || totalPages <= 1 || !firstSlideRendered || isLoading) return;
 
     let isCancelled = false;
-    const initialThumbs = new Array(totalPages).fill(null);
-    setThumbnails(initialThumbs);
+    setThumbnails((prev) => (prev.length === totalPages ? prev : new Array(totalPages).fill(null)));
 
+    // Generate thumbnails in background during idle time, batched in small slices
     const generateThumbnails = async () => {
-      for (let i = 1; i <= Math.min(totalPages, 20); i++) {
+      // Prioritize slides around the current view, then remaining
+      const pageIndices: number[] = [];
+      pageIndices.push(currentPage);
+      for (let offset = 1; offset <= totalPages; offset++) {
+        if (currentPage + offset <= totalPages && !pageIndices.includes(currentPage + offset)) {
+          pageIndices.push(currentPage + offset);
+        }
+        if (currentPage - offset >= 1 && !pageIndices.includes(currentPage - offset)) {
+          pageIndices.push(currentPage - offset);
+        }
+      }
+
+      // Render at most 20 thumbnails
+      const targetIndices = pageIndices.slice(0, 20);
+      const batchUpdates: { index: number; url: string }[] = [];
+
+      for (const pageNum of targetIndices) {
         if (isCancelled) break;
+
+        // Yield to browser rendering loop
+        await new Promise((resolve) => setTimeout(resolve, 60));
+        if (isCancelled) break;
+
         try {
-          const page = await pdfDoc.getPage(i);
+          const page = await pdfDoc.getPage(pageNum);
           const unscaled = page.getViewport({ scale: 1 });
           const thumbScale = 120 / unscaled.width;
           const viewport = page.getViewport({ scale: thumbScale });
@@ -292,11 +453,20 @@ export function PdfViewer({
 
             const dataUrl = offscreenCanvas.toDataURL('image/jpeg', 0.6);
             if (!isCancelled) {
-              setThumbnails((prev) => {
-                const next = [...prev];
-                next[i - 1] = dataUrl;
-                return next;
-              });
+              batchUpdates.push({ index: pageNum - 1, url: dataUrl });
+
+              // Apply batched update every 3 thumbnails or at the end to prevent excessive re-renders
+              if (batchUpdates.length >= 3 || pageNum === targetIndices[targetIndices.length - 1]) {
+                const pending = [...batchUpdates];
+                batchUpdates.length = 0;
+                setThumbnails((prev) => {
+                  const next = [...prev];
+                  for (const item of pending) {
+                    next[item.index] = item.url;
+                  }
+                  return next;
+                });
+              }
             }
           }
         } catch {
@@ -305,12 +475,23 @@ export function PdfViewer({
       }
     };
 
-    generateThumbnails();
+    // Use requestIdleCallback if available, otherwise setTimeout
+    const idleId =
+      typeof window !== 'undefined' && 'requestIdleCallback' in window
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).requestIdleCallback(() => generateThumbnails(), { timeout: 1000 })
+        : setTimeout(generateThumbnails, 250);
 
     return () => {
       isCancelled = true;
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && typeof idleId === 'number') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).cancelIdleCallback(idleId);
+      } else {
+        clearTimeout(idleId);
+      }
     };
-  }, [pdfDoc, totalPages]);
+  }, [pdfDoc, totalPages, firstSlideRendered, isLoading, currentPage]);
 
   // 4. Fullscreen listener
   useEffect(() => {
@@ -415,6 +596,12 @@ export function PdfViewer({
     touchStartYRef.current = null;
   };
 
+  const handleRetry = () => {
+    invalidateDocumentCache(cacheKey);
+    setFirstSlideRendered(false);
+    loadPdf();
+  };
+
   const formattedSize = formatBytes(fileSize);
 
   // Loading state
@@ -448,8 +635,8 @@ export function PdfViewer({
         <div className="flex justify-center gap-3">
           <button
             type="button"
-            onClick={loadPdf}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-secondary transition shadow-sm"
+            onClick={handleRetry}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-secondary transition shadow-sm cursor-pointer"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Retry Presentation
           </button>
@@ -488,7 +675,7 @@ export function PdfViewer({
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition"
+            className="inline-flex items-center gap-1 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition cursor-pointer"
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Slides'}
             aria-label={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Slides'}
           >

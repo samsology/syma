@@ -1,11 +1,16 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { requireStudent } from '@/lib/auth/student-authorization';
 import { db } from '@/lib/db';
 import { getStudentLesson } from '@/lib/student-course/queries';
 import { setLessonProgressAction } from '@/app/student/progress-actions';
-import { ResourceStage } from '@/components/resources/ResourceStage';
+import {
+  buildCourseItemSequence,
+  calculateDripUnlockStatus,
+  isItemUnlocked,
+} from '@/lib/student-course/drip-progression';
+import { summarizeCumulativeQuizScore } from '@/lib/curriculum/quiz-progress';
+import { LessonWorkspace } from '@/components/student/LessonWorkspace';
+import type { ItemDripStatus } from '@/components/student/WeeklyCurriculum';
 
 type StudentLessonPageProps = {
   params: Promise<{ courseId: string; lessonId: string }>;
@@ -45,114 +50,91 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
     }),
     db.quizStudentOverride.findMany({
       where: { studentId: student.id, progressionGranted: true },
-      select: { quizId: true },
+      select: { quizId: true, additionalAttempts: true, progressionGranted: true },
     }),
     db.quizAttempt.findMany({
       where: { studentId: student.id },
-      select: { quizId: true },
+      select: { quizId: true, passed: true, score: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
     }),
   ]);
 
-  const { isItemUnlocked } = await import('@/lib/student-course/drip-progression');
+  const completedLessonIds = new Set(completedLessonProgress.map((p) => p.lessonId));
+  const completedSummaryIds = new Set(completedSummaryProgress.map((p) => p.moduleSummaryId));
+  const passedQuizIds = new Set(passedAttempts.map((a) => a.quizId));
+  const submittedAssignmentIds = new Set(assignmentSubmissions.map((a) => a.assignmentId));
+  const progressionGrantedQuizIds = new Set(studentOverrides.map((o) => o.quizId));
+  const attemptedQuizIds = new Set(allQuizAttempts.map((a) => a.quizId));
+
+  // Check if current lesson is unlocked by drip progression
   const unlocked = isItemUnlocked(enrollment.course, lessonId, {
-    completedLessonIds: completedLessonProgress.map((p: { lessonId: string }) => p.lessonId),
-    completedSummaryIds: completedSummaryProgress.map((p: { moduleSummaryId: string }) => p.moduleSummaryId),
-    passedQuizIds: passedAttempts.map((a: { quizId: string }) => a.quizId),
-    submittedAssignmentIds: assignmentSubmissions.map((a: { assignmentId: string }) => a.assignmentId),
-    progressionGrantedQuizIds: studentOverrides.map((o: { quizId: string }) => o.quizId),
-    attemptedQuizIds: allQuizAttempts.map((a: { quizId: string }) => a.quizId),
+    completedLessonIds: Array.from(completedLessonIds),
+    completedSummaryIds: Array.from(completedSummaryIds),
+    passedQuizIds: Array.from(passedQuizIds),
+    submittedAssignmentIds: Array.from(submittedAssignmentIds),
+    progressionGrantedQuizIds: Array.from(progressionGrantedQuizIds),
+    attemptedQuizIds: Array.from(attemptedQuizIds),
   });
 
   if (!unlocked) {
     redirect(`/student/courses/${courseId}`);
   }
 
-  return (
-    <article className="space-y-4 sm:space-y-5">
-      <Link
-        href={`/student/courses/${courseId}`}
-        className="text-primary inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        Back to Curriculum
-      </Link>
-      <header className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-xs">
-        <p className="text-primary text-[11px] sm:text-xs font-bold tracking-wide uppercase">
-          {enrollment.course.title} · Week {lesson.weekNumber} · {lesson.moduleTitle}
-        </p>
-        <h1 className="mt-1 text-lg sm:text-xl md:text-2xl font-bold text-slate-950">{lesson.title}</h1>
-        <div className="mt-2.5 max-w-sm">
-          <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-bold tracking-wide text-slate-500 uppercase">
-            <span>{progress.percentage}% complete</span>
-            <span>
-              {progress.completedLessons}/{progress.totalLessons} lessons
-            </span>
-          </div>
-          <div className="mt-1.5 h-1.5 rounded-full bg-slate-100">
-            <div
-              className="bg-primary h-1.5 rounded-full"
-              style={{ width: `${progress.percentage}%` }}
-            />
-          </div>
-        </div>
-      </header>
-      {/* In-Portal Media Stage & Attached Resources */}
-      <ResourceStage
-        lessonTitle={lesson.title}
-        primaryVideoUrl={lesson.videoUrl}
-        primarySlideUrl={lesson.slideUrl}
-        primaryResourceType={lesson.resourceType}
-        resources={lesson.resources}
-      />
+  // Calculate full drip progression status for the weekly outline
+  const courseSequence = buildCourseItemSequence(enrollment.course);
+  const dripStatusMap = calculateDripUnlockStatus(courseSequence, {
+    completedLessonIds,
+    completedSummaryIds,
+    passedQuizIds,
+    submittedAssignmentIds,
+    progressionGrantedQuizIds,
+    attemptedQuizIds,
+  });
 
-      {lesson.content && (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 leading-relaxed text-slate-700 shadow-xs space-y-2">
-          <h2 className="text-sm sm:text-base font-bold text-slate-950">Lesson Notes &amp; Instructions</h2>
-          <div className="whitespace-pre-wrap text-xs sm:text-sm">{lesson.content}</div>
-        </section>
-      )}
-      <form
-        action={setLessonProgressAction}
-        className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 shadow-xs"
-      >
-        <input type="hidden" name="courseId" value={courseId} />
-        <input type="hidden" name="lessonId" value={lessonId} />
-        <input type="hidden" name="isCompleted" value={isCompleted ? 'false' : 'true'} />
-        <button
-          className={
-            isCompleted
-              ? 'hover:border-primary hover:text-primary rounded-lg border border-slate-200 px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-700'
-              : 'bg-primary hover:bg-primary/90 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-bold text-white'
-          }
-        >
-          {isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
-        </button>
-      </form>
-      <nav
-        className="flex flex-col gap-2.5 sm:flex-row sm:justify-between"
-        aria-label="Lesson navigation"
-      >
-        {previousLesson ? (
-          <Link
-            href={`/student/courses/${courseId}/lessons/${previousLesson.id}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Previous Lesson
-          </Link>
-        ) : (
-          <span />
-        )}
-        {nextLesson ? (
-          <Link
-            href={`/student/courses/${courseId}/lessons/${nextLesson.id}`}
-            className="bg-primary inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-bold text-white hover:bg-primary/90 transition"
-          >
-            Next Lesson
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        ) : null}
-      </nav>
-    </article>
+  const dripStatusRecord: Record<string, ItemDripStatus> = {};
+  for (const [key, value] of dripStatusMap.entries()) {
+    dripStatusRecord[key] = value;
+  }
+
+  // Calculate quiz best scores
+  const quizIds = enrollment.course.weeks.flatMap((w) =>
+    w.modules
+      .map((m) => m.quiz)
+      .filter((q): q is NonNullable<typeof q> => !!q && q.status === 'PUBLISHED')
+      .map((q) => q.id)
+  );
+  const quizProgress = summarizeCumulativeQuizScore(quizIds, allQuizAttempts as any);
+  const quizBestScores: Record<string, number> = {};
+  for (const [key, value] of quizProgress.bestByQuiz.entries()) {
+    quizBestScores[key] = value.score;
+  }
+
+  return (
+    <LessonWorkspace
+      courseId={courseId}
+      courseTitle={enrollment.course.title}
+      lesson={lesson}
+      weeks={enrollment.course.weeks as any}
+      previousLesson={previousLesson ? { id: previousLesson.id, title: previousLesson.title } : null}
+      nextLesson={nextLesson ? { id: nextLesson.id, title: nextLesson.title } : null}
+      isCompleted={isCompleted}
+      progress={progress}
+      completedLessonIds={Array.from(completedLessonIds)}
+      completedSummaryIds={Array.from(completedSummaryIds)}
+      submittedAssignmentIds={Array.from(submittedAssignmentIds)}
+      dripStatusRecord={dripStatusRecord}
+      quizAttempts={allQuizAttempts.map((a) => ({
+        quizId: a.quizId,
+        passed: a.passed,
+        score: a.score,
+      }))}
+      quizBestScores={quizBestScores}
+      quizOverrides={studentOverrides.map((o) => ({
+        quizId: o.quizId,
+        additionalAttempts: o.additionalAttempts,
+        progressionGranted: o.progressionGranted,
+      }))}
+      setLessonProgressAction={setLessonProgressAction}
+    />
   );
 }

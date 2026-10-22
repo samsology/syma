@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, BarChart3, Code2, Activity } from 'lucide-react';
+import { ArrowRight, BookOpen, BarChart3, Code2, Activity, Clock, ShieldCheck } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -18,7 +18,7 @@ const courseIcons = {
 
 export function AcademySection() {
   return (
-    <section className="bg-marketing-dark-bg text-white py-20 lg:py-28 relative overflow-hidden">
+    <section className="bg-marketing-dark-bg text-white py-20 lg:py-28 relative overflow-hidden border-b border-white/10">
       {/* Subtle lighting accents */}
       <div
         className="pointer-events-none absolute bottom-0 right-1/4 h-[400px] w-[600px] rounded-full bg-brand-cerulean/10 blur-[130px]"
@@ -33,46 +33,56 @@ export function AcademySection() {
               Practical Analytics Academy
             </h2>
             <p className="mt-4 text-base text-slate-300 font-sans leading-relaxed">
-              Curriculum engineered around real healthcare datasets, statistical modeling, and business intelligence pipelines.
+              Sequential, project-driven programs engineered by practicing biostatisticians and health data systems architects. Master real sanitized clinical schemas, automated pipelines, and operational intelligence.
             </p>
           </div>
           <Link
             href="/programs"
             className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-cerulean hover:text-white transition-colors shrink-0 group"
           >
-            <span>Explore All Academy Tracks</span>
+            <span>Explore All 4 Academy Tracks</span>
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {OFFICIAL_COURSES.slice(0, 3).map((course) => {
+          {OFFICIAL_COURSES.map((course) => {
             const Icon = courseIcons[course.iconName] || BookOpen;
             return (
               <Card
                 key={course.slug}
                 surface="dark"
                 hoverEffect="spring"
-                className="flex flex-col justify-between p-6 border-white/10 bg-marketing-dark-surface/90"
+                className="flex flex-col justify-between p-6 border-white/10 bg-marketing-dark-surface/90 hover:border-brand-cerulean/40 transition-colors"
               >
                 <div>
                   <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-cerulean bg-brand-cerulean/10 px-2 py-0.5 rounded-full">
-                      {course.badge}
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-cerulean bg-brand-cerulean/10 px-2.5 py-1 rounded-full">
+                      Track {course.number}
                     </span>
                     <Icon className="h-5 w-5 text-slate-300" />
                   </div>
 
-                  <CardTitle className="text-lg font-bold text-white font-heading mt-5 leading-snug">
+                  <div className="mt-5 flex items-center gap-2 text-[11px] font-semibold text-slate-400">
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-brand-cerulean" />
+                      {course.duration}
+                    </span>
+                    <span>·</span>
+                    <span className="text-slate-300 font-bold">{course.level}</span>
+                  </div>
+
+                  <CardTitle className="text-lg font-bold text-white font-heading mt-2 leading-snug">
                     {course.title}
                   </CardTitle>
 
-                  <p className="mt-2.5 text-xs text-slate-400 leading-relaxed font-sans line-clamp-3">
+                  <p className="mt-2 text-xs text-slate-400 leading-relaxed font-sans line-clamp-3">
                     {course.shortDescription}
                   </p>
 
-                  <div className="mt-6 border-t border-white/10 pt-4">
-                    <span className="text-xs text-slate-400">From the programme catalogue</span>
+                  <div className="mt-5 border-t border-white/10 pt-3 flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Tuition</span>
+                    <span className="text-sm font-extrabold text-white">{course.price}</span>
                   </div>
                 </div>
 
@@ -81,9 +91,9 @@ export function AcademySection() {
                     <Button
                       variant="cerulean"
                       size="sm"
-                      className="w-full rounded-xl font-bold"
+                      className="w-full rounded-xl font-bold shadow-xs hover:shadow-cerulean-glow"
                     >
-                      View Programme Details
+                      View Curriculum
                     </Button>
                   </Link>
                 </div>

@@ -1,7 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, ExternalLink, Eye, FileText, Play, Presentation, Video, X } from 'lucide-react';
+import {
+  Download,
+  ExternalLink,
+  Eye,
+  FileSpreadsheet,
+  FileText,
+  Play,
+  Presentation,
+  ShieldCheck,
+  Video,
+  X,
+  Sparkles,
+} from 'lucide-react';
 import type { LessonResource, ResourceType, ResourceSource } from '@prisma/client';
 import { ResourceRenderer } from './ResourceRenderer';
 import {
@@ -71,8 +83,6 @@ export function ResourceStage({
       description: 'Full presentation deck for this lesson.',
     };
   } else if (resources && resources.length > 0) {
-    // If no primary video or slide is specified on the lesson record, find the first
-    // in-portal viewable resource (Video or Slide/Doc). Never auto-activate Datasets or Links.
     const viewableResources = resources.filter((r) => {
       const desc = getResourceEmbedDescriptor({
         title: r.name,
@@ -85,7 +95,6 @@ export function ResourceStage({
     });
 
     if (viewableResources.length > 0) {
-      // Prioritize by primaryResourceType if set
       let chosen = viewableResources[0];
       if (primaryResourceType === 'SLIDE') {
         const slideItem = viewableResources.find((r) => r.resourceType === 'DOCUMENT');
@@ -113,39 +122,47 @@ export function ResourceStage({
 
   return (
     <div className="space-y-6">
-      {/* Active In-Portal Media Stage */}
+      {/* 1. Active In-Portal Media Stage */}
       {activeMedia && (
         <section
           id="in-portal-resource-stage"
-          className="border-primary/20 rounded-xl sm:rounded-2xl border bg-slate-900/5 p-2 sm:p-3 shadow-xs transition"
+          className="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 shadow-sm transition"
         >
-          <div className="mb-2.5 flex items-center justify-between border-b border-slate-200/80 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="bg-primary flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg text-white">
+          <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-navy text-white shadow-xs">
                 {activeMedia.resourceType === 'VIDEO' ? (
-                  <Video className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <Video className="h-4 w-4" />
                 ) : activeMedia.resourceType === 'DOCUMENT' ? (
-                  <Presentation className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <Presentation className="h-4 w-4" />
                 ) : (
-                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <FileText className="h-4 w-4" />
                 )}
               </span>
               <div>
-                <span className="text-primary text-[10px] font-black tracking-wider uppercase">
-                  In-Portal Learning Viewer
-                </span>
-                <h3 className="text-xs sm:text-sm md:text-base font-bold text-slate-950 truncate max-w-[200px] sm:max-w-md">{activeMedia.title}</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-brand-cerulean">
+                    {activeMedia.resourceType === 'VIDEO' ? 'Interactive Video' : 'Slide Deck'}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.2 text-[10px] font-bold text-emerald-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Active Stage
+                  </span>
+                </div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-950 truncate max-w-[220px] sm:max-w-md">
+                  {activeMedia.title}
+                </h3>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => setActiveMedia(null)}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] sm:text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
-              title="Close viewer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cerulean"
+              title="Close viewer stage"
             >
-              <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              <span>Hide Viewer</span>
+              <X className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Minimize Stage</span>
             </button>
           </div>
 
@@ -163,18 +180,24 @@ export function ResourceStage({
         </section>
       )}
 
-      {/* Lesson Attached Resources List */}
+      {/* 2. Structured Learning Materials & Practice Assets */}
       {resources && resources.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-xl font-black text-slate-950">Lesson Resources &amp; Materials</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Consume interactive presentations, video explainers, datasets, and guides directly
-              within this lesson.
-            </p>
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-base font-extrabold text-slate-950 font-heading">
+                Lesson Materials &amp; Practice Assets
+              </h3>
+              <p className="text-xs text-slate-500">
+                Interactive slide presentations, video explainers, datasets, and clinical references
+              </p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+              {resources.length} {resources.length === 1 ? 'Resource' : 'Resources'}
+            </span>
           </div>
 
-          <div className="mt-4 divide-y divide-slate-100">
+          <div className="grid gap-3 sm:grid-cols-2">
             {resources.map((resource) => {
               const descriptor = getResourceEmbedDescriptor({
                 title: resource.name,
@@ -203,6 +226,9 @@ export function ResourceStage({
                 /dataset|data/i.test(resource.name);
 
               const isVideo = resource.resourceType === 'VIDEO' || descriptor.kind === 'youtube';
+              const isSlide =
+                resource.resourceType === 'DOCUMENT' || descriptor.kind === 'google_slide';
+
               const canDownloadInline =
                 descriptor.isEmbeddable &&
                 canDownloadResource({
@@ -226,51 +252,85 @@ export function ResourceStage({
               return (
                 <div
                   key={resource.id}
-                  className="flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+                  className={`group flex flex-col justify-between rounded-2xl border p-4 transition ${
+                    isCurrentlyActive
+                      ? 'border-emerald-300 bg-emerald-50/40 shadow-xs ring-1 ring-emerald-200'
+                      : 'border-slate-200/90 bg-white hover:border-brand-cerulean/50 hover:bg-slate-50/50'
+                  }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 rounded-lg bg-slate-100 p-2 text-slate-700">
-                      {isVideo ? (
-                        <Video className="h-4 w-4 text-sky-600" />
-                      ) : resource.resourceType === 'DOCUMENT' ||
-                        descriptor.kind === 'google_slide' ? (
-                        <Presentation className="h-4 w-4 text-indigo-600" />
-                      ) : descriptor.kind === 'download_file' || isDataset ? (
-                        <FileText className="h-4 w-4 text-emerald-600" />
-                      ) : (
-                        <ExternalLink className="h-4 w-4 text-slate-600" />
-                      )}
-                    </div>
-
-                    <div>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-slate-900">{resource.name}</p>
-                        {resource.resourceType && (
-                          <span className="py-0.2 rounded bg-slate-100 px-1.5 text-[10px] font-black tracking-wider text-slate-600 uppercase">
-                            {isDataset && resource.resourceType === 'FILE'
-                              ? 'DATASET'
-                              : resource.resourceType}
+                        {isVideo ? (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
+                            <Video className="h-3.5 w-3.5" />
+                          </span>
+                        ) : isSlide ? (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                            <Presentation className="h-3.5 w-3.5" />
+                          </span>
+                        ) : isDataset ? (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                            <FileSpreadsheet className="h-3.5 w-3.5" />
+                          </span>
+                        ) : (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                            <FileText className="h-3.5 w-3.5" />
                           </span>
                         )}
+
+                        <span
+                          className={`rounded px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                            isVideo
+                              ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                              : isSlide
+                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                : isDataset
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {isVideo
+                            ? 'Video'
+                            : isSlide
+                              ? 'Slide Deck'
+                              : isDataset
+                                ? 'Dataset'
+                                : 'Resource'}
+                        </span>
                       </div>
-                      {resource.description && (
-                        <p className="mt-0.5 text-xs text-slate-500">{resource.description}</p>
-                      )}
-                      <div className="mt-1 flex items-center gap-2 text-[11px] font-semibold text-slate-400 uppercase">
-                        <span>{resource.fileType}</span>
+
+                      {/* File format and size chip */}
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
+                        {resource.fileType && (
+                          <span className="rounded bg-slate-100 px-1.5 py-0.2 text-slate-600">
+                            .{resource.fileType}
+                          </span>
+                        )}
                         {resource.fileSize ? (
                           <span>
-                            ·{' '}
                             {resource.fileSize < 1024 * 1024
-                              ? `${(resource.fileSize / 1024).toFixed(1)} KB`
+                              ? `${Math.round(resource.fileSize / 1024)} KB`
                               : `${(resource.fileSize / (1024 * 1024)).toFixed(1)} MB`}
                           </span>
                         ) : null}
                       </div>
                     </div>
+
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-950 group-hover:text-primary transition line-clamp-1">
+                        {resource.name}
+                      </h4>
+                      {resource.description && (
+                        <p className="mt-1 text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                          {resource.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
+                  {/* Actions Bar */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                     {descriptor.isEmbeddable ? (
                       <button
                         type="button"
@@ -286,14 +346,13 @@ export function ResourceStage({
                             description: resource.description,
                             isDownloadable: resource.isDownloadable,
                           });
-                          // Smooth scroll into stage view
                           const elem = document.getElementById('in-portal-resource-stage');
                           elem?.scrollIntoView({ behavior: 'smooth' });
                         }}
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                        className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 ${
                           isCurrentlyActive
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-primary hover:bg-secondary text-white'
+                            ? 'bg-emerald-600 text-white shadow-2xs'
+                            : 'bg-primary text-white hover:bg-secondary'
                         }`}
                       >
                         {isVideo ? (
@@ -301,26 +360,20 @@ export function ResourceStage({
                         ) : (
                           <Eye className="h-3.5 w-3.5" />
                         )}
-                        <span>
-                          {isCurrentlyActive
-                            ? 'Viewing in Portal'
-                            : isVideo
-                              ? 'Watch in Portal'
-                              : 'View in Portal'}
-                        </span>
+                        <span>{isCurrentlyActive ? 'Viewing Now' : 'Load in Stage'}</span>
                       </button>
                     ) : descriptor.kind === 'download_file' || isDataset ? (
                       <a
                         href={directDownloadHref}
                         download
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs transition hover:bg-emerald-700"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs transition hover:bg-emerald-700"
                       >
                         <Download className="h-3.5 w-3.5" />
-                        <span>{isDataset ? 'Download Dataset' : 'Download File'}</span>
+                        <span>Download Dataset</span>
                       </a>
                     ) : (
-                      <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
-                        In-Portal Only
+                      <span className="text-[11px] font-semibold text-slate-400">
+                        In-Portal Reference
                       </span>
                     )}
 
@@ -328,10 +381,11 @@ export function ResourceStage({
                       <a
                         href={directDownloadHref}
                         download
-                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                        title="Download file directly"
+                        className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 transition"
+                        title="Download a copy"
                       >
-                        <Download className="h-3.5 w-3.5" />
+                        <Download className="h-3 w-3" />
+                        <span className="hidden sm:inline">Save</span>
                       </a>
                     )}
                   </div>

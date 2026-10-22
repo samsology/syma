@@ -68,10 +68,12 @@ export function ResourceRenderer({
   const [isLoading, setIsLoading] = useState(true);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
 
+  const isPdf = isPdfFile(fileType) || isPdfFile(fileUrl);
   const isR2Url =
-    sourceType === 'R2' ||
-    isR2StorageReference(fileUrl) ||
-    (!fileUrl.startsWith('http') && !fileUrl.startsWith('/'));
+    !isPdf &&
+    (sourceType === 'R2' ||
+      isR2StorageReference(fileUrl) ||
+      (!fileUrl.startsWith('http') && !fileUrl.startsWith('/')));
 
   const [authorizing, setAuthorizing] = useState<boolean>(isR2Url);
   const targetId = id || resourceId;
