@@ -78,33 +78,57 @@ export class R2StorageProvider implements StorageProvider {
     const client = getR2Client();
     const bucket = getR2BucketName();
 
-    try {
-      const command = new HeadObjectCommand({
-        Bucket: bucket,
-        Key: key,
-      });
+    const candidateKeys = [
+      key,
+      key.startsWith(`${bucket}/`) ? key.slice(bucket.length + 1) : `${bucket}/${key}`,
+    ];
 
-      const response = await client.send(command, this.requestOptions());
-      return {
-        contentType: response.ContentType,
-        size: response.ContentLength,
-        lastModified: response.LastModified,
-        etag: response.ETag,
-      };
-    } catch (err: unknown) {
-      const error = err as { name?: string; $metadata?: { httpStatusCode?: number } };
-      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
-        return null;
+    for (const candidate of candidateKeys) {
+      try {
+        const command = new HeadObjectCommand({
+          Bucket: bucket,
+          Key: candidate,
+        });
+
+        const response = await client.send(command, this.requestOptions());
+        return {
+          contentType: response.ContentType,
+          size: response.ContentLength,
+          lastModified: response.LastModified,
+          etag: response.ETag,
+        };
+      } catch (err: unknown) {
+        const error = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+        if (error.name === 'NotFound' || error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+          continue;
+        }
+        throw err;
       }
-      throw err;
     }
+    return null;
   }
 
   async getSignedUrl(key: string, expiresInSeconds: number = 3600): Promise<string> {
     const client = getR2Client();
     const bucket = getR2BucketName();
 
-    const ext = key.split('.').pop()?.toLowerCase();
+    const candidateKeys = [
+      key,
+      key.startsWith(`${bucket}/`) ? key.slice(bucket.length + 1) : `${bucket}/${key}`,
+    ];
+
+    let resolvedKey = key;
+    for (const candidate of candidateKeys) {
+      try {
+        await client.send(new HeadObjectCommand({ Bucket: bucket, Key: candidate }), this.requestOptions());
+        resolvedKey = candidate;
+        break;
+      } catch {
+        // try next
+      }
+    }
+
+    const ext = resolvedKey.split('.').pop()?.toLowerCase();
     let responseContentType: string | undefined;
     switch (ext) {
       case 'pdf':
@@ -133,7 +157,7 @@ export class R2StorageProvider implements StorageProvider {
 
     const command = new GetObjectCommand({
       Bucket: bucket,
-      Key: key,
+      Key: resolvedKey,
       ResponseContentDisposition: 'inline',
       ...(responseContentType ? { ResponseContentType: responseContentType } : {}),
     });

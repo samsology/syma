@@ -41,6 +41,9 @@ export function getCachedDocument(key: string): CachedDocumentEntry | null {
     return null;
   }
 
+  // Refresh insertion order so eviction is least-recently-used, not oldest-created.
+  documentCache.delete(key);
+  documentCache.set(key, entry);
   return entry;
 }
 
@@ -49,6 +52,18 @@ export function getCachedDocument(key: string): CachedDocumentEntry | null {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setCachedDocument(key: string, doc: any, totalPages: number): void {
+  const existing = documentCache.get(key);
+  if (existing) {
+    documentCache.delete(key);
+    if (existing.doc !== doc) {
+      try {
+        existing.doc?.destroy?.();
+      } catch {
+        // ignore destruction errors
+      }
+    }
+  }
+
   if (documentCache.size >= MAX_CACHE_ENTRIES) {
     const oldestKey = documentCache.keys().next().value;
     if (oldestKey) {

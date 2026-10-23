@@ -41,6 +41,7 @@ interface ResourceRendererProps {
   isDownloadable?: boolean;
   className?: string;
   autoPlay?: boolean;
+  cacheScope?: string;
 }
 
 function formatBytes(bytes?: number | null) {
@@ -62,6 +63,7 @@ export function ResourceRenderer({
   description,
   isDownloadable = true,
   className = '',
+  cacheScope,
 }: ResourceRendererProps) {
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -434,6 +436,7 @@ export function ResourceRenderer({
         title={title}
         description={description}
         fileSize={fileSize}
+        cacheScope={cacheScope}
         className={className}
       />
     );

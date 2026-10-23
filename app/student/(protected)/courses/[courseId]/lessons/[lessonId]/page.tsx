@@ -111,6 +111,7 @@ export default async function StudentLessonPage({ params }: StudentLessonPagePro
 
   return (
     <LessonWorkspace
+      cacheScope={student.id}
       courseId={courseId}
       courseTitle={enrollment.course.title}
       lesson={lesson}

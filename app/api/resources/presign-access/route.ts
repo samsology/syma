@@ -3,6 +3,8 @@ import { getCurrentAdmin } from '@/lib/auth/session';
 import { getCurrentStudent } from '@/lib/auth/student-session';
 import { db } from '@/lib/db';
 import { storageService } from '@/lib/storage';
+import { getStudentResourceCourseIds } from '@/lib/resources/r2-access';
+import { normalizeR2ResourceKey } from '@/lib/resources/r2-key';
 
 export async function GET(request: Request) {
   try {
@@ -13,13 +15,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: 'Storage key is required.' }, { status: 400 });
     }
 
-    // Clean r2://, https://courses/, or S3 URL prefix if present
-    const rawKey = key.trim();
-    if (/^https?:\/\/courses\//i.test(rawKey)) {
-      key = rawKey.replace(/^https?:\/\//i, '');
-    } else {
-      key = rawKey.replace(/^r2:\/\//i, '');
+    const normalizedKey = normalizeR2ResourceKey(key);
+    if (!normalizedKey) {
+      return NextResponse.json({ success: false, error: 'Invalid storage key.' }, { status: 400 });
     }
+    key = normalizedKey;
 
     // 1. Authenticate (Admin or Student)
     const admin = await getCurrentAdmin();
@@ -31,75 +31,23 @@ export async function GET(request: Request) {
 
     // Authorize student course enrollment
     if (student) {
-      const resource = await db.lessonResource.findFirst({
+      const courseIds = await getStudentResourceCourseIds(key);
+      if (courseIds.length === 0) {
+        return NextResponse.json({ success: false, error: 'Resource is not available to students.' }, { status: 403 });
+      }
+      const enrollment = await db.enrollment.findFirst({
         where: {
-          OR: [
-            { storageKey: key },
-            { fileUrl: key },
-            { fileUrl: { contains: key } },
-          ],
-          isActive: true,
+          studentId: student.id,
+          courseId: { in: courseIds },
+          status: { in: ['ACTIVE', 'COMPLETED'] },
         },
-        select: {
-          lesson: {
-            select: {
-              module: {
-                select: {
-                  week: {
-                    select: {
-                      courseId: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+        select: { id: true },
       });
-
-      const lesson = !resource
-        ? await db.lesson.findFirst({
-            where: {
-              OR: [
-                { videoUrl: key },
-                { videoUrl: { contains: key } },
-                { slideUrl: key },
-                { slideUrl: { contains: key } },
-              ],
-            },
-            select: {
-              module: {
-                select: {
-                  week: {
-                    select: {
-                      courseId: true,
-                    },
-                  },
-                },
-              },
-            },
-          })
-        : null;
-
-      const courseId =
-        resource?.lesson?.module?.week?.courseId ||
-        lesson?.module?.week?.courseId;
-
-      if (courseId) {
-        const enrollment = await db.enrollment.findFirst({
-          where: {
-            studentId: student.id,
-            courseId,
-            status: { in: ['ACTIVE', 'COMPLETED'] },
-          },
-        });
-
-        if (!enrollment) {
-          return NextResponse.json(
-            { success: false, error: 'Access denied. Active course enrollment required.' },
-            { status: 403 }
-          );
-        }
+      if (!enrollment) {
+        return NextResponse.json(
+          { success: false, error: 'Access denied. Active course enrollment required.' },
+          { status: 403 }
+        );
       }
     }
 
@@ -121,7 +69,7 @@ export async function GET(request: Request) {
     });
   } catch (err: unknown) {
     const error = err as Error;
-    console.error('Error generating presigned access URL:', error);
+    console.error('Error generating presigned access URL:', { reason: error.name || 'Error' });
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to authorize storage access.' },
       { status: 500 }

@@ -115,6 +115,7 @@ export default async function StudentModuleSummaryPage({ params }: ModuleSummary
 
         {summary.resourceUrl ? (
           <ResourceRenderer
+            cacheScope={student.id}
             title={summary.title}
             fileUrl={summary.resourceUrl}
             resourceType={summary.resourceType === 'SLIDE' ? 'DOCUMENT' : 'VIDEO'}

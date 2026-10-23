@@ -5,7 +5,9 @@ import { getCurrentAdmin } from '@/lib/auth/session';
 import { getCurrentStudent } from '@/lib/auth/student-session';
 import { db } from '@/lib/db';
 import { getR2Client, getR2BucketName } from '@/lib/storage/r2Client';
-import { extractR2StorageKey } from '@/lib/resources/embed';
+import { getStudentResourceCourseIds } from '@/lib/resources/r2-access';
+import { normalizeR2ResourceKey } from '@/lib/resources/r2-key';
+import { isSupportedByteRange, validateRangeResponse } from '@/lib/resources/http-range';
 
 const MIME_TYPES: Record<string, string> = {
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -34,6 +36,10 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 export async function GET(request: Request) {
+  const requestStartedAt = Date.now();
+  console.info('[resource-proxy] request started', {
+    rangeRequested: Boolean(request.headers.get('range')),
+  });
   try {
     const { searchParams } = new URL(request.url);
     const rawKey = searchParams.get('key') || searchParams.get('url');
@@ -45,9 +51,10 @@ export async function GET(request: Request) {
       );
     }
 
-    const key =
-      extractR2StorageKey(rawKey) ||
-      rawKey.replace(/^r2:\/\//i, '').replace(/^https?:\/\/courses\//i, 'courses/');
+    const key = normalizeR2ResourceKey(rawKey);
+    if (!key) {
+      return NextResponse.json({ success: false, error: 'Invalid storage key.' }, { status: 400 });
+    }
 
     // 1. Authenticate (Admin or Student)
     const admin = await getCurrentAdmin();
@@ -62,121 +69,77 @@ export async function GET(request: Request) {
 
     // Authorize student course enrollment
     if (student) {
-      const resource = await db.lessonResource.findFirst({
-        where: {
-          OR: [
-            { storageKey: key },
-            { fileUrl: key },
-            { fileUrl: { endsWith: key } },
-          ],
-          isActive: true,
-        },
-        select: {
-          lesson: {
-            select: {
-              module: {
-                select: {
-                  week: {
-                    select: {
-                      courseId: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-
-      const lesson = !resource
-        ? await db.lesson.findFirst({
-            where: {
-              OR: [
-                { videoUrl: key },
-                { videoUrl: { endsWith: key } },
-                { slideUrl: key },
-                { slideUrl: { endsWith: key } },
-              ],
-            },
-            select: {
-              module: {
-                select: {
-                  week: {
-                    select: {
-                      courseId: true,
-                    },
-                  },
-                },
-              },
-            },
-          })
-        : null;
-
-      const courseId =
-        resource?.lesson?.module?.week?.courseId ||
-        lesson?.module?.week?.courseId;
-
-      if (!courseId) {
+      const courseIds = await getStudentResourceCourseIds(key);
+      if (courseIds.length === 0) {
         return NextResponse.json({ success: false, error: 'Resource is not available to students.' }, { status: 403 });
       }
-      if (courseId) {
-        const enrollment = await db.enrollment.findFirst({
-          where: {
-            studentId: student.id,
-            courseId,
-            status: { in: ['ACTIVE', 'COMPLETED'] },
-          },
-        });
-
-        if (!enrollment) {
-          return NextResponse.json(
-            { success: false, error: 'Access denied. Active course enrollment required.' },
-            { status: 403 }
-          );
-        }
+      const enrollment = await db.enrollment.findFirst({
+        where: {
+          studentId: student.id,
+          courseId: { in: courseIds },
+          status: { in: ['ACTIVE', 'COMPLETED'] },
+        },
+        select: { id: true },
+      });
+      if (!enrollment) {
+        return NextResponse.json(
+          { success: false, error: 'Access denied. Active course enrollment required.' },
+          { status: 403 }
+        );
       }
     }
 
     const client = getR2Client();
     const bucket = getR2BucketName();
     const rangeHeader = request.headers.get('range');
+    if (rangeHeader && !isSupportedByteRange(rangeHeader)) {
+      return new Response(null, { status: 416, headers: { 'Cache-Control': 'private, no-store' } });
+    }
     const isDownload =
       searchParams.get('download') === '1' || searchParams.get('download') === 'true';
 
     // 2. Fetch object with optional Range header for audio/video streaming & seeking
+    // Handle both raw key (e.g. courses/...) and bucket-prefixed key (e.g. syma-tech-resources/courses/...)
     let s3Response;
-    try {
-      const command = new GetObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        ...(rangeHeader ? { Range: rangeHeader } : {}),
-      });
-      s3Response = await client.send(command);
-    } catch (s3Err: unknown) {
-      const err = s3Err as { name?: string; $metadata?: { httpStatusCode?: number } };
-      if (err.name === 'NoSuchKey' || err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
-        return NextResponse.json(
-          { success: false, error: 'Resource object missing or not found in storage.' },
-          { status: 404 }
-        );
+    const candidateKeys = [
+      key,
+      key.startsWith(`${bucket}/`) ? key.slice(bucket.length + 1) : `${bucket}/${key}`,
+    ];
+
+    let foundKey = key;
+    for (const candidate of candidateKeys) {
+      try {
+        const command = new GetObjectCommand({
+          Bucket: bucket,
+          Key: candidate,
+          ...(rangeHeader ? { Range: rangeHeader } : {}),
+        });
+        s3Response = await client.send(command);
+        foundKey = candidate;
+        break;
+      } catch (s3Err: unknown) {
+        const err = s3Err as { name?: string; $metadata?: { httpStatusCode?: number } };
+        if (err.name === 'NoSuchKey' || err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+          continue;
+        }
+        throw s3Err;
       }
-      throw s3Err;
     }
 
-    if (!s3Response.Body) {
+    if (!s3Response || !s3Response.Body) {
       return NextResponse.json(
-        { success: false, error: 'Resource object has empty body.' },
+        { success: false, error: 'Resource object missing or not found in storage.' },
         { status: 404 }
       );
     }
 
     // Determine content type
-    const ext = key.split('.').pop()?.toLowerCase() || '';
+    const ext = foundKey.split('.').pop()?.toLowerCase() || '';
     const contentType =
       MIME_TYPES[ext] || s3Response.ContentType || 'application/octet-stream';
 
     // Determine clean filename for attachment / inline header
-    const rawFilename = key.split('/').pop() || 'resource';
+    const rawFilename = foundKey.split('/').pop() || 'resource';
     // Remove UUID prefix if present: e.g. 17c06227-c85a-44af-8218-8a8bf5498cc8-myFile.pptx -> myFile.pptx
     const cleanFilename = rawFilename.replace(/^[0-9a-fA-F-]{36}-/, '');
     const encodedFilename = encodeURIComponent(cleanFilename);
@@ -188,19 +151,38 @@ export async function GET(request: Request) {
 
     const headers = new Headers();
     headers.set('Content-Type', contentType);
-    headers.set('Accept-Ranges', 'bytes');
+    const responseStatus = validateRangeResponse(
+      rangeHeader,
+      s3Response.$metadata?.httpStatusCode,
+      s3Response.ContentRange,
+      s3Response.ContentLength
+    );
+    if (responseStatus === null) {
+      try {
+        (s3Response.Body as { destroy?: () => void }).destroy?.();
+      } catch {
+        // Ignore stream cleanup errors while rejecting an invalid range response.
+      }
+      console.warn('[resource-proxy] Invalid upstream range response', {
+        rangeRequested: Boolean(rangeHeader),
+        status: s3Response.$metadata?.httpStatusCode ?? null,
+        durationMs: Date.now() - requestStartedAt,
+      });
+      return NextResponse.json({ success: false, error: 'Unable to stream this resource safely.' }, { status: 502 });
+    }
+    if (responseStatus === 206) headers.set('Accept-Ranges', 'bytes');
+    // Private caching is partitioned by the authenticated request cookie.
     headers.set('Cache-Control', 'private, max-age=3600');
+    headers.set('Vary', 'Cookie');
     headers.set('Content-Disposition', contentDisposition);
 
     if (s3Response.ContentLength !== undefined) {
       headers.set('Content-Length', String(s3Response.ContentLength));
     }
 
-    if (s3Response.ContentRange) {
+    if (responseStatus === 206 && s3Response.ContentRange) {
       headers.set('Content-Range', s3Response.ContentRange);
     }
-
-    const statusCode = s3Response.$metadata?.httpStatusCode || (rangeHeader ? 206 : 200);
 
     // Convert AWS SDK stream to Web stream
     let webStream: ReadableStream;
@@ -212,13 +194,37 @@ export async function GET(request: Request) {
       webStream = s3Response.Body as unknown as ReadableStream;
     }
 
-    return new Response(webStream, {
-      status: statusCode,
+    console.info('[resource-proxy] upstream response ready', {
+      status: responseStatus,
+      rangeRequested: Boolean(rangeHeader),
+      bytes: s3Response.ContentLength ?? null,
+      durationMs: Date.now() - requestStartedAt,
+    });
+
+    let firstByteReported = false;
+    const measuredStream = webStream.pipeThrough(new TransformStream({
+      transform(chunk, controller) {
+        if (!firstByteReported) {
+          firstByteReported = true;
+          console.info('[resource-proxy] first response byte', {
+            durationMs: Date.now() - requestStartedAt,
+            rangeRequested: Boolean(rangeHeader),
+          });
+        }
+        controller.enqueue(chunk);
+      },
+    }));
+
+    return new Response(measuredStream, {
+      status: responseStatus,
       headers,
     });
   } catch (err: unknown) {
     const error = err as Error;
-    console.error('Error proxying resource access:', error);
+    console.error('[resource-proxy] failed', {
+      reason: error.name || 'Error',
+      durationMs: Date.now() - requestStartedAt,
+    });
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to proxy storage resource.' },
       { status: 500 }

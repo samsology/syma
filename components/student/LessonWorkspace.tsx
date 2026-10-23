@@ -22,6 +22,7 @@ import { ResourceStage } from '@/components/resources/ResourceStage';
 import { WeeklyCurriculum, WeeklyCurriculumWeek, ItemDripStatus } from '@/components/student/WeeklyCurriculum';
 
 interface LessonWorkspaceProps {
+  cacheScope: string;
   courseId: string;
   courseTitle: string;
   lesson: {
@@ -58,6 +59,7 @@ interface LessonWorkspaceProps {
 }
 
 export function LessonWorkspace({
+  cacheScope,
   courseId,
   courseTitle,
   lesson,
@@ -182,6 +184,7 @@ export function LessonWorkspace({
         <main className="flex-1 min-w-0 space-y-5">
           {/* In-Portal Primary Stage */}
           <ResourceStage
+            cacheScope={cacheScope}
             lessonTitle={lesson.title}
             primaryVideoUrl={lesson.videoUrl}
             primarySlideUrl={lesson.slideUrl}

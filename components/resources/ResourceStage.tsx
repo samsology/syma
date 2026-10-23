@@ -24,6 +24,7 @@ import {
 } from '@/lib/resources/embed';
 
 interface ResourceStageProps {
+  cacheScope?: string;
   lessonTitle: string;
   primaryVideoUrl?: string | null;
   primarySlideUrl?: string | null;
@@ -32,6 +33,7 @@ interface ResourceStageProps {
 }
 
 export function ResourceStage({
+  cacheScope,
   lessonTitle,
   primaryVideoUrl,
   primarySlideUrl,
@@ -167,6 +169,7 @@ export function ResourceStage({
           </div>
 
           <ResourceRenderer
+            cacheScope={cacheScope}
             id={activeMedia.id}
             title={activeMedia.title}
             fileUrl={activeMedia.fileUrl}
