@@ -38,11 +38,26 @@ test('PDF proxy accepts only a single well-formed byte range', () => {
 
 test('PDF proxy validates partial response headers and byte counts', () => {
   assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 0-9/100', 10), 206);
+  assert.equal(validateRangeResponse('bytes=10-19', 206, 'bytes 10-19/100', 10), 206);
+  assert.equal(validateRangeResponse('bytes=90-120', 206, 'bytes 90-99/100', 10), 206);
   assert.equal(validateRangeResponse('bytes=90-', 206, 'bytes 90-99/100', 10), 206);
   assert.equal(validateRangeResponse('bytes=-10', 206, 'bytes 90-99/100', 10), 206);
+  assert.equal(validateRangeResponse('bytes=-150', 206, 'bytes 0-99/100', 100), 206);
+  assert.equal(validateRangeResponse('bytes=10-19', 206, 'bytes 10-14/100', 5), null);
+  assert.equal(validateRangeResponse('bytes=10-', 206, 'bytes 10-98/100', 89), null);
+  assert.equal(validateRangeResponse('bytes=-10', 206, 'bytes 90-98/100', 9), null);
+  assert.equal(validateRangeResponse('bytes=90-120', 206, 'bytes 90-100/100', 11), null);
   assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 1-10/100', 10), null);
   assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 0-9/100', 9), null);
   assert.equal(validateRangeResponse('bytes=0-9', 206, undefined, 10), null);
+  assert.equal(validateRangeResponse('bytes=0-9', 206, '', 10), null);
+  assert.equal(validateRangeResponse('bytes=0-9', 206, 'not a content range', 10), null);
+  assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 0-9/9', 10), null);
+  assert.equal(validateRangeResponse('bytes=10-9', 206, 'bytes 10-19/100', 10), null);
+  assert.equal(validateRangeResponse('bytes=100-', 206, 'bytes 100-109/1000', 10), null);
+  assert.equal(validateRangeResponse('bytes=-0', 206, 'bytes 0-99/100', 100), null);
+  assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 0-9/9007199254740992', 10), null);
+  assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 0-9/100', Number.NaN), null);
   assert.equal(validateRangeResponse('bytes=0-9', 200, undefined, 100), 200);
   assert.equal(validateRangeResponse(null, 200, undefined, 100), 200);
 });

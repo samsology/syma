@@ -26,17 +26,30 @@ export function validateRangeResponse(
   const start = Number(parsed[1]);
   const end = Number(parsed[2]);
   const total = Number(parsed[3]);
-  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || !Number.isSafeInteger(total)) return null;
-  if (start < 0 || end < start || end >= total || end - start + 1 !== contentLength) return null;
+  if (
+    !Number.isSafeInteger(start) || !Number.isSafeInteger(end) || !Number.isSafeInteger(total) ||
+    !Number.isSafeInteger(contentLength) || contentLength <= 0 || total <= 0 ||
+    start < 0 || end < start || end >= total
+  ) return null;
 
   const requested = requestRange.trim().match(/^bytes=(\d*)-(\d*)$/i);
   if (!requested) return null;
   const requestedStart = requested[1] ? Number(requested[1]) : null;
   const requestedEnd = requested[2] ? Number(requested[2]) : null;
+  if (
+    (requestedStart !== null && !Number.isSafeInteger(requestedStart)) ||
+    (requestedEnd !== null && !Number.isSafeInteger(requestedEnd)) ||
+    (requestedStart !== null && requestedEnd !== null && requestedStart > requestedEnd)
+  ) return null;
+
   if (requestedStart !== null) {
-    if (start !== requestedStart || (requestedEnd !== null && end > requestedEnd)) return null;
-  } else if (requestedEnd !== null && start !== Math.max(total - requestedEnd, 0)) {
-    return null;
+    if (requestedStart >= total || start !== requestedStart) return null;
+    const requiredEnd = requestedEnd === null ? total - 1 : Math.min(requestedEnd, total - 1);
+    if (end !== requiredEnd) return null;
+  } else {
+    if (requestedEnd === null || requestedEnd === 0) return null;
+    if (end !== total - 1 || start !== Math.max(0, total - requestedEnd)) return null;
   }
+  if (end - start + 1 !== contentLength) return null;
   return 206;
 }
