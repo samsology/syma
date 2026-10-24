@@ -1,6 +1,16 @@
 import { db } from '@/lib/db';
 import { r2ReferenceMatchesKey } from './r2-key';
 
+/** A student must be enrolled in at least one course that owns the resource. */
+export function isStudentAuthorizedForResource(
+  resourceCourseIds: readonly string[],
+  enrolledCourseIds: readonly string[]
+): boolean {
+  if (resourceCourseIds.length === 0 || enrolledCourseIds.length === 0) return false;
+  const enrolled = new Set(enrolledCourseIds);
+  return resourceCourseIds.some((courseId) => enrolled.has(courseId));
+}
+
 /** Resolve only records whose normalized stored reference exactly matches the requested key. */
 export async function getStudentResourceCourseIds(key: string): Promise<string[]> {
   const [resources, lessons] = await Promise.all([

@@ -5,9 +5,15 @@ import { getCurrentAdmin } from '@/lib/auth/session';
 import { getCurrentStudent } from '@/lib/auth/student-session';
 import { db } from '@/lib/db';
 import { getR2Client, getR2BucketName } from '@/lib/storage/r2Client';
-import { getStudentResourceCourseIds } from '@/lib/resources/r2-access';
+import { getStudentResourceCourseIds, isStudentAuthorizedForResource } from '@/lib/resources/r2-access';
 import { normalizeR2ResourceKey } from '@/lib/resources/r2-key';
-import { isSupportedByteRange, validateRangeResponse } from '@/lib/resources/http-range';
+import {
+  applyByteRangeResponseHeaders,
+  getR2RangeOption,
+  getUnsatisfiedContentRange,
+  isSupportedByteRange,
+  validateRangeResponse,
+} from '@/lib/resources/http-range';
 
 const MIME_TYPES: Record<string, string> = {
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -79,9 +85,9 @@ export async function GET(request: Request) {
           courseId: { in: courseIds },
           status: { in: ['ACTIVE', 'COMPLETED'] },
         },
-        select: { id: true },
+        select: { courseId: true },
       });
-      if (!enrollment) {
+      if (!isStudentAuthorizedForResource(courseIds, enrollment ? [enrollment.courseId] : [])) {
         return NextResponse.json(
           { success: false, error: 'Access denied. Active course enrollment required.' },
           { status: 403 }
@@ -112,13 +118,19 @@ export async function GET(request: Request) {
         const command = new GetObjectCommand({
           Bucket: bucket,
           Key: candidate,
-          ...(rangeHeader ? { Range: rangeHeader } : {}),
+          ...getR2RangeOption(rangeHeader),
         });
         s3Response = await client.send(command);
         foundKey = candidate;
         break;
       } catch (s3Err: unknown) {
         const err = s3Err as { name?: string; $metadata?: { httpStatusCode?: number } };
+        if (rangeHeader && (err.name === 'InvalidRange' || err.$metadata?.httpStatusCode === 416)) {
+          const headers = new Headers({ 'Cache-Control': 'private, no-store' });
+          const contentRange = getUnsatisfiedContentRange(s3Err);
+          if (contentRange) headers.set('Content-Range', contentRange);
+          return new Response(null, { status: 416, headers });
+        }
         if (err.name === 'NoSuchKey' || err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
           continue;
         }
@@ -170,19 +182,18 @@ export async function GET(request: Request) {
       });
       return NextResponse.json({ success: false, error: 'Unable to stream this resource safely.' }, { status: 502 });
     }
-    if (responseStatus === 206) headers.set('Accept-Ranges', 'bytes');
+    // This endpoint serves objects through R2's S3 GetObject API, which supports
+    // byte ranges. Advertising this on the initial 200 lets PDF.js discover it.
+    applyByteRangeResponseHeaders(headers, {
+      rangeSupported: true,
+      status: responseStatus,
+      contentRange: s3Response.ContentRange,
+      contentLength: s3Response.ContentLength,
+    });
     // Private caching is partitioned by the authenticated request cookie.
     headers.set('Cache-Control', 'private, max-age=3600');
     headers.set('Vary', 'Cookie');
     headers.set('Content-Disposition', contentDisposition);
-
-    if (s3Response.ContentLength !== undefined) {
-      headers.set('Content-Length', String(s3Response.ContentLength));
-    }
-
-    if (responseStatus === 206 && s3Response.ContentRange) {
-      headers.set('Content-Range', s3Response.ContentRange);
-    }
 
     // Convert AWS SDK stream to Web stream
     let webStream: ReadableStream;

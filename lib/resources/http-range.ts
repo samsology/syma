@@ -8,6 +8,42 @@ export function isSupportedByteRange(value: string): boolean {
     (start === null || end === null || start <= end) && (start !== null || end !== 0);
 }
 
+/** Pass a validated browser Range header through to the R2 GetObject request. */
+export function getR2RangeOption(value: string | null): { Range?: string } {
+  return value ? { Range: value } : {};
+}
+
+export interface ByteRangeResponseHeaderOptions {
+  rangeSupported: boolean;
+  status: 200 | 206;
+  contentRange?: string;
+  contentLength?: number;
+}
+
+/** Apply only byte-range metadata verified by the proxy's R2 response handling. */
+export function applyByteRangeResponseHeaders(
+  headers: Headers,
+  options: ByteRangeResponseHeaderOptions
+): void {
+  if (options.rangeSupported) headers.set('Accept-Ranges', 'bytes');
+  if (options.contentLength !== undefined) {
+    headers.set('Content-Length', String(options.contentLength));
+  }
+  if (options.status === 206 && options.contentRange) {
+    headers.set('Content-Range', options.contentRange);
+  }
+}
+
+/** Preserve a valid unsatisfied-range length from an S3-compatible error, if supplied. */
+export function getUnsatisfiedContentRange(error: unknown): string | null {
+  const value = error as {
+    ContentRange?: string;
+    $response?: { headers?: Record<string, string | undefined> };
+  };
+  const candidate = value?.ContentRange ?? value?.$response?.headers?.['content-range'];
+  return candidate && /^bytes \*\/\d+$/.test(candidate) ? candidate : null;
+}
+
 /** Return the only status we can safely expose for a storage range response. */
 export function validateRangeResponse(
   requestRange: string | null,
@@ -17,8 +53,9 @@ export function validateRangeResponse(
 ): 200 | 206 | null {
   if (!requestRange) return upstreamStatus === 200 || upstreamStatus === undefined ? 200 : null;
 
-  // R2 or an upstream may ignore Range and return the complete object. Preserve that as 200.
-  if (upstreamStatus === 200) return 200;
+  // A full response cannot satisfy a Range request. Never present it as partial
+  // or stream an unbounded full object as an automatic fallback.
+  if (upstreamStatus === 200) return null;
   if (upstreamStatus !== 206 || !contentRange || contentLength === undefined) return null;
 
   const parsed = contentRange.match(/^bytes (\d+)-(\d+)\/(\d+)$/i);
@@ -50,6 +87,8 @@ export function validateRangeResponse(
     if (requestedEnd === null || requestedEnd === 0) return null;
     if (end !== total - 1 || start !== Math.max(0, total - requestedEnd)) return null;
   }
+  // The validated interval is now safe and within the object, so this addition
+  // cannot overflow the safe-integer range.
   if (end - start + 1 !== contentLength) return null;
   return 206;
 }

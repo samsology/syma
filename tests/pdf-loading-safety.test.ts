@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isSupportedByteRange, validateRangeResponse } from '../lib/resources/http-range';
+import {
+  applyByteRangeResponseHeaders,
+  getR2RangeOption,
+  getUnsatisfiedContentRange,
+  isSupportedByteRange,
+  validateRangeResponse,
+} from '../lib/resources/http-range';
 import { normalizeR2ResourceKey, r2ReferenceMatchesKey } from '../lib/resources/r2-key';
+import { isStudentAuthorizedForResource } from '../lib/resources/r2-access';
 import { getCachedDocument, invalidateDocumentCache, setCachedDocument } from '../lib/resources/pdf-cache';
 
 test('PDF cache refreshes recency and destroys replaced documents', () => {
@@ -37,16 +44,23 @@ test('PDF proxy accepts only a single well-formed byte range', () => {
 });
 
 test('PDF proxy validates partial response headers and byte counts', () => {
+  // Exact explicit range and one capped at the object's final byte.
   assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 0-9/100', 10), 206);
   assert.equal(validateRangeResponse('bytes=10-19', 206, 'bytes 10-19/100', 10), 206);
   assert.equal(validateRangeResponse('bytes=90-120', 206, 'bytes 90-99/100', 10), 206);
+
+  // Open-ended and suffix ranges must extend through the object's last byte.
   assert.equal(validateRangeResponse('bytes=90-', 206, 'bytes 90-99/100', 10), 206);
   assert.equal(validateRangeResponse('bytes=-10', 206, 'bytes 90-99/100', 10), 206);
   assert.equal(validateRangeResponse('bytes=-150', 206, 'bytes 0-99/100', 100), 206);
+
+  // A partial upstream interval is not a valid answer when requested bytes remain.
   assert.equal(validateRangeResponse('bytes=10-19', 206, 'bytes 10-14/100', 5), null);
   assert.equal(validateRangeResponse('bytes=10-', 206, 'bytes 10-98/100', 89), null);
   assert.equal(validateRangeResponse('bytes=-10', 206, 'bytes 90-98/100', 9), null);
   assert.equal(validateRangeResponse('bytes=90-120', 206, 'bytes 90-100/100', 11), null);
+
+  // Existing malformed, contradictory, unsatisfiable, and inconsistent cases.
   assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 1-10/100', 10), null);
   assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 0-9/100', 9), null);
   assert.equal(validateRangeResponse('bytes=0-9', 206, undefined, 10), null);
@@ -58,8 +72,58 @@ test('PDF proxy validates partial response headers and byte counts', () => {
   assert.equal(validateRangeResponse('bytes=-0', 206, 'bytes 0-99/100', 100), null);
   assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 0-9/9007199254740992', 10), null);
   assert.equal(validateRangeResponse('bytes=0-9', 206, 'bytes 0-9/100', Number.NaN), null);
-  assert.equal(validateRangeResponse('bytes=0-9', 200, undefined, 100), 200);
+  assert.equal(validateRangeResponse('bytes=0-9', 200, undefined, 100), null);
   assert.equal(validateRangeResponse(null, 200, undefined, 100), 200);
+});
+
+test('PDF proxy advertises range support only when the R2 path supports it', () => {
+  const fullResponseHeaders = new Headers({ 'Content-Type': 'application/pdf' });
+  applyByteRangeResponseHeaders(fullResponseHeaders, {
+    rangeSupported: true,
+    status: 200,
+    contentLength: 100,
+  });
+  assert.equal(fullResponseHeaders.get('Accept-Ranges'), 'bytes');
+  assert.equal(fullResponseHeaders.get('Content-Length'), '100');
+  assert.equal(fullResponseHeaders.get('Content-Type'), 'application/pdf');
+
+  const unsupportedHeaders = new Headers();
+  applyByteRangeResponseHeaders(unsupportedHeaders, {
+    rangeSupported: false,
+    status: 200,
+    contentLength: 100,
+  });
+  assert.equal(unsupportedHeaders.has('Accept-Ranges'), false);
+});
+
+test('PDF proxy forwards ranges and returns validated partial headers', () => {
+  assert.deepEqual(getR2RangeOption('bytes=10-19'), { Range: 'bytes=10-19' });
+  assert.deepEqual(getR2RangeOption(null), {});
+
+  const headers = new Headers({ 'Content-Type': 'application/pdf' });
+  applyByteRangeResponseHeaders(headers, {
+    rangeSupported: true,
+    status: 206,
+    contentRange: 'bytes 10-19/100',
+    contentLength: 10,
+  });
+  assert.equal(headers.get('Accept-Ranges'), 'bytes');
+  assert.equal(headers.get('Content-Range'), 'bytes 10-19/100');
+  assert.equal(headers.get('Content-Length'), '10');
+});
+
+test('PDF proxy preserves safe 416 handling for invalid and unsatisfiable ranges', () => {
+  assert.equal(isSupportedByteRange('bytes=invalid'), false);
+  assert.equal(validateRangeResponse('bytes=100-', 416, undefined, undefined), null);
+  assert.equal(getUnsatisfiedContentRange({ $response: { headers: { 'content-range': 'bytes */100' } } }), 'bytes */100');
+  assert.equal(getUnsatisfiedContentRange({ $response: { headers: { 'content-range': 'bytes 0-9/100' } } }), null);
+});
+
+test('student access fails closed for unknown resources and non-enrolled students', () => {
+  assert.equal(isStudentAuthorizedForResource([], ['course-1']), false);
+  assert.equal(isStudentAuthorizedForResource(['course-private'], ['course-other']), false);
+  assert.equal(isStudentAuthorizedForResource(['course-private'], []), false);
+  assert.equal(isStudentAuthorizedForResource(['course-private'], ['course-private']), true);
 });
 
 test('R2 keys reject traversal, encoded separators, and ambiguous paths', () => {

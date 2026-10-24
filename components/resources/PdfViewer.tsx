@@ -20,6 +20,10 @@ import {
   invalidateDocumentCache,
   type CachedDocumentEntry,
 } from '@/lib/resources/pdf-cache';
+import {
+  readPdfResponse,
+  validatePdfSignature,
+} from '@/lib/resources/pdf-buffer';
 
 export { getCachedDocument, setCachedDocument, invalidateDocumentCache };
 export type { CachedDocumentEntry };
@@ -37,54 +41,6 @@ interface PdfViewerProps {
 
 const PDF_LOAD_INACTIVITY_MS = 30_000;
 const PDF_LOAD_MAX_MS = 120_000;
-const PDF_BUFFER_FALLBACK_MAX_BYTES = 32 * 1024 * 1024;
-
-async function readPdfResponse(
-  response: Response,
-  signal: AbortSignal,
-  onProgress: (loaded: number, total: number) => void
-) {
-  const contentLength = Number(response.headers.get('content-length')) || 0;
-  if (contentLength > PDF_BUFFER_FALLBACK_MAX_BYTES) {
-    throw new Error('This presentation is too large for the fallback viewer. Contact your course administrator.');
-  }
-  if (!response.body) {
-    throw new Error('The presentation response could not be streamed safely. Retry the presentation.');
-  }
-
-  const reader = response.body.getReader();
-  let buffer = new Uint8Array(contentLength || Math.min(64 * 1024, PDF_BUFFER_FALLBACK_MAX_BYTES));
-  let loaded = 0;
-  try {
-    while (true) {
-      if (signal.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (!value) continue;
-      loaded += value.byteLength;
-      const nextLoaded = loaded + value.byteLength;
-      if (nextLoaded > PDF_BUFFER_FALLBACK_MAX_BYTES) {
-        await reader.cancel();
-        throw new Error('This presentation is too large for the fallback viewer. Contact your course administrator.');
-      }
-      if (nextLoaded > buffer.byteLength) {
-        const nextBuffer = new Uint8Array(Math.min(PDF_BUFFER_FALLBACK_MAX_BYTES, Math.max(nextLoaded, buffer.byteLength * 2)));
-        nextBuffer.set(buffer.subarray(0, loaded));
-        buffer = nextBuffer;
-      }
-      buffer.set(value, loaded);
-      loaded = nextLoaded;
-      onProgress(loaded, contentLength);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  if (contentLength > 0 && loaded !== contentLength) {
-    throw new Error('The presentation download ended before all bytes arrived. Retry the presentation.');
-  }
-  return loaded === buffer.byteLength ? buffer.buffer : buffer.slice(0, loaded).buffer;
-}
 
 function classifyPdfFailure(error: unknown): string {
   const value = error as { name?: string; status?: number; message?: string };
@@ -365,7 +321,7 @@ export function PdfViewer({
 
         setLoadingProgress('Processing document bytes...');
         resetInactivityTimeout();
-        const arrayBuffer = await readPdfResponse(response, abortCtrl.signal, (loaded, total) => {
+        const pdfBytes = await readPdfResponse(response, abortCtrl.signal, (loaded, total) => {
           resetInactivityTimeout();
           if (!hasReportedFirstResponse && loaded > 0) {
             hasReportedFirstResponse = true;
@@ -381,14 +337,10 @@ export function PdfViewer({
         stage = 'document-processing';
         clearTimeout(inactivityTimeout);
 
-        const headerBytes = new Uint8Array(arrayBuffer.slice(0, 5));
-        const headerStr = String.fromCharCode(...headerBytes);
-        if (!headerStr.startsWith('%PDF')) {
-          throw new Error('Received resource is not a valid PDF document.');
-        }
+        validatePdfSignature(pdfBytes);
 
         const bufferedTask = pdfjs.getDocument({
-          data: new Uint8Array(arrayBuffer),
+          data: pdfBytes,
           cMapUrl: '/cmaps/',
           cMapPacked: true,
           standardFontDataUrl: '/standard_fonts/',
